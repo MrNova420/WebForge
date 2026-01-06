@@ -218,10 +218,13 @@ export class Profiler {
 
   /**
    * Begins a new frame.
+   * Call this at the start of your render loop.
    */
   beginFrame(): void {
     if (!this.enabled) return;
-    // Frame tracking is handled in endFrame()
+    
+    // Update last frame time for delta calculation
+    this.lastFrameTime = performance.now();
   }
 
   /**
@@ -360,10 +363,13 @@ export class Profiler {
     total: number;
     limit: number;
   } | null {
-    // @ts-ignore - performance.memory is not in all browsers
-    if (performance.memory) {
-      // @ts-ignore
-      const mem = performance.memory;
+    // Check if memory API is available (Chrome/Edge only)
+    if ('memory' in performance && typeof performance.memory === 'object') {
+      const mem = performance.memory as {
+        usedJSHeapSize: number;
+        totalJSHeapSize: number;
+        jsHeapSizeLimit: number;
+      };
       return {
         used: mem.usedJSHeapSize / (1024 * 1024),
         total: mem.totalJSHeapSize / (1024 * 1024),

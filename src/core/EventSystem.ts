@@ -68,7 +68,10 @@ export class EventSystem {
       this.handlers.set(eventName, new Set());
     }
     
-    this.handlers.get(eventName)!.add(handler as EventHandler);
+    const handlers = this.handlers.get(eventName);
+    if (handlers) {
+      handlers.add(handler as EventHandler);
+    }
     
     if (this.debug) {
       console.log(`[EventSystem] Subscribed to "${eventName}"`);
@@ -91,7 +94,10 @@ export class EventSystem {
       this.onceHandlers.set(eventName, new Set());
     }
     
-    this.onceHandlers.get(eventName)!.add(handler as EventHandler);
+    const handlers = this.onceHandlers.get(eventName);
+    if (handlers) {
+      handlers.add(handler as EventHandler);
+    }
     
     if (this.debug) {
       console.log(`[EventSystem] Subscribed once to "${eventName}"`);
@@ -214,9 +220,12 @@ export class EventSystem {
    * @returns True if event has subscribers
    */
   hasListeners(eventName: string): boolean {
+    const regularHandlers = this.handlers.get(eventName);
+    const onceHandlers = this.onceHandlers.get(eventName);
+    
     return (
-      (this.handlers.has(eventName) && this.handlers.get(eventName)!.size > 0) ||
-      (this.onceHandlers.has(eventName) && this.onceHandlers.get(eventName)!.size > 0)
+      (regularHandlers !== undefined && regularHandlers.size > 0) ||
+      (onceHandlers !== undefined && onceHandlers.size > 0)
     );
   }
 
