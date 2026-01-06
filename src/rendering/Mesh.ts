@@ -79,8 +79,13 @@ export class Mesh {
     if (data instanceof Uint16Array || data instanceof Uint32Array) {
       typedArray = data;
     } else {
+      // Find max value efficiently without spread operator
+      let maxValue = 0;
+      for (let i = 0; i < data.length; i++) {
+        if (data[i] > maxValue) maxValue = data[i];
+      }
       // Use Uint16Array for smaller indices, Uint32Array for larger
-      typedArray = Math.max(...data) > 65535 ? new Uint32Array(data) : new Uint16Array(data);
+      typedArray = maxValue > 65535 ? new Uint32Array(data) : new Uint16Array(data);
     }
     
     this.indexBuffer.setData(typedArray);

@@ -200,11 +200,11 @@ export class DebugRenderer {
     if (!this.enabled) return;
 
     // X axis (red)
-    this.drawLine(origin, origin.add(new Vector3(size, 0, 0)), new Vector3(1, 0, 0));
+    this.drawLine(origin, new Vector3(origin.x + size, origin.y, origin.z), new Vector3(1, 0, 0));
     // Y axis (green)
-    this.drawLine(origin, origin.add(new Vector3(0, size, 0)), new Vector3(0, 1, 0));
+    this.drawLine(origin, new Vector3(origin.x, origin.y + size, origin.z), new Vector3(0, 1, 0));
     // Z axis (blue)
-    this.drawLine(origin, origin.add(new Vector3(0, 0, size)), new Vector3(0, 0, 1));
+    this.drawLine(origin, new Vector3(origin.x, origin.y, origin.z + size), new Vector3(0, 0, 1));
   }
 
   /**
