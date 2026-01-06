@@ -80,6 +80,9 @@ npm run dev
 - [Development Methodology](./DEVELOPMENT_METHODOLOGY.md) - Architecture patterns, coding standards, best practices
 - [Features Roadmap](./FEATURES_ROADMAP.md) - Detailed specifications for 500+ features
 - [Architecture Design](./ARCHITECTURE_DESIGN.md) - Technical architecture and system design
+- [Build & Deployment](./BUILD_DEPLOYMENT.md) - Export to any platform, self-hosting, CDN integration
+- [Game Types & Styles](./GAME_TYPES_STYLES.md) - Support for all genres and art styles
+- [Rapid Development](./RAPID_DEVELOPMENT.md) - Fast prototyping to high-quality production workflows
 - [Progress Tracking](./PROGRESS.md) - Development progress and milestones
 
 **Coming Soon:**

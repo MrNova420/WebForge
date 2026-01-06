@@ -23,6 +23,9 @@
 - [DEVELOPMENT_METHODOLOGY.md](./DEVELOPMENT_METHODOLOGY.md) - Implementation guidelines
 - [FEATURES_ROADMAP.md](./FEATURES_ROADMAP.md) - Complete feature specifications (500+)
 - [ARCHITECTURE_DESIGN.md](./ARCHITECTURE_DESIGN.md) - Technical architecture details
+- [BUILD_DEPLOYMENT.md](./BUILD_DEPLOYMENT.md) - Export & deployment to any platform
+- [GAME_TYPES_STYLES.md](./GAME_TYPES_STYLES.md) - All genres and art styles supported
+- [RAPID_DEVELOPMENT.md](./RAPID_DEVELOPMENT.md) - Fast prototyping workflows
 
 ---
 

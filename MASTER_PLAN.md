@@ -26,6 +26,9 @@ WebForge includes detailed planning and design documentation:
 - **[DEVELOPMENT_METHODOLOGY.md](./DEVELOPMENT_METHODOLOGY.md)** - Architecture patterns, coding standards, testing strategies, and best practices
 - **[FEATURES_ROADMAP.md](./FEATURES_ROADMAP.md)** - Complete feature specifications with 500+ planned features
 - **[ARCHITECTURE_DESIGN.md](./ARCHITECTURE_DESIGN.md)** - Technical architecture, system design, and implementation details
+- **[BUILD_DEPLOYMENT.md](./BUILD_DEPLOYMENT.md)** - Complete export and deployment guide for all platforms (web, desktop, mobile, self-hosting)
+- **[GAME_TYPES_STYLES.md](./GAME_TYPES_STYLES.md)** - Support for all game genres (FPS, RPG, Racing, etc.) and art styles (photorealistic, stylized, pixel art, etc.)
+- **[RAPID_DEVELOPMENT.md](./RAPID_DEVELOPMENT.md)** - Workflows for fast prototyping (hours) to high-quality production (months)
 - **[MASTER_PLAN.md](./MASTER_PLAN.md)** - This document: high-level overview and vision
 
 ---
