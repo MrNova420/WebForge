@@ -16,5 +16,8 @@ export * from './core';
 // Scene graph
 export * from './scene';
 
+// Rendering system
+export * from './rendering';
+
 // Utilities
 export * from './utils';
