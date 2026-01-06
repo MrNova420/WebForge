@@ -706,9 +706,81 @@ src/rendering/DebugRenderer.ts
 
 ---
 
-### Phase 7-10: Polish, Multiplayer, Launch (Months 13-24)
+### Phase 7-8: Polish & Editor (Months 13-16)
+
+**Focus:** User experience and professional tools
+
+**Deliverables:**
+- Complete visual editor
+- Inspector and hierarchy panels
+- Asset browser and import pipeline
+- Scene composition tools
+- Prefab system
+- Build and export tools
 
 See **MASTER_PLAN.md** and **PROGRESS.md** for complete timeline.
+
+---
+
+## 🆕 EXPANDED ROADMAP: Phases 9-18 (Months 17-36)
+
+> **Note:** The original plan (Phases 1-8) covered foundational and basic features.  
+> The expanded roadmap adds **moderate to cutting-edge features** for a complete AAA-grade platform.
+
+### Phase 9-10: Moderate Advanced Features (Months 17-20)
+
+**Week 49-56: Advanced Rendering**
+- Volumetric lighting, atmospheric scattering
+- Subsurface scattering, global illumination
+- Ray tracing (WebGPU), GPU particles
+
+**Week 57-64: Complex Systems**  
+- Advanced fluid simulation, destruction
+- Audio systems (3D spatial, reverb, DSP)
+- Procedural animation, motion matching
+
+### Phase 11-12: Professional Advanced Features (Months 21-24)
+
+**Week 65-72: AI & Generation**
+- Behavior trees, pathfinding, utility AI
+- Procedural terrain, vegetation, cities
+- Noise libraries, L-systems
+
+**Week 73-80: Networking & Tools**
+- WebRTC multiplayer, state sync
+- Visual scripting, shader/material graphs
+- Animation graphs, cinematics
+
+### Phase 13-14: AAA-Grade Features (Months 25-28)
+
+**Week 81-88: Advanced Visual FX**
+- Weather systems (rain, snow, fog)
+- Water simulation (FFT ocean)
+- Terrain streaming and sculpting
+
+**Week 89-96: Character Tech**
+- Advanced customization, clothing physics
+- Hair simulation, facial rigging
+- Save/load, mod support, achievements
+
+### Phase 15-16: Professional Tools (Months 29-32)
+
+**Week 97-104: Production Tools**
+- Collaborative editing, version control
+- Build automation, multi-platform export
+- PWA, Electron, mobile packaging
+
+**Week 105-112: Polish & Community**
+- Advanced profiling and optimization
+- Complete documentation and tutorials
+- Community platform and marketplace
+
+### Phase 17-18: Future Tech (Months 33-36)
+
+**Week 113-120: Innovation**
+- WebGPU support, ML integration
+- VR/AR (WebXR), cloud rendering
+- AI-assisted development tools
 
 ---
 
