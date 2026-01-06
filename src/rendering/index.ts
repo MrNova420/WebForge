@@ -48,3 +48,9 @@ export {
   shadowCSMFunction,
   shadowVSMFunction
 } from './shaders/ShadowShaders';
+
+export { PostProcessing, BasePostEffect } from './PostProcessing';
+export type { PostEffect, PostProcessingConfig } from './PostProcessing';
+
+export { BloomEffect } from './effects/BloomEffect';
+export type { BloomConfig } from './effects/BloomEffect';
