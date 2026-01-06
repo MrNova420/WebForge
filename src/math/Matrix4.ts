@@ -185,6 +185,32 @@ export class Matrix4 {
   }
 
   /**
+   * Transforms a point (includes translation).
+   * Alias for multiplyVector3.
+   * @param v - Point to transform
+   * @returns Transformed point
+   */
+  transformPoint(v: Vector3): Vector3 {
+    return this.multiplyVector3(v);
+  }
+
+  /**
+   * Transforms a direction (excludes translation).
+   * @param v - Direction to transform
+   * @returns Transformed direction
+   */
+  transformDirection(v: Vector3): Vector3 {
+    const e = this.elements;
+    const x = v.x, y = v.y, z = v.z;
+
+    return new Vector3(
+      e[0] * x + e[4] * y + e[8]  * z,
+      e[1] * x + e[5] * y + e[9]  * z,
+      e[2] * x + e[6] * y + e[10] * z
+    ).normalize();
+  }
+
+  /**
    * Calculates the determinant of this matrix.
    * @returns The determinant
    */

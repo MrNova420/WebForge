@@ -55,6 +55,9 @@ export class Transform {
   /** Dirty flag for world matrix */
   private _worldDirty: boolean;
 
+  /** Change callback */
+  private _changeCallback: (() => void) | null = null;
+
   /**
    * Creates a new Transform.
    * @param position - Initial position (default: origin)
@@ -78,6 +81,25 @@ export class Transform {
     
     this._localDirty = true;
     this._worldDirty = true;
+  }
+
+  /**
+   * Sets a callback to be called when the transform changes
+   * @param callback - Callback function
+   */
+  onChange(callback: () => void): void {
+    this._changeCallback = callback;
+  }
+
+  /**
+   * Marks local matrix as dirty and notifies callback
+   */
+  private markLocalDirty(): void {
+    this._localDirty = true;
+    this.markWorldDirty();
+    if (this._changeCallback) {
+      this._changeCallback();
+    }
   }
 
   /**
@@ -143,14 +165,6 @@ export class Transform {
     this._children.forEach(child => {
       child.setParent(null);
     });
-  }
-
-  /**
-   * Marks the local matrix as dirty.
-   */
-  markLocalDirty(): void {
-    this._localDirty = true;
-    this.markWorldDirty();
   }
 
   /**

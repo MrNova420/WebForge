@@ -220,4 +220,57 @@ export class Shader {
     this.compiled = false;
     this.events.clear();
   }
+
+  /**
+   * Helper methods for common uniform types
+   */
+  
+  setUniform1f(name: string, v0: number): void {
+    const location = this.getUniformLocation(name);
+    if (location) this.gl.uniform1f(location, v0);
+  }
+
+  setUniform2f(name: string, v0: number, v1: number): void {
+    const location = this.getUniformLocation(name);
+    if (location) this.gl.uniform2f(location, v0, v1);
+  }
+
+  setUniform3f(name: string, v0: number, v1: number, v2: number): void {
+    const location = this.getUniformLocation(name);
+    if (location) this.gl.uniform3f(location, v0, v1, v2);
+  }
+
+  setUniform4f(name: string, v0: number, v1: number, v2: number, v3: number): void {
+    const location = this.getUniformLocation(name);
+    if (location) this.gl.uniform4f(location, v0, v1, v2, v3);
+  }
+
+  setUniform1i(name: string, v0: number): void {
+    const location = this.getUniformLocation(name);
+    if (location) this.gl.uniform1i(location, v0);
+  }
+
+  setUniformMatrix3fv(name: string, value: Float32Array | number[]): void {
+    const location = this.getUniformLocation(name);
+    if (location) {
+      const arr = value instanceof Float32Array ? value : new Float32Array(value);
+      this.gl.uniformMatrix3fv(location, false, arr);
+    }
+  }
+
+  setUniformMatrix4fv(name: string, value: Float32Array | number[]): void {
+    const location = this.getUniformLocation(name);
+    if (location) {
+      const arr = value instanceof Float32Array ? value : new Float32Array(value);
+      this.gl.uniformMatrix4fv(location, false, arr);
+    }
+  }
+
+  hasUniform(name: string): boolean {
+    return this.getUniformLocation(name) !== null;
+  }
+
+  getAttribLocation(name: string): number {
+    return this.getAttributeLocation(name);
+  }
 }

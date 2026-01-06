@@ -184,4 +184,23 @@ export class WebGLContext {
     this.canvas = null;
     this.events.clear();
   }
+
+  /**
+   * Gets the raw WebGL context
+   */
+  getGL(): WebGLRenderingContext | WebGL2RenderingContext {
+    if (!this.gl) {
+      throw new Error('WebGL context not initialized');
+    }
+    return this.gl;
+  }
+
+  /**
+   * Sets clear color
+   */
+  setClearColor(r: number, g: number, b: number, a: number): void {
+    if (this.gl) {
+      this.gl.clearColor(r, g, b, a);
+    }
+  }
 }
