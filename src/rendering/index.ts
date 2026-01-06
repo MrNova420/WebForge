@@ -36,3 +36,15 @@ export { PBRMaterial } from './PBRMaterial';
 export type { PBRMaterialParams } from './PBRMaterial';
 
 export { pbrVertexShader, simplePBRFragmentShader } from './shaders/PBRShaders';
+
+export { ShadowMapManager, CascadedShadowMap } from './ShadowMap';
+export type { ShadowMapConfig, ShadowMap, CascadedShadowMapConfig } from './ShadowMap';
+
+export { 
+  shadowDepthVertexShader, 
+  shadowDepthFragmentShader,
+  shadowPCFFunction,
+  shadowBasicFunction,
+  shadowCSMFunction,
+  shadowVSMFunction
+} from './shaders/ShadowShaders';
