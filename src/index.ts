@@ -13,5 +13,8 @@ export * from './math';
 // Core systems
 export * from './core';
 
+// Scene graph
+export * from './scene';
+
 // Utilities
 export * from './utils';
