@@ -74,10 +74,19 @@ npm run dev
 
 ## 📖 Documentation
 
-- [Master Plan](./MASTER_PLAN.md) - Complete project vision
-- [Progress](./PROGRESS.md) - Development tracking
-- API Reference (coming soon)
-- Tutorials (coming soon)
+**Comprehensive Planning & Design:**
+- [Master Plan](./MASTER_PLAN.md) - Complete project vision and overview
+- [Performance Optimization](./PERFORMANCE_OPTIMIZATION.md) - Universal device compatibility & optimization strategies
+- [Development Methodology](./DEVELOPMENT_METHODOLOGY.md) - Architecture patterns, coding standards, best practices
+- [Features Roadmap](./FEATURES_ROADMAP.md) - Detailed specifications for 500+ features
+- [Architecture Design](./ARCHITECTURE_DESIGN.md) - Technical architecture and system design
+- [Progress Tracking](./PROGRESS.md) - Development progress and milestones
+
+**Coming Soon:**
+- API Reference
+- Interactive Tutorials
+- Example Projects
+- Community Guides
 
 ---
 

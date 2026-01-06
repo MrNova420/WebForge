@@ -11,10 +11,18 @@
 - Unity's ease of use
 - Blender's 3D modeling tools
 - All in-browser, zero install
+- Universal compatibility (low-end to high-end devices)
 
 **Timeline:** 24 months to v1.0  
 **Quality:** World-class, AAA-grade  
 **Scope:** Complete game development suite
+
+**Documentation:**
+- [MASTER_PLAN.md](./MASTER_PLAN.md) - Overall vision and strategy
+- [PERFORMANCE_OPTIMIZATION.md](./PERFORMANCE_OPTIMIZATION.md) - Universal device optimization
+- [DEVELOPMENT_METHODOLOGY.md](./DEVELOPMENT_METHODOLOGY.md) - Implementation guidelines
+- [FEATURES_ROADMAP.md](./FEATURES_ROADMAP.md) - Complete feature specifications (500+)
+- [ARCHITECTURE_DESIGN.md](./ARCHITECTURE_DESIGN.md) - Technical architecture details
 
 ---
 
