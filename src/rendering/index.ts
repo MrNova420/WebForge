@@ -28,3 +28,11 @@ export { Renderer } from './Renderer';
 export type { RendererConfig, Renderable } from './Renderer';
 
 export { DebugRenderer } from './DebugRenderer';
+
+export { Light, DirectionalLight, PointLight, SpotLight, AreaLight, LightType } from './Light';
+export type { LightConfig, DirectionalLightConfig, PointLightConfig, SpotLightConfig, AreaLightConfig } from './Light';
+
+export { PBRMaterial } from './PBRMaterial';
+export type { PBRMaterialParams } from './PBRMaterial';
+
+export { pbrVertexShader, simplePBRFragmentShader } from './shaders/PBRShaders';
