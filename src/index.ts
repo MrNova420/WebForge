@@ -25,5 +25,8 @@ export * from './optimization';
 // Physics system
 export * from './physics';
 
+// Animation system
+export * from './animation';
+
 // Utilities
 export * from './utils';
