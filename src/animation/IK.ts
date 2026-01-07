@@ -79,7 +79,10 @@ export class TwoBoneIK {
 
         // Calculate pole vector direction
         const poleDir = poleTarget.clone().subtract(root);
-        poleDir.subtractSelf(targetDir.clone().multiplyScalar(poleDir.dot(targetDir)));
+        const dotProduct = poleDir.dot(targetDir);
+        poleDir.x -= targetDir.x * dotProduct;
+        poleDir.y -= targetDir.y * dotProduct;
+        poleDir.z -= targetDir.z * dotProduct;
         poleDir.normalize();
 
         // Calculate middle joint position
