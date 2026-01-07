@@ -37,5 +37,8 @@ export * from './editor';
 // Geometry system
 export * from './geometry';
 
+// Terrain system
+export * from './terrain';
+
 // Utilities
 export * from './utils';
