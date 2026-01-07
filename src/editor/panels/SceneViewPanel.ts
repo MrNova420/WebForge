@@ -12,6 +12,7 @@ import { Scene } from '../../scene/Scene';
 import { Renderer } from '../../rendering/Renderer';
 import { Vector3 } from '../../math/Vector3';
 import { GizmoManager } from '../gizmos/GizmoManager';
+import { CameraController, ViewDirection } from '../camera/CameraController';
 
 /**
  * Camera control mode
@@ -29,12 +30,13 @@ export class SceneViewPanel extends Panel {
     private canvas: HTMLCanvasElement | null = null;
     private context: EditorContext;
     private camera: Camera | null = null;
+    private cameraController: CameraController | null = null;
     private scene: Scene | null = null;
     private renderer: Renderer | null = null;
     private gizmoManager: GizmoManager | null = null;
     protected content: HTMLElement | null = null;
     
-    // Camera controls
+    // Camera controls (legacy - kept for compatibility)
     private cameraMode: CameraMode = CameraMode.ORBIT;
     private cameraDistance: number = 10;
     private cameraYaw: number = 0;
@@ -46,6 +48,9 @@ export class SceneViewPanel extends Panel {
     private lastMouseX: number = 0;
     private lastMouseY: number = 0;
     private mouseButton: number = -1;
+    
+    // Keyboard state for fly mode
+    private keysPressed: Set<string> = new Set();
     
     // Grid settings
     private showGrid: boolean = true;
@@ -153,7 +158,135 @@ export class SceneViewPanel extends Panel {
         };
         toolbar.appendChild(gridBtn);
         
+        // View shortcuts dropdown
+        const viewMenu = this.createViewMenu();
+        toolbar.appendChild(viewMenu);
+        
+        // Frame selected button
+        const frameBtn = document.createElement('button');
+        frameBtn.textContent = '🎯';
+        frameBtn.title = 'Frame Selected (F)';
+        frameBtn.style.cssText = `
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            margin-left: 8px;
+        `;
+        frameBtn.onclick = () => {
+            this.frameSelected();
+        };
+        toolbar.appendChild(frameBtn);
+        
         return toolbar;
+    }
+    
+    /**
+     * Creates the view menu
+     */
+    private createViewMenu(): HTMLElement {
+        const container = document.createElement('div');
+        container.style.cssText = 'position: relative; margin-left: 8px;';
+        
+        const btn = document.createElement('button');
+        btn.textContent = '👁️';
+        btn.title = 'View Options';
+        btn.style.cssText = `
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        `;
+        
+        const menu = document.createElement('div');
+        menu.style.cssText = `
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 4px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 4px;
+            min-width: 150px;
+            z-index: 1000;
+        `;
+        
+        const views = [
+            { name: 'Front', direction: ViewDirection.FRONT, key: '1' },
+            { name: 'Back', direction: ViewDirection.BACK, key: '2' },
+            { name: 'Top', direction: ViewDirection.TOP, key: '7' },
+            { name: 'Bottom', direction: ViewDirection.BOTTOM, key: '8' },
+            { name: 'Left', direction: ViewDirection.LEFT, key: '3' },
+            { name: 'Right', direction: ViewDirection.RIGHT, key: '4' },
+            { name: 'Perspective', direction: ViewDirection.PERSPECTIVE, key: '5' }
+        ];
+        
+        views.forEach(({ name, direction, key }) => {
+            const item = document.createElement('div');
+            item.textContent = `${name} (${key})`;
+            item.style.cssText = `
+                padding: 8px 12px;
+                cursor: pointer;
+                color: white;
+                font-size: 13px;
+                border-radius: 3px;
+            `;
+            item.onmouseenter = () => {
+                item.style.background = 'rgba(255, 255, 255, 0.1)';
+            };
+            item.onmouseleave = () => {
+                item.style.background = 'transparent';
+            };
+            item.onclick = () => {
+                this.setViewDirection(direction);
+                menu.style.display = 'none';
+            };
+            menu.appendChild(item);
+        });
+        
+        btn.onclick = () => {
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        };
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!container.contains(e.target as Node)) {
+                menu.style.display = 'none';
+            }
+        });
+        
+        container.appendChild(btn);
+        container.appendChild(menu);
+        
+        return container;
+    }
+    
+    /**
+     * Frames the selected objects
+     */
+    private frameSelected(): void {
+        if (!this.cameraController) return;
+        
+        const selected = this.context.getSelection();
+        if (selected.length > 0) {
+            this.cameraController.frameSelected(selected);
+        }
+    }
+    
+    /**
+     * Sets the view direction
+     */
+    private setViewDirection(direction: ViewDirection): void {
+        if (!this.cameraController) return;
+        this.cameraController.setViewDirection(direction);
     }
     
     /**
@@ -186,11 +319,54 @@ export class SceneViewPanel extends Panel {
         this.canvas.addEventListener('wheel', this.onMouseWheel.bind(this));
         this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
         
+        // Keyboard events
+        window.addEventListener('keydown', this.onKeyDown.bind(this));
+        window.addEventListener('keyup', this.onKeyUp.bind(this));
+        
         // Resize observer
         const resizeObserver = new ResizeObserver(() => {
             this.handleResize();
         });
         resizeObserver.observe(this.canvas);
+    }
+    
+    /**
+     * Handles keyboard down event
+     */
+    private onKeyDown(event: KeyboardEvent): void {
+        // Only handle keys when this panel is focused
+        if (!this.isFocused()) return;
+        
+        this.keysPressed.add(event.key.toLowerCase());
+        
+        // View shortcuts (numpad or number keys)
+        const viewShortcuts: Record<string, ViewDirection> = {
+            '1': ViewDirection.FRONT,
+            '2': ViewDirection.BACK,
+            '3': ViewDirection.LEFT,
+            '4': ViewDirection.RIGHT,
+            '5': ViewDirection.PERSPECTIVE,
+            '7': ViewDirection.TOP,
+            '8': ViewDirection.BOTTOM
+        };
+        
+        if (viewShortcuts[event.key]) {
+            this.setViewDirection(viewShortcuts[event.key]);
+            event.preventDefault();
+        }
+        
+        // Frame selected with 'F' key
+        if (event.key.toLowerCase() === 'f') {
+            this.frameSelected();
+            event.preventDefault();
+        }
+    }
+    
+    /**
+     * Handles keyboard up event
+     */
+    private onKeyUp(event: KeyboardEvent): void {
+        this.keysPressed.delete(event.key.toLowerCase());
     }
     
     /**
@@ -238,31 +414,47 @@ export class SceneViewPanel extends Panel {
         const deltaX = event.clientX - this.lastMouseX;
         const deltaY = event.clientY - this.lastMouseY;
         
-        // Left mouse button - rotate/orbit
-        if (this.mouseButton === 0) {
-            if (this.cameraMode === CameraMode.ORBIT) {
-                this.cameraYaw -= deltaX * 0.5;
-                this.cameraPitch = Math.max(-89, Math.min(89, this.cameraPitch - deltaY * 0.5));
-            } else if (this.cameraMode === CameraMode.FLY) {
-                this.cameraYaw -= deltaX * 0.5;
-                this.cameraPitch = Math.max(-89, Math.min(89, this.cameraPitch - deltaY * 0.5));
+        // Use camera controller if available
+        if (this.cameraController) {
+            // Left mouse button - rotate/orbit
+            if (this.mouseButton === 0) {
+                if (this.cameraMode === CameraMode.ORBIT || this.cameraMode === CameraMode.FLY) {
+                    this.cameraController.orbit(deltaX, deltaY);
+                }
             }
-        }
-        
-        // Middle mouse button or right mouse button - pan
-        if (this.mouseButton === 1 || this.mouseButton === 2) {
-            const panSpeed = 0.01 * this.cameraDistance;
-            const right = new Vector3(1, 0, 0);
-            const up = new Vector3(0, 1, 0);
             
-            this.cameraTarget.x -= right.x * deltaX * panSpeed;
-            this.cameraTarget.y += up.y * deltaY * panSpeed;
+            // Middle mouse button or right mouse button - pan
+            if (this.mouseButton === 1 || this.mouseButton === 2) {
+                this.cameraController.pan(deltaX, deltaY);
+            }
+        } else {
+            // Legacy camera controls (fallback)
+            // Left mouse button - rotate/orbit
+            if (this.mouseButton === 0) {
+                if (this.cameraMode === CameraMode.ORBIT) {
+                    this.cameraYaw -= deltaX * 0.5;
+                    this.cameraPitch = Math.max(-89, Math.min(89, this.cameraPitch - deltaY * 0.5));
+                } else if (this.cameraMode === CameraMode.FLY) {
+                    this.cameraYaw -= deltaX * 0.5;
+                    this.cameraPitch = Math.max(-89, Math.min(89, this.cameraPitch - deltaY * 0.5));
+                }
+            }
+            
+            // Middle mouse button or right mouse button - pan
+            if (this.mouseButton === 1 || this.mouseButton === 2) {
+                const panSpeed = 0.01 * this.cameraDistance;
+                const right = new Vector3(1, 0, 0);
+                const up = new Vector3(0, 1, 0);
+                
+                this.cameraTarget.x -= right.x * deltaX * panSpeed;
+                this.cameraTarget.y += up.y * deltaY * panSpeed;
+            }
+            
+            this.updateCamera();
         }
         
         this.lastMouseX = event.clientX;
         this.lastMouseY = event.clientY;
-        
-        this.updateCamera();
     }
     
     /**
@@ -285,11 +477,17 @@ export class SceneViewPanel extends Panel {
     private onMouseWheel(event: WheelEvent): void {
         event.preventDefault();
         
-        const zoomSpeed = 0.1;
-        this.cameraDistance *= (1 + event.deltaY * zoomSpeed * 0.01);
-        this.cameraDistance = Math.max(1, Math.min(100, this.cameraDistance));
-        
-        this.updateCamera();
+        if (this.cameraController) {
+            // Use camera controller for zooming
+            const delta = -event.deltaY * 0.001;
+            this.cameraController.zoom(delta);
+        } else {
+            // Legacy zoom (fallback)
+            const zoomSpeed = 0.1;
+            this.cameraDistance *= (1 + event.deltaY * zoomSpeed * 0.01);
+            this.cameraDistance = Math.max(1, Math.min(100, this.cameraDistance));
+            this.updateCamera();
+        }
     }
     
     /**
@@ -337,6 +535,10 @@ export class SceneViewPanel extends Panel {
      */
     public setCamera(camera: Camera): void {
         this.camera = camera;
+        
+        // Create camera controller
+        this.cameraController = new CameraController(camera);
+        
         if (this.canvas) {
             this.handleResize();
         }
@@ -359,6 +561,29 @@ export class SceneViewPanel extends Panel {
      */
     public render(): void {
         if (!this.renderer || !this.scene || !this.camera) return;
+        
+        // Update camera controller animation
+        if (this.cameraController) {
+            this.cameraController.update(0.016); // Assuming 60fps
+        }
+        
+        // Handle WASD/arrow key fly mode
+        if (this.cameraMode === CameraMode.FLY && this.cameraController) {
+            let forward = 0;
+            let right = 0;
+            let up = 0;
+            
+            if (this.keysPressed.has('w') || this.keysPressed.has('arrowup')) forward = 1;
+            if (this.keysPressed.has('s') || this.keysPressed.has('arrowdown')) forward = -1;
+            if (this.keysPressed.has('a') || this.keysPressed.has('arrowleft')) right = -1;
+            if (this.keysPressed.has('d') || this.keysPressed.has('arrowright')) right = 1;
+            if (this.keysPressed.has('e')) up = 1;
+            if (this.keysPressed.has('q')) up = -1;
+            
+            if (forward !== 0 || right !== 0 || up !== 0) {
+                this.cameraController.fly(forward, right, up);
+            }
+        }
         
         // Render the scene
         this.renderer.render(this.scene, this.camera);

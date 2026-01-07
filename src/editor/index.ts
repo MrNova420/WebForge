@@ -9,3 +9,4 @@ export * from './Panel';
 export * from './LayoutManager';
 export * from './panels';
 export * from './gizmos';
+export * from './camera';
