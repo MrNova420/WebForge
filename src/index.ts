@@ -31,5 +31,8 @@ export * from './animation';
 // Audio system
 export * from './audio';
 
+// Editor system
+export * from './editor';
+
 // Utilities
 export * from './utils';
