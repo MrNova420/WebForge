@@ -19,5 +19,8 @@ export * from './scene';
 // Rendering system
 export * from './rendering';
 
+// Optimization systems
+export * from './optimization';
+
 // Utilities
 export * from './utils';
