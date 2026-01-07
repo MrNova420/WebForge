@@ -49,5 +49,8 @@ export * from './ai';
 // Procedural Generation
 export * from './procedural';
 
+// Network & Multiplayer
+export * from './network';
+
 // Utilities
 export * from './utils';
