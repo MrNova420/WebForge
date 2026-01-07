@@ -8,6 +8,7 @@
 import { Vector3 } from '../math/Vector3';
 import { WebForgeAudioContext } from './AudioContext';
 import { AudioBufferManager } from './AudioBuffer';
+import { AudioSource } from './AudioSource';
 import { SpatialAudioSource, AudioListener, DistanceModel, PanningModel, SpatialAudioConfig } from './SpatialAudio';
 import { AudioSourceConfig } from './AudioSource';
 
@@ -85,7 +86,7 @@ export class SpatialAudioManager {
         const buffer = await this.bufferManager.load(url);
 
         // Create base audio source
-        const source = new (await import('./AudioSource')).AudioSource(
+        const source = new AudioSource(
             this.audioContext,
             {
                 ...config,
@@ -195,10 +196,12 @@ export class SpatialAudioManager {
                 const dir = dist.normalize();
                 const radialVel = relVel.dot(dir);
 
-                // Doppler shift
+                // Doppler shift with bounds checking
                 if (this.dopplerFactor > 0) {
                     const dopplerShift = 1 - (radialVel * this.dopplerFactor) / this.speedOfSound;
-                    source.getSource().setPitch(dopplerShift);
+                    // Clamp to valid pitch range (0.25x to 4x)
+                    const clampedPitch = Math.max(0.25, Math.min(4.0, dopplerShift));
+                    source.getSource().setPitch(clampedPitch);
                 }
             }
         }
