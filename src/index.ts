@@ -19,5 +19,20 @@ export * from './scene';
 // Rendering system
 export * from './rendering';
 
+// Optimization systems
+export * from './optimization';
+
+// Physics system
+export * from './physics';
+
+// Animation system
+export * from './animation';
+
+// Audio system
+export * from './audio';
+
+// Editor system
+export * from './editor';
+
 // Utilities
 export * from './utils';
