@@ -35,17 +35,17 @@
 
 ---
 
-## 📊 OVERALL PROGRESS: 36%
+## 📊 OVERALL PROGRESS: 38%
 
-███████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 
 ---
 
 ## 📅 PHASE 3: ANIMATION & ADVANCED PHYSICS (Months 5-6)
 
-**Status:** 🚧 35% COMPLETE  
-**Progress:** 35%  
-**Current Week:** Week 19 (Collision Detection)
+**Status:** 🚧 50% COMPLETE  
+**Progress:** 50%  
+**Current Week:** Week 21 (Constraint Solver)
 
 ### Week 17-18: Physics Foundation ✅ COMPLETE
 - [x] Physics world and simulation - ~199 LOC
@@ -54,39 +54,27 @@
 
 ### Week 19-20: Collision Detection ✅ COMPLETE
 - [x] Broadphase collision detection - ~287 LOC
-  - [x] Naive broadphase (O(n²)) for small scenes
-  - [x] Sweep and Prune (O(n log n)) for coherent motion
-  - [x] Spatial Hash Grid (O(n)) for distributed objects
-  - [x] Configurable sorting axis
-  - [x] Statistics tracking
 - [x] Narrowphase collision detection - ~325 LOC
-  - [x] Sphere-Sphere intersection
-  - [x] Sphere-Plane intersection
-  - [x] Box-Box intersection (AABB)
-  - [x] Box-Sphere intersection
-  - [x] Contact point generation
-  - [x] Contact manifolds with penetration depth
 - [x] GJK algorithm - ~304 LOC
-  - [x] Gilbert-Johnson-Keerthi intersection test
-  - [x] Simplex evolution (line, triangle, tetrahedron)
-  - [x] Support function interface
-  - [x] Support function factories for common shapes
-  - [x] EPA foundation (penetration depth)
 - [x] Integration with PhysicsWorld - ~116 LOC updates
-  - [x] Automatic collision detection in simulation loop
-  - [x] Contact resolution with impulses
-  - [x] Position correction to prevent penetration
-  - [x] Velocity correction with restitution
-  - [x] Collision statistics
 
-### Week 21-22: Constraint Solver ⏳ NEXT
-- [ ] Sequential impulse solver
-- [ ] Contact constraints
-- [ ] Joint constraints (hinge, slider, ball-socket)
-- [ ] Spring constraints
-- [ ] Friction and restitution handling
+### Week 21-22: Constraint Solver ✅ COMPLETE
+- [x] Constraint system - ~397 LOC
+  - [x] Base Constraint class with enable/disable and break forces
+  - [x] DistanceConstraint - keeps bodies at fixed distance
+  - [x] HingeConstraint - rotates around axis with angle limits
+  - [x] SliderConstraint - slides along axis with distance limits
+  - [x] BallSocketConstraint - point-to-point connection (ragdolls)
+  - [x] SpringConstraint - elastic connection with stiffness and damping
+- [x] Sequential impulse solver - ~210 LOC
+  - [x] Contact constraint solver with friction
+  - [x] Iterative solving (configurable iterations, default 10)
+  - [x] Baumgarte stabilization support
+  - [x] Constraint breaking detection
+  - [x] Integration with PhysicsWorld
+- [x] PhysicsWorld integration - constraint management API
 
-### Week 23-24: Advanced Physics
+### Week 23-24: Advanced Physics ⏳ NEXT
 - [ ] Continuous collision detection (CCD)
 - [ ] Compound shapes
 - [ ] Trigger volumes
@@ -321,12 +309,12 @@
 
 ## 🔢 STATISTICS
 
-**Lines of Code:** ~16,107+
-**TypeScript Files:** 54
-**Classes Implemented:** 50
+**Lines of Code:** ~17,147+
+**TypeScript Files:** 58
+**Classes Implemented:** 58
 **Build Status:** ✅ PASSING (zero errors)
 **Target LOC:** 200,000+
-**Current Phase:** Phase 3 (Animation & Advanced Physics) - 15% complete
+**Current Phase:** Phase 3 (Animation & Advanced Physics) - 35% complete
 
 ### Code Breakdown
 - **Phase 1 Foundation:** ~10,421 LOC
@@ -335,11 +323,14 @@
   - Shadow Mapping: ~604 LOC
   - Post-Processing: ~1,786 LOC
   - Performance Optimization: ~1,245 LOC
-- **Phase 3 Physics (in progress):** ~473 LOC
-  - Physics World: ~170 LOC
-  - Rigid Body: ~385 LOC  
-  - Collision Shapes: ~200 LOC
-- **Total:** ~16,107 LOC
+- **Phase 3 Physics (in progress):** ~1,513 LOC
+  - Physics World: ~199 LOC (updated with collision integration)
+  - Rigid Body: ~408 LOC (updated with shape support)
+  - Collision Shapes: ~191 LOC
+  - Broadphase Collision: ~287 LOC ✨ NEW
+  - Narrowphase Collision: ~325 LOC ✨ NEW
+  - GJK Algorithm: ~304 LOC ✨ NEW
+- **Total:** ~17,147 LOC
 
 ---
 

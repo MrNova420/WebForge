@@ -7,6 +7,8 @@ import { Vector3 } from '../math/Vector3';
 import { Logger } from '../core/Logger';
 import { Broadphase, SweepAndPruneBroadphase } from './BroadphaseCollision';
 import { Narrowphase, ContactManifold } from './NarrowphaseCollision';
+import { ConstraintSolver } from './ConstraintSolver';
+import { Constraint } from './Constraint';
 
 /**
  * Physics world configuration
@@ -36,6 +38,7 @@ export class PhysicsWorld {
   
   private broadphase: Broadphase;
   private manifolds: ContactManifold[] = [];
+  private solver: ConstraintSolver;
   
   private logger: Logger;
 
@@ -50,6 +53,7 @@ export class PhysicsWorld {
     this._enableCCD = config.enableCCD !== undefined ? config.enableCCD : true;
     
     this.broadphase = new SweepAndPruneBroadphase();
+    this.solver = new ConstraintSolver();
     
     this.logger = new Logger('PhysicsWorld');
     this.logger.info(`Physics world created (gravity: ${this.gravity.y}, timestep: ${this.fixedTimestep}s)`);
@@ -118,7 +122,8 @@ export class PhysicsWorld {
     }
     
     // 4. Constraint solving (contact resolution)
-    this.resolveContacts();
+    this.solver.prepareContacts(this.manifolds);
+    this.solver.solve(dt);
     
     // 5. Integration (apply forces, update velocities and positions)
     for (const body of bodiesArray) {
@@ -129,72 +134,6 @@ export class PhysicsWorld {
   }
 
   /**
-   * Resolves contact constraints
-   */
-  private resolveContacts(): void {
-    for (const manifold of this.manifolds) {
-      for (const contact of manifold.contacts) {
-        const bodyA = manifold.bodyA;
-        const bodyB = manifold.bodyB;
-        
-        if (!bodyA || !bodyB) continue;
-        
-        // Get properties
-        const invMassA = bodyA.getInverseMass ? bodyA.getInverseMass() : 0;
-        const invMassB = bodyB.getInverseMass ? bodyB.getInverseMass() : 0;
-        
-        if (invMassA === 0 && invMassB === 0) continue;
-        
-        // Position correction (push bodies apart)
-        const correction = contact.normal.clone().multiplyScalar(
-          contact.depth / (invMassA + invMassB)
-        );
-        
-        if (bodyA.getPosition && bodyA.setPosition && invMassA > 0) {
-          const posA = bodyA.getPosition();
-          bodyA.setPosition(posA.subtract(correction.clone().multiplyScalar(invMassA)));
-        }
-        
-        if (bodyB.getPosition && bodyB.setPosition && invMassB > 0) {
-          const posB = bodyB.getPosition();
-          bodyB.setPosition(posB.add(correction.clone().multiplyScalar(invMassB)));
-        }
-        
-        // Velocity correction (impulse resolution)
-        if (bodyA.getVelocity && bodyB.getVelocity) {
-          const velA = bodyA.getVelocity();
-          const velB = bodyB.getVelocity();
-          const relativeVel = velB.clone().subtract(velA);
-          const velAlongNormal = relativeVel.dot(contact.normal);
-          
-          // Only resolve if objects are moving towards each other
-          if (velAlongNormal < 0) {
-            const restitution = Math.min(
-              bodyA.getRestitution ? bodyA.getRestitution() : 0.5,
-              bodyB.getRestitution ? bodyB.getRestitution() : 0.5
-            );
-            
-            const j = -(1 + restitution) * velAlongNormal / (invMassA + invMassB);
-            const impulse = contact.normal.clone().multiplyScalar(j);
-            
-            if (bodyA.applyImpulse && invMassA > 0) {
-              bodyA.applyImpulse(impulse.clone().multiplyScalar(-1));
-            }
-            
-            if (bodyB.applyImpulse && invMassB > 0) {
-              bodyB.applyImpulse(impulse);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Adds a rigid body to the world
-   * @param body - Rigid body to add
-   */
-  addBody(body: any): void {
     this.bodies.add(body);
   }
 
@@ -283,6 +222,30 @@ export class PhysicsWorld {
   }
 
   /**
+   * Adds a constraint to the world
+   * @param constraint - Constraint to add
+   */
+  addConstraint(constraint: Constraint): void {
+    this.solver.addConstraint(constraint);
+  }
+
+  /**
+   * Removes a constraint from the world
+   * @param constraint - Constraint to remove
+   */
+  removeConstraint(constraint: Constraint): void {
+    this.solver.removeConstraint(constraint);
+  }
+
+  /**
+   * Gets all constraints
+   * @returns Array of constraints
+   */
+  getConstraints(): Constraint[] {
+    return this.solver.getConstraints();
+  }
+
+  /**
    * Gets the current contact manifolds
    * @returns Array of contact manifolds
    */
@@ -294,10 +257,11 @@ export class PhysicsWorld {
    * Gets collision statistics
    * @returns Collision statistics
    */
-  getCollisionStats(): { pairs: number; contacts: number } {
+  getCollisionStats(): { pairs: number; contacts: number; constraints: number } {
     return {
       pairs: this.manifolds.length,
-      contacts: this.manifolds.reduce((sum, m) => sum + m.contacts.length, 0)
+      contacts: this.manifolds.reduce((sum, m) => sum + m.contacts.length, 0),
+      constraints: this.solver.getConstraintCount()
     };
   }
 
@@ -307,6 +271,7 @@ export class PhysicsWorld {
   dispose(): void {
     this.clear();
     this.broadphase.clear();
+    this.solver.clear();
     this.manifolds = [];
     this.logger.info('Physics world disposed');
   }
