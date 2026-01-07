@@ -40,5 +40,8 @@ export * from './geometry';
 // Terrain system
 export * from './terrain';
 
+// Particle systems
+export * from './particles';
+
 // Utilities
 export * from './utils';
