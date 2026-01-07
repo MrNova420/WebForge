@@ -17,3 +17,16 @@ export {
   CapsuleShape,
   PlaneShape
 } from './CollisionShape';
+
+export { 
+  Broadphase,
+  NaiveBroadphase,
+  SweepAndPruneBroadphase,
+  SpatialHashBroadphase
+} from './BroadphaseCollision';
+export type { CollisionPair } from './BroadphaseCollision';
+
+export { Narrowphase } from './NarrowphaseCollision';
+export type { ContactPoint, ContactManifold } from './NarrowphaseCollision';
+
+export { GJK, SupportFunctions } from './GJK';

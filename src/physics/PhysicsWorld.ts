@@ -5,6 +5,8 @@
 
 import { Vector3 } from '../math/Vector3';
 import { Logger } from '../core/Logger';
+import { Broadphase, SweepAndPruneBroadphase } from './BroadphaseCollision';
+import { Narrowphase, ContactManifold } from './NarrowphaseCollision';
 
 /**
  * Physics world configuration
@@ -32,6 +34,9 @@ export class PhysicsWorld {
   private bodies: Set<any> = new Set(); // Will be RigidBody when implemented
   private accumulator: number = 0;
   
+  private broadphase: Broadphase;
+  private manifolds: ContactManifold[] = [];
+  
   private logger: Logger;
 
   /**
@@ -43,6 +48,8 @@ export class PhysicsWorld {
     this.fixedTimestep = config.fixedTimestep || 1/60; // 60 Hz
     this.maxSubsteps = config.maxSubsteps || 10;
     this._enableCCD = config.enableCCD !== undefined ? config.enableCCD : true;
+    
+    this.broadphase = new SweepAndPruneBroadphase();
     
     this.logger = new Logger('PhysicsWorld');
     this.logger.info(`Physics world created (gravity: ${this.gravity.y}, timestep: ${this.fixedTimestep}s)`);
@@ -74,13 +81,113 @@ export class PhysicsWorld {
    * Performs a single fixed timestep
    * @param dt - Fixed delta time
    */
-  private fixedStep(_dt: number): void {
-    // TODO: Implement actual physics simulation
-    // 1. Broadphase collision detection
-    // 2. Narrowphase collision detection
-    // 3. Contact generation
-    // 4. Constraint solving
+  private fixedStep(dt: number): void {
+    const bodiesArray = Array.from(this.bodies);
+    
+    // 1. Apply gravity to dynamic bodies
+    for (const body of bodiesArray) {
+      if (body.isDynamic && body.isDynamic()) {
+        const gravityForce = this.gravity.clone().multiplyScalar(body.getMass ? body.getMass() : 1);
+        if (body.applyForce) {
+          body.applyForce(gravityForce);
+        }
+      }
+    }
+    
+    // 2. Broadphase collision detection
+    this.broadphase.update(bodiesArray);
+    const pairs = this.broadphase.getPairs();
+    
+    // 3. Narrowphase collision detection
+    this.manifolds = [];
+    for (const pair of pairs) {
+      if (pair.bodyA.shape && pair.bodyB.shape) {
+        const manifold = Narrowphase.testCollision(
+          pair.bodyA.shape,
+          pair.bodyA.getPosition(),
+          pair.bodyB.shape,
+          pair.bodyB.getPosition()
+        );
+        
+        if (manifold) {
+          manifold.bodyA = pair.bodyA;
+          manifold.bodyB = pair.bodyB;
+          this.manifolds.push(manifold);
+        }
+      }
+    }
+    
+    // 4. Constraint solving (contact resolution)
+    this.resolveContacts();
+    
     // 5. Integration (apply forces, update velocities and positions)
+    for (const body of bodiesArray) {
+      if (body.integrate) {
+        body.integrate(dt);
+      }
+    }
+  }
+
+  /**
+   * Resolves contact constraints
+   */
+  private resolveContacts(): void {
+    for (const manifold of this.manifolds) {
+      for (const contact of manifold.contacts) {
+        const bodyA = manifold.bodyA;
+        const bodyB = manifold.bodyB;
+        
+        if (!bodyA || !bodyB) continue;
+        
+        // Get properties
+        const invMassA = bodyA.getInverseMass ? bodyA.getInverseMass() : 0;
+        const invMassB = bodyB.getInverseMass ? bodyB.getInverseMass() : 0;
+        
+        if (invMassA === 0 && invMassB === 0) continue;
+        
+        // Position correction (push bodies apart)
+        const correction = contact.normal.clone().multiplyScalar(
+          contact.depth / (invMassA + invMassB)
+        );
+        
+        if (bodyA.getPosition && bodyA.setPosition && invMassA > 0) {
+          const posA = bodyA.getPosition();
+          bodyA.setPosition(posA.subtract(correction.clone().multiplyScalar(invMassA)));
+        }
+        
+        if (bodyB.getPosition && bodyB.setPosition && invMassB > 0) {
+          const posB = bodyB.getPosition();
+          bodyB.setPosition(posB.add(correction.clone().multiplyScalar(invMassB)));
+        }
+        
+        // Velocity correction (impulse resolution)
+        if (bodyA.getVelocity && bodyB.getVelocity) {
+          const velA = bodyA.getVelocity();
+          const velB = bodyB.getVelocity();
+          const relativeVel = velB.clone().subtract(velA);
+          const velAlongNormal = relativeVel.dot(contact.normal);
+          
+          // Only resolve if objects are moving towards each other
+          if (velAlongNormal < 0) {
+            const restitution = Math.min(
+              bodyA.getRestitution ? bodyA.getRestitution() : 0.5,
+              bodyB.getRestitution ? bodyB.getRestitution() : 0.5
+            );
+            
+            const j = -(1 + restitution) * velAlongNormal / (invMassA + invMassB);
+            const impulse = contact.normal.clone().multiplyScalar(j);
+            
+            if (bodyA.applyImpulse && invMassA > 0) {
+              bodyA.applyImpulse(impulse.clone().multiplyScalar(-1));
+            }
+            
+            if (bodyB.applyImpulse && invMassB > 0) {
+              bodyB.applyImpulse(impulse);
+            }
+          }
+        }
+      }
+    }
   }
 
   /**
@@ -176,10 +283,31 @@ export class PhysicsWorld {
   }
 
   /**
+   * Gets the current contact manifolds
+   * @returns Array of contact manifolds
+   */
+  getManifolds(): ContactManifold[] {
+    return this.manifolds;
+  }
+
+  /**
+   * Gets collision statistics
+   * @returns Collision statistics
+   */
+  getCollisionStats(): { pairs: number; contacts: number } {
+    return {
+      pairs: this.manifolds.length,
+      contacts: this.manifolds.reduce((sum, m) => sum + m.contacts.length, 0)
+    };
+  }
+
+  /**
    * Disposes the physics world
    */
   dispose(): void {
     this.clear();
+    this.broadphase.clear();
+    this.manifolds = [];
     this.logger.info('Physics world disposed');
   }
 }

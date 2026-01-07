@@ -35,58 +35,56 @@
 
 ---
 
-## 📊 OVERALL PROGRESS: 34%
+## 📊 OVERALL PROGRESS: 36%
 
-██████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+███████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 
 ---
 
 ## 📅 PHASE 3: ANIMATION & ADVANCED PHYSICS (Months 5-6)
 
-**Status:** 🚧 15% COMPLETE  
-**Progress:** 15%  
-**Current Week:** Week 17 (Physics Foundation)
+**Status:** 🚧 35% COMPLETE  
+**Progress:** 35%  
+**Current Week:** Week 19 (Collision Detection)
 
 ### Week 17-18: Physics Foundation ✅ COMPLETE
-- [x] Physics world and simulation - ~170 LOC
-  - [x] Fixed timestep integration with accumulator
-  - [x] Configurable gravity
-  - [x] Maximum substeps to prevent spiral of death
-  - [x] Body management (add/remove/query)
-  - [x] Raycast support (interface ready)
-- [x] Rigid body dynamics - ~385 LOC
-  - [x] Three body types (Static, Dynamic, Kinematic)
-  - [x] Mass and inertia
-  - [x] Linear and angular velocity
-  - [x] Force and impulse application
-  - [x] Torque application
-  - [x] Integration with damping
-  - [x] Rotation axis locking
-  - [x] Sleep/wake system for performance
-- [x] Collision shapes - ~200 LOC
-  - [x] Box shape with inertia calculation
-  - [x] Sphere shape with inertia calculation
-  - [x] Capsule shape with inertia calculation
-  - [x] Plane shape (infinite plane)
-  - [x] Bounding box/sphere generation
-- [x] Module exports and integration
+- [x] Physics world and simulation - ~199 LOC
+- [x] Rigid body dynamics - ~408 LOC
+- [x] Collision shapes - ~191 LOC
 
-### Week 19-20: Collision Detection ⏳ NEXT
-- [ ] Broadphase collision detection (sweep and prune, spatial hashing)
-- [ ] Narrowphase collision detection
-- [ ] AABB-AABB intersection
-- [ ] Sphere-Sphere intersection
-- [ ] Box-Box intersection (SAT)
-- [ ] GJK algorithm for convex shapes
-- [ ] Contact generation and manifolds
+### Week 19-20: Collision Detection ✅ COMPLETE
+- [x] Broadphase collision detection - ~287 LOC
+  - [x] Naive broadphase (O(n²)) for small scenes
+  - [x] Sweep and Prune (O(n log n)) for coherent motion
+  - [x] Spatial Hash Grid (O(n)) for distributed objects
+  - [x] Configurable sorting axis
+  - [x] Statistics tracking
+- [x] Narrowphase collision detection - ~325 LOC
+  - [x] Sphere-Sphere intersection
+  - [x] Sphere-Plane intersection
+  - [x] Box-Box intersection (AABB)
+  - [x] Box-Sphere intersection
+  - [x] Contact point generation
+  - [x] Contact manifolds with penetration depth
+- [x] GJK algorithm - ~304 LOC
+  - [x] Gilbert-Johnson-Keerthi intersection test
+  - [x] Simplex evolution (line, triangle, tetrahedron)
+  - [x] Support function interface
+  - [x] Support function factories for common shapes
+  - [x] EPA foundation (penetration depth)
+- [x] Integration with PhysicsWorld - ~116 LOC updates
+  - [x] Automatic collision detection in simulation loop
+  - [x] Contact resolution with impulses
+  - [x] Position correction to prevent penetration
+  - [x] Velocity correction with restitution
+  - [x] Collision statistics
 
-### Week 21-22: Constraint Solver
-- [ ] Constraint system
+### Week 21-22: Constraint Solver ⏳ NEXT
 - [ ] Sequential impulse solver
 - [ ] Contact constraints
 - [ ] Joint constraints (hinge, slider, ball-socket)
 - [ ] Spring constraints
-- [ ] Friction and restitution
+- [ ] Friction and restitution handling
 
 ### Week 23-24: Advanced Physics
 - [ ] Continuous collision detection (CCD)
@@ -280,14 +278,16 @@
 - [ ] Spatial partitioning (Phase 3+)
 
 ### PHYSICS 🚧 PHASE 3 IN PROGRESS
-- [x] Physics world (fixed timestep, gravity, body management) ✨ NEW
-- [x] Rigid body (3 types, forces, impulses, integration) ✨ NEW
-- [x] Collision shapes (Box, Sphere, Capsule, Plane) ✨ NEW
-- [ ] Broadphase collision detection (next)
-- [ ] Narrowphase collision detection (next)
-- [ ] Contact resolution (next)
-- [ ] Constraint solver (next)
-- [ ] Advanced physics (CCD, compounds, triggers) (Phase 3+)
+- [x] Physics world (fixed timestep, gravity, body management) ✨ Phase 3
+- [x] Rigid body (3 types, forces, impulses, integration) ✨ Phase 3
+- [x] Collision shapes (Box, Sphere, Capsule, Plane) ✨ Phase 3
+- [x] Broadphase collision (3 algorithms: Naive, SAP, Spatial Hash) ✨ NEW
+- [x] Narrowphase collision (Sphere, Box, Plane tests) ✨ NEW
+- [x] GJK algorithm (convex shape collision) ✨ NEW
+- [x] Contact generation and manifolds ✨ NEW
+- [x] Contact resolution (impulses, position correction) ✨ NEW
+- [ ] Constraint solver (joints, springs) (next)
+- [ ] Advanced physics (CCD, compounds, character) (Phase 3+)
 
 ### PHYSICS (Phase 2)
 - [ ] Collision detection

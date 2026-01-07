@@ -6,6 +6,7 @@
 import { Vector3 } from '../math/Vector3';
 import { Quaternion } from '../math/Quaternion';
 import { Matrix4 } from '../math/Matrix4';
+import { CollisionShape } from './CollisionShape';
 
 /**
  * Rigid body type
@@ -27,6 +28,8 @@ export interface RigidBodyConfig {
   type?: RigidBodyType;
   /** Mass (kg) */
   mass?: number;
+  /** Collision shape */
+  shape?: CollisionShape;
   /** Linear velocity */
   velocity?: Vector3;
   /** Angular velocity */
@@ -50,6 +53,9 @@ export class RigidBody {
   private type: RigidBodyType;
   private mass: number;
   private inverseMass: number;
+  
+  // Collision shape
+  shape?: CollisionShape;
   
   // Transform
   private position: Vector3;
@@ -87,6 +93,9 @@ export class RigidBody {
     this.type = config.type || RigidBodyType.DYNAMIC;
     this.mass = config.mass !== undefined ? config.mass : 1.0;
     this.inverseMass = this.mass > 0 ? 1.0 / this.mass : 0;
+    
+    // Shape
+    this.shape = config.shape;
     
     // Transform
     this.position = new Vector3();
