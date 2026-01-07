@@ -35,9 +35,65 @@
 
 ---
 
-## 📊 OVERALL PROGRESS: 32%
+## 📊 OVERALL PROGRESS: 34%
 
-████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+██████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+---
+
+## 📅 PHASE 3: ANIMATION & ADVANCED PHYSICS (Months 5-6)
+
+**Status:** 🚧 15% COMPLETE  
+**Progress:** 15%  
+**Current Week:** Week 17 (Physics Foundation)
+
+### Week 17-18: Physics Foundation ✅ COMPLETE
+- [x] Physics world and simulation - ~170 LOC
+  - [x] Fixed timestep integration with accumulator
+  - [x] Configurable gravity
+  - [x] Maximum substeps to prevent spiral of death
+  - [x] Body management (add/remove/query)
+  - [x] Raycast support (interface ready)
+- [x] Rigid body dynamics - ~385 LOC
+  - [x] Three body types (Static, Dynamic, Kinematic)
+  - [x] Mass and inertia
+  - [x] Linear and angular velocity
+  - [x] Force and impulse application
+  - [x] Torque application
+  - [x] Integration with damping
+  - [x] Rotation axis locking
+  - [x] Sleep/wake system for performance
+- [x] Collision shapes - ~200 LOC
+  - [x] Box shape with inertia calculation
+  - [x] Sphere shape with inertia calculation
+  - [x] Capsule shape with inertia calculation
+  - [x] Plane shape (infinite plane)
+  - [x] Bounding box/sphere generation
+- [x] Module exports and integration
+
+### Week 19-20: Collision Detection ⏳ NEXT
+- [ ] Broadphase collision detection (sweep and prune, spatial hashing)
+- [ ] Narrowphase collision detection
+- [ ] AABB-AABB intersection
+- [ ] Sphere-Sphere intersection
+- [ ] Box-Box intersection (SAT)
+- [ ] GJK algorithm for convex shapes
+- [ ] Contact generation and manifolds
+
+### Week 21-22: Constraint Solver
+- [ ] Constraint system
+- [ ] Sequential impulse solver
+- [ ] Contact constraints
+- [ ] Joint constraints (hinge, slider, ball-socket)
+- [ ] Spring constraints
+- [ ] Friction and restitution
+
+### Week 23-24: Advanced Physics
+- [ ] Continuous collision detection (CCD)
+- [ ] Compound shapes
+- [ ] Trigger volumes
+- [ ] Character controller
+- [ ] Vehicle physics basics
 
 ---
 

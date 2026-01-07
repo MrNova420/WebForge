@@ -22,5 +22,8 @@ export * from './rendering';
 // Optimization systems
 export * from './optimization';
 
+// Physics system
+export * from './physics';
+
 // Utilities
 export * from './utils';
