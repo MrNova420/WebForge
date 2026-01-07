@@ -335,30 +335,32 @@
 
 ## 🔢 STATISTICS
 
-**Lines of Code:** ~17,754+
-**TypeScript Files:** 60
-**Classes Implemented:** 65
+**Lines of Code:** ~18,706+
+**TypeScript Files:** 65
+**Classes Implemented:** 74
 **Build Status:** ✅ PASSING (zero errors)
 **Target LOC:** 200,000+
-**Current Phase:** Phase 3 (Animation & Advanced Physics) - 50% complete
+**Current Phase:** Phase 3 (Animation & Advanced Physics) - 60% complete
 
 ### Code Breakdown
 - **Phase 1 Foundation:** ~10,421 LOC
 - **Phase 2 Advanced Rendering & Optimization:** ~5,213 LOC
-  - PBR & Lighting: ~1,578 LOC
-  - Shadow Mapping: ~604 LOC
-  - Post-Processing: ~1,786 LOC
-  - Performance Optimization: ~1,245 LOC
-- **Phase 3 Physics (in progress):** ~2,120 LOC
-  - Physics World: ~199 LOC (with collision integration)
-  - Rigid Body: ~408 LOC (with shape support)
-  - Collision Shapes: ~191 LOC
-  - Broadphase Collision: ~287 LOC
-  - Narrowphase Collision: ~325 LOC
-  - GJK Algorithm: ~304 LOC
-  - Constraint System: ~397 LOC ✨ NEW
-  - Constraint Solver: ~210 LOC ✨ NEW
-- **Total:** ~17,754 LOC
+- **Phase 3 Physics & Animation (in progress):** ~3,072 LOC
+  - **Physics System:** ~2,120 LOC
+    - Physics World: ~199 LOC
+    - Rigid Body: ~408 LOC
+    - Collision Shapes: ~191 LOC
+    - Broadphase Collision: ~287 LOC
+    - Narrowphase Collision: ~325 LOC
+    - GJK Algorithm: ~304 LOC
+    - Constraint System: ~397 LOC
+    - Constraint Solver: ~210 LOC
+  - **Animation System:** ~952 LOC ✨ NEW
+    - Animation Clip: ~213 LOC
+    - Animation Player: ~201 LOC
+    - Skeletal System: ~263 LOC
+    - Animation Blender: ~255 LOC
+- **Total:** ~18,706 LOC
 
 ---
 

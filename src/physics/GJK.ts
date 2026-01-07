@@ -6,9 +6,6 @@
 import { Vector3 } from '../math/Vector3';
 
 /**
- * Support point for GJK
-
-/**
  * Simplex for GJK
  */
 class Simplex {

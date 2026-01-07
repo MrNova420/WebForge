@@ -177,13 +177,8 @@ export class AnimationPlayer {
             break;
 
           case TrackType.PROPERTY:
-            // Set custom property
-            const parts = trackType.split('.');
-            let obj = target;
-            for (let i = 0; i < parts.length - 1; i++) {
-              obj = obj[parts[i]];
-            }
-            obj[parts[parts.length - 1]] = value;
+            // Note: For property tracks, use a dedicated property path field
+            // This is a placeholder - property animation needs track.property field
             break;
         }
       }

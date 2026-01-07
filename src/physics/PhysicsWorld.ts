@@ -134,6 +134,10 @@ export class PhysicsWorld {
   }
 
   /**
+   * Adds a rigid body to the world
+   * @param body - Rigid body to add
+   */
+  addBody(body: any): void {
     this.bodies.add(body);
   }
 
