@@ -20,3 +20,23 @@ export {
     SpatialAudioManager,
     Audio3DConfig
 } from './Spatial3DAudio';
+export {
+    IAudioEffect,
+    EffectType,
+    ReverbEffect,
+    DelayEffect,
+    EqualizerEffect,
+    CompressorEffect,
+    EffectChain
+} from './AudioEffects';
+export {
+    MusicSystem,
+    MusicTrack,
+    MusicLayer,
+    AdaptiveMusicController
+} from './MusicSystem';
+export {
+    AudioAnalyzer,
+    WaveformVisualizer,
+    SpectrumVisualizer
+} from './AudioAnalysis';
