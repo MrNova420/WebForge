@@ -13,3 +13,9 @@ export {
   BoundingBox, 
   BoundingSphere 
 } from './FrustumCulling';
+
+export { InstancingSystem, InstanceBatch } from './InstancingSystem';
+export type { InstanceData, InstanceBatchConfig, InstancingStatistics } from './InstancingSystem';
+
+export { OcclusionCullingSystem, OcclusionResult } from './OcclusionCulling';
+export type { OcclusionQuery, OcclusionCullingConfig } from './OcclusionCulling';
