@@ -279,6 +279,16 @@
 - [ ] Texture streaming (Phase 3+)
 - [ ] Spatial partitioning (Phase 3+)
 
+### PHYSICS 🚧 PHASE 3 IN PROGRESS
+- [x] Physics world (fixed timestep, gravity, body management) ✨ NEW
+- [x] Rigid body (3 types, forces, impulses, integration) ✨ NEW
+- [x] Collision shapes (Box, Sphere, Capsule, Plane) ✨ NEW
+- [ ] Broadphase collision detection (next)
+- [ ] Narrowphase collision detection (next)
+- [ ] Contact resolution (next)
+- [ ] Constraint solver (next)
+- [ ] Advanced physics (CCD, compounds, triggers) (Phase 3+)
+
 ### PHYSICS (Phase 2)
 - [ ] Collision detection
 - [ ] Rigid body dynamics
@@ -311,12 +321,12 @@
 
 ## 🔢 STATISTICS
 
-**Lines of Code:** ~15,634+
-**TypeScript Files:** 50
-**Classes Implemented:** 45
+**Lines of Code:** ~16,107+
+**TypeScript Files:** 54
+**Classes Implemented:** 50
 **Build Status:** ✅ PASSING (zero errors)
 **Target LOC:** 200,000+
-**Current Phase:** Phase 2 COMPLETE, starting Phase 3
+**Current Phase:** Phase 3 (Animation & Advanced Physics) - 15% complete
 
 ### Code Breakdown
 - **Phase 1 Foundation:** ~10,421 LOC
@@ -325,7 +335,11 @@
   - Shadow Mapping: ~604 LOC
   - Post-Processing: ~1,786 LOC
   - Performance Optimization: ~1,245 LOC
-- **Total:** ~15,634 LOC
+- **Phase 3 Physics (in progress):** ~473 LOC
+  - Physics World: ~170 LOC
+  - Rigid Body: ~385 LOC  
+  - Collision Shapes: ~200 LOC
+- **Total:** ~16,107 LOC
 
 ---
 
