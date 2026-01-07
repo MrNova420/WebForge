@@ -28,5 +28,8 @@ export * from './physics';
 // Animation system
 export * from './animation';
 
+// Audio system
+export * from './audio';
+
 // Utilities
 export * from './utils';
