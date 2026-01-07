@@ -337,4 +337,20 @@ export class EditorContext {
     public getViewportSettings(): ViewportSettings {
         return { ...this.viewport };
     }
+    
+    // Helper methods for event listening
+    
+    /**
+     * Listen to an editor event
+     */
+    public on(event: string, handler: (...args: any[]) => void): void {
+        this.events.on(event, handler);
+    }
+    
+    /**
+     * Remove an event listener
+     */
+    public off(event: string, handler: (...args: any[]) => void): void {
+        this.events.off(event, handler);
+    }
 }

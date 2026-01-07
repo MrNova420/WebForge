@@ -23,12 +23,10 @@ export interface ConsoleEntry {
  * Console panel for log viewing
  */
 export class ConsolePanel extends Panel {
-    private context: EditorContext;
-    private logger: Logger | null = null;
     private entries: ConsoleEntry[] = [];
+    protected content: HTMLElement | null = null;
     
     private logContainer: HTMLElement | null = null;
-    private filterLevel: LogLevel | 'all' = 'all';
     private searchTerm: string = '';
     private autoScroll: boolean = true;
     
@@ -42,13 +40,12 @@ export class ConsolePanel extends Panel {
     
     /**
      * Creates a new console panel
-     * @param context - Editor context
+     * @param _context - Editor context (unused currently)
      * @param id - Panel ID
      * @param title - Panel title
      */
-    constructor(context: EditorContext, id: string = 'console', title: string = 'Console') {
+    constructor(_context: EditorContext, id: string = 'console', title: string = 'Console') {
         super(id, title);
-        this.context = context;
         
         // Intercept console methods
         this.interceptConsole();
@@ -352,26 +349,26 @@ export class ConsolePanel extends Panel {
      * Gets the color for a log level
      */
     private getLevelColor(level: LogLevel): string {
-        const colors: Record<LogLevel, string> = {
+        const colors: Partial<Record<LogLevel, string>> = {
             [LogLevel.DEBUG]: '#888',
             [LogLevel.INFO]: '#4a9eff',
             [LogLevel.WARN]: '#ffa500',
             [LogLevel.ERROR]: '#ff5555'
         };
-        return colors[level];
+        return colors[level] || '#888';
     }
     
     /**
      * Gets the icon for a log level
      */
     private getLevelIcon(level: LogLevel): string {
-        const icons: Record<LogLevel, string> = {
+        const icons: Partial<Record<LogLevel, string>> = {
             [LogLevel.DEBUG]: '🐛',
             [LogLevel.INFO]: 'ℹ️',
             [LogLevel.WARN]: '⚠️',
             [LogLevel.ERROR]: '❌'
         };
-        return icons[level];
+        return icons[level] || '📄';
     }
     
     /**
@@ -394,9 +391,16 @@ export class ConsolePanel extends Panel {
     }
     
     /**
+     * Called when panel is mounted
+     */
+    protected onMount(_container: HTMLElement): void {
+        // Panel is already mounted through base class
+    }
+    
+    /**
      * Sets the logger instance
      */
-    public setLogger(logger: Logger): void {
-        this.logger = logger;
+    public setLogger(_logger: Logger): void {
+        // Store reference if needed for integration
     }
 }

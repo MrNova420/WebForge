@@ -9,7 +9,7 @@ import { Panel } from '../Panel';
 import { EditorContext } from '../EditorContext';
 import { GameObject } from '../../scene/GameObject';
 import { Vector3 } from '../../math/Vector3';
-import { Transform } from '../../math/Transform';
+import { Quaternion } from '../../math/Quaternion';
 
 /**
  * Property type for automatic UI generation
@@ -44,6 +44,7 @@ export class InspectorPanel extends Panel {
     private context: EditorContext;
     private selectedObject: GameObject | null = null;
     private propertyContainer: HTMLElement | null = null;
+    protected content: HTMLElement | null = null;
     
     /**
      * Creates a new inspector panel
@@ -63,8 +64,8 @@ export class InspectorPanel extends Panel {
      * Creates the panel content
      */
     protected createContent(): HTMLElement {
-        const content = document.createElement('div');
-        content.style.cssText = `
+        this.content = document.createElement('div');
+        this.content.style.cssText = `
             width: 100%;
             height: 100%;
             overflow-y: auto;
@@ -87,9 +88,9 @@ export class InspectorPanel extends Panel {
         this.propertyContainer.style.cssText = 'padding: 10px;';
         this.propertyContainer.appendChild(noSelection);
         
-        content.appendChild(this.propertyContainer);
+        this.content.appendChild(this.propertyContainer);
         
-        return content;
+        return this.content;
     }
     
     /**
@@ -238,19 +239,19 @@ export class InspectorPanel extends Panel {
         const transform = this.selectedObject.transform;
         
         // Position
-        this.addVector3Property(section, 'Position', transform.localPosition, (value) => {
-            transform.setPosition(value.x, value.y, value.z);
+        this.addVector3Property(section, 'Position', transform.position, (value) => {
+            transform.position.copy(value);
         });
         
         // Rotation (Euler angles)
-        const rotation = transform.localRotation.toEuler();
+        const rotation = transform.rotation.toEuler();
         this.addVector3Property(section, 'Rotation', rotation, (value) => {
-            transform.setRotation(value.x, value.y, value.z);
+            transform.rotation = Quaternion.fromEuler(value.x, value.y, value.z);
         });
         
         // Scale
-        this.addVector3Property(section, 'Scale', transform.localScale, (value) => {
-            transform.setScale(value.x, value.y, value.z);
+        this.addVector3Property(section, 'Scale', transform.scale, (value) => {
+            transform.scale.copy(value);
         });
         
         return section;
@@ -400,11 +401,16 @@ export class InspectorPanel extends Panel {
     }
     
     /**
+     * Called when panel is mounted
+     */
+    protected onMount(_container: HTMLElement): void {
+        // Panel is already mounted through base class
+    }
+    
+    /**
      * Called when panel is unmounted
      */
-    public onUnmount(): void {
-        super.onUnmount();
-        
+    protected onUnmount(): void {
         // Cleanup event listeners
         this.context.off('selectionChanged', this.onSelectionChanged.bind(this));
     }

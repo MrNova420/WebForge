@@ -30,6 +30,7 @@ export class SceneViewPanel extends Panel {
     private camera: Camera | null = null;
     private scene: Scene | null = null;
     private renderer: Renderer | null = null;
+    protected content: HTMLElement | null = null;
     
     // Camera controls
     private cameraMode: CameraMode = CameraMode.ORBIT;
@@ -46,8 +47,6 @@ export class SceneViewPanel extends Panel {
     
     // Grid settings
     private showGrid: boolean = true;
-    private gridSize: number = 20;
-    private gridDivisions: number = 20;
     
     /**
      * Creates a new scene view panel
@@ -68,22 +67,22 @@ export class SceneViewPanel extends Panel {
      * Creates the panel content
      */
     protected createContent(): HTMLElement {
-        const content = document.createElement('div');
-        content.style.cssText = 'width: 100%; height: 100%; position: relative; overflow: hidden; background: #1a1a1a;';
+        this.content = document.createElement('div');
+        this.content.style.cssText = 'width: 100%; height: 100%; position: relative; overflow: hidden; background: #1a1a1a;';
         
         // Create canvas
         this.canvas = document.createElement('canvas');
         this.canvas.style.cssText = 'width: 100%; height: 100%; display: block;';
-        content.appendChild(this.canvas);
+        this.content.appendChild(this.canvas);
         
         // Create toolbar
         const toolbar = this.createToolbar();
-        content.appendChild(toolbar);
+        this.content.appendChild(toolbar);
         
         // Setup canvas event listeners
         this.setupEventListeners();
         
-        return content;
+        return this.content;
     }
     
     /**
@@ -238,7 +237,7 @@ export class SceneViewPanel extends Panel {
     /**
      * Handles mouse up event
      */
-    private onMouseUp(event: MouseEvent): void {
+    private onMouseUp(_event: MouseEvent): void {
         this.isMouseDown = false;
         this.mouseButton = -1;
     }
@@ -270,7 +269,8 @@ export class SceneViewPanel extends Panel {
         const y = this.cameraTarget.y + this.cameraDistance * Math.sin(pitchRad);
         const z = this.cameraTarget.z + this.cameraDistance * Math.cos(pitchRad) * Math.cos(yawRad);
         
-        this.camera.transform.setPosition(x, y, z);
+        const transform = this.camera.getTransform();
+        transform.position.set(x, y, z);
         this.camera.lookAt(this.cameraTarget);
     }
     
@@ -278,16 +278,14 @@ export class SceneViewPanel extends Panel {
      * Handles canvas resize
      */
     private handleResize(): void {
-        if (!this.canvas) return;
+        if (!this.canvas || !this.camera) return;
         
         const rect = this.canvas.getBoundingClientRect();
         this.canvas.width = rect.width;
         this.canvas.height = rect.height;
         
-        if (this.camera) {
-            this.camera.aspect = rect.width / rect.height;
-            this.camera.updateProjectionMatrix();
-        }
+        // Update camera aspect ratio through setter method
+        this.camera.setAspect(rect.width / rect.height);
     }
     
     /**
@@ -350,16 +348,14 @@ export class SceneViewPanel extends Panel {
      */
     private onGridSettingsChanged(): void {
         const settings = this.context.getGridSettings();
-        this.gridSize = settings.size;
-        this.gridDivisions = settings.divisions;
         this.showGrid = settings.visible;
     }
     
     /**
      * Called when panel is mounted
      */
-    public onMount(): void {
-        super.onMount();
+    protected onMount(_container: HTMLElement): void {
+        // Panel is already mounted through base class
         if (this.canvas) {
             this.handleResize();
         }
@@ -368,9 +364,7 @@ export class SceneViewPanel extends Panel {
     /**
      * Called when panel is unmounted
      */
-    public onUnmount(): void {
-        super.onUnmount();
-        
+    protected onUnmount(): void {
         // Cleanup event listeners
         this.context.off('viewportSettingsChanged', this.onViewportSettingsChanged.bind(this));
         this.context.off('gridSettingsChanged', this.onGridSettingsChanged.bind(this));

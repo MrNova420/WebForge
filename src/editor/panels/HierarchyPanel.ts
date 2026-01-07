@@ -27,6 +27,7 @@ export class HierarchyPanel extends Panel {
     private scene: Scene | null = null;
     private treeContainer: HTMLElement | null = null;
     private treeNodes: Map<GameObject, TreeNodeData> = new Map();
+    protected content: HTMLElement | null = null;
     
     // Drag and drop state
     private draggedObject: GameObject | null = null;
@@ -50,8 +51,8 @@ export class HierarchyPanel extends Panel {
      * Creates the panel content
      */
     protected createContent(): HTMLElement {
-        const content = document.createElement('div');
-        content.style.cssText = `
+        this.content = document.createElement('div');
+        this.content.style.cssText = `
             width: 100%;
             height: 100%;
             overflow-y: auto;
@@ -63,14 +64,14 @@ export class HierarchyPanel extends Panel {
         
         // Toolbar
         const toolbar = this.createToolbar();
-        content.appendChild(toolbar);
+        this.content.appendChild(toolbar);
         
         // Tree container
         this.treeContainer = document.createElement('div');
         this.treeContainer.style.cssText = 'padding: 5px;';
-        content.appendChild(this.treeContainer);
+        this.content.appendChild(this.treeContainer);
         
-        return content;
+        return this.content;
     }
     
     /**
@@ -162,8 +163,11 @@ export class HierarchyPanel extends Panel {
         this.treeNodes.clear();
         
         // Build tree from scene root objects
-        const rootObjects = this.scene.getChildren();
-        rootObjects.forEach(obj => {
+        const allObjects = this.scene.getAllObjects();
+        const rootObjects: GameObject[] = allObjects.filter((obj): obj is GameObject => 
+            obj instanceof GameObject && !obj.getParent()
+        );
+        rootObjects.forEach((obj: GameObject) => {
             this.createTreeNode(obj, this.treeContainer!);
         });
     }
@@ -188,7 +192,7 @@ export class HierarchyPanel extends Panel {
         header.draggable = true;
         
         // Expand/collapse button
-        const hasChildren = gameObject.children.length > 0;
+        const hasChildren = gameObject.getChildren().length > 0;
         const expandBtn = document.createElement('span');
         expandBtn.textContent = hasChildren ? '▼' : '  ';
         expandBtn.style.cssText = `
@@ -229,7 +233,7 @@ export class HierarchyPanel extends Panel {
         children.style.cssText = 'margin-left: 20px;';
         
         // Build children
-        gameObject.children.forEach(child => {
+        gameObject.getChildren().forEach((child: GameObject) => {
             this.createTreeNode(child, children);
         });
         
@@ -255,12 +259,12 @@ export class HierarchyPanel extends Panel {
         };
         
         // Drag and drop
-        header.ondragstart = (e) => {
+        header.ondragstart = (_e) => {
             this.draggedObject = gameObject;
             header.style.opacity = '0.5';
         };
         
-        header.ondragend = (e) => {
+        header.ondragend = (_e) => {
             header.style.opacity = '1';
             this.draggedObject = null;
             this.dropTarget = null;
@@ -274,7 +278,7 @@ export class HierarchyPanel extends Panel {
             }
         };
         
-        header.ondragleave = (e) => {
+        header.ondragleave = (_e) => {
             header.style.background = '';
         };
         
@@ -392,11 +396,16 @@ export class HierarchyPanel extends Panel {
     }
     
     /**
+     * Called when panel is mounted
+     */
+    protected onMount(_container: HTMLElement): void {
+        // Panel is already mounted through base class
+    }
+    
+    /**
      * Called when panel is unmounted
      */
-    public onUnmount(): void {
-        super.onUnmount();
-        
+    protected onUnmount(): void {
         // Cleanup event listeners
         this.context.off('selectionChanged', this.onSelectionChanged.bind(this));
     }

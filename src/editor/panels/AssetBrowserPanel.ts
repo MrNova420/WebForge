@@ -38,9 +38,9 @@ export interface AssetItem {
  * Asset browser panel for file management
  */
 export class AssetBrowserPanel extends Panel {
-    private context: EditorContext;
     private currentPath: string = '/';
     private assets: AssetItem[] = [];
+    protected content: HTMLElement | null = null;
     
     private pathBar: HTMLElement | null = null;
     private gridContainer: HTMLElement | null = null;
@@ -48,13 +48,12 @@ export class AssetBrowserPanel extends Panel {
     
     /**
      * Creates a new asset browser panel
-     * @param context - Editor context
+     * @param _context - Editor context (unused currently)
      * @param id - Panel ID
      * @param title - Panel title
      */
-    constructor(context: EditorContext, id: string = 'asset-browser', title: string = 'Assets') {
+    constructor(_context: EditorContext, id: string = 'asset-browser', title: string = 'Assets') {
         super(id, title);
-        this.context = context;
         
         // Load default assets
         this.loadAssets();
@@ -64,8 +63,8 @@ export class AssetBrowserPanel extends Panel {
      * Creates the panel content
      */
     protected createContent(): HTMLElement {
-        const content = document.createElement('div');
-        content.style.cssText = `
+        this.content = document.createElement('div');
+        this.content.style.cssText = `
             width: 100%;
             height: 100%;
             display: flex;
@@ -77,11 +76,11 @@ export class AssetBrowserPanel extends Panel {
         
         // Toolbar
         const toolbar = this.createToolbar();
-        content.appendChild(toolbar);
+        this.content.appendChild(toolbar);
         
         // Path bar
         this.pathBar = this.createPathBar();
-        content.appendChild(this.pathBar);
+        this.content.appendChild(this.pathBar);
         
         // Asset grid/list
         this.gridContainer = document.createElement('div');
@@ -90,11 +89,18 @@ export class AssetBrowserPanel extends Panel {
             overflow-y: auto;
             padding: 10px;
         `;
-        content.appendChild(this.gridContainer);
+        this.content.appendChild(this.gridContainer);
         
         this.refreshView();
         
-        return content;
+        return this.content;
+    }
+    
+    /**
+     * Called when panel is mounted
+     */
+    protected onMount(_container: HTMLElement): void {
+        // Panel is already mounted through base class
     }
     
     /**
@@ -487,8 +493,8 @@ export class AssetBrowserPanel extends Panel {
     /**
      * Filters assets by search term
      */
-    private filterAssets(searchTerm: string): void {
-        // Filter and refresh view
+    private filterAssets(_searchTerm: string): void {
+        // Filter and refresh view - implementation placeholder
         this.refreshView();
     }
     
