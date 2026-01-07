@@ -18,3 +18,11 @@ export {
   ArrayModifier,
   ModifierStack
 } from './modifiers';
+
+// Boolean operations
+export {
+  BSPPlane,
+  BSPTriangle,
+  BSPNode,
+  BooleanOperations
+} from './boolean';
