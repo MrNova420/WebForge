@@ -46,7 +46,6 @@ export interface PostProcessingConfig {
  * Manages a stack of post-processing effects
  */
 export class PostProcessing {
-  private context: WebGLContext;
   private gl: WebGL2RenderingContext;
   private logger: Logger;
   
@@ -73,7 +72,6 @@ export class PostProcessing {
     height: number,
     config: PostProcessingConfig = {}
   ) {
-    this.context = context;
     this.gl = context.gl as WebGL2RenderingContext;
     this.logger = new Logger('PostProcessing');
     
@@ -85,13 +83,15 @@ export class PostProcessing {
     this.bufferA = new Framebuffer(this.gl, {
       width: this.width,
       height: this.height,
-      hasDepth: false
+      colorAttachments: 1,
+      depthAttachment: false
     });
     
     this.bufferB = new Framebuffer(this.gl, {
       width: this.width,
       height: this.height,
-      hasDepth: false
+      colorAttachments: 1,
+      depthAttachment: false
     });
     
     this.logger.info(`Post-processing pipeline created (${width}x${height})`);
@@ -190,10 +190,10 @@ export class PostProcessing {
 
   /**
    * Copies texture to output
-   * @param input - Input texture
+   * @param _input - Input texture (unused for now)
    * @param output - Output framebuffer (null for screen)
    */
-  private copyTexture(input: Texture, output: Framebuffer | null): void {
+  private copyTexture(_input: Texture, output: Framebuffer | null): void {
     // Bind output
     if (output) {
       output.bind();
@@ -222,13 +222,15 @@ export class PostProcessing {
     this.bufferA = new Framebuffer(this.gl, {
       width: this.width,
       height: this.height,
-      hasDepth: false
+      colorAttachments: 1,
+      depthAttachment: false
     });
     
     this.bufferB = new Framebuffer(this.gl, {
       width: this.width,
       height: this.height,
-      hasDepth: false
+      colorAttachments: 1,
+      depthAttachment: false
     });
     
     this.logger.info(`Resized to ${width}x${height}`);
@@ -293,7 +295,7 @@ export abstract class BasePostEffect implements PostEffect {
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl = gl;
-    this.logger = new Logger(`PostEffect:${this.name}`);
+    this.logger = new Logger('PostEffect');
     this.createQuad();
   }
 

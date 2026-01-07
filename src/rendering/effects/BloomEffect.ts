@@ -29,10 +29,10 @@ export interface BloomConfig {
 export class BloomEffect extends BasePostEffect {
   name = 'Bloom';
   
-  private threshold: number;
-  private intensity: number;
+  private _threshold: number;
+  private _intensity: number;
   private blurPasses: number;
-  private blurRadius: number;
+  private _blurRadius: number;
   
   // Shaders
   private brightnessShader: Shader | null = null;
@@ -62,10 +62,10 @@ export class BloomEffect extends BasePostEffect {
     
     this.width = width;
     this.height = height;
-    this.threshold = config.threshold !== undefined ? config.threshold : 0.8;
-    this.intensity = config.intensity !== undefined ? config.intensity : 1.0;
+    this._threshold = config.threshold !== undefined ? config.threshold : 0.8;
+    this._intensity = config.intensity !== undefined ? config.intensity : 1.0;
     this.blurPasses = config.blurPasses !== undefined ? config.blurPasses : 3;
-    this.blurRadius = config.blurRadius !== undefined ? config.blurRadius : 1.0;
+    this._blurRadius = config.blurRadius !== undefined ? config.blurRadius : 1.0;
     
     this.initializeShaders();
     this.initializeBuffers(width, height);
@@ -108,8 +108,7 @@ export class BloomEffect extends BasePostEffect {
       }
     `;
     
-    this.brightnessShader = new Shader(this.gl);
-    this.brightnessShader.compile(brightnessVertexShader, brightnessFragmentShader);
+    this.brightnessShader = new Shader(this.gl, brightnessVertexShader, brightnessFragmentShader);
     
     // Gaussian blur shader
     const blurFragmentShader = `#version 300 es
@@ -138,8 +137,7 @@ export class BloomEffect extends BasePostEffect {
       }
     `;
     
-    this.blurShader = new Shader(this.gl);
-    this.blurShader.compile(brightnessVertexShader, blurFragmentShader);
+    this.blurShader = new Shader(this.gl, brightnessVertexShader, blurFragmentShader);
     
     // Combine shader
     const combineFragmentShader = `#version 300 es
@@ -161,8 +159,7 @@ export class BloomEffect extends BasePostEffect {
       }
     `;
     
-    this.combineShader = new Shader(this.gl);
-    this.combineShader.compile(brightnessVertexShader, combineFragmentShader);
+    this.combineShader = new Shader(this.gl, brightnessVertexShader, combineFragmentShader);
   }
 
   /**
@@ -173,7 +170,8 @@ export class BloomEffect extends BasePostEffect {
     this.brightnessBuffer = new Framebuffer(this.gl, {
       width: Math.floor(width / 2),
       height: Math.floor(height / 2),
-      hasDepth: false
+      colorAttachments: 1,
+      depthAttachment: false
     });
     
     // Create blur ping-pong buffers
@@ -185,7 +183,8 @@ export class BloomEffect extends BasePostEffect {
         new Framebuffer(this.gl, {
           width: w,
           height: h,
-          hasDepth: false
+          colorAttachments: 1,
+          depthAttachment: false
         })
       );
       w = Math.max(1, Math.floor(w / 2));
@@ -195,10 +194,10 @@ export class BloomEffect extends BasePostEffect {
 
   /**
    * Renders the bloom effect
-   * @param input - Input texture
+   * @param _input - Input texture (unused for now)
    * @param output - Output framebuffer
    */
-  render(input: Texture, output: Framebuffer | null): void {
+  render(_input: Texture, output: Framebuffer | null): void {
     if (!this.brightnessShader || !this.blurShader || !this.combineShader || !this.brightnessBuffer) {
       return;
     }
@@ -221,7 +220,15 @@ export class BloomEffect extends BasePostEffect {
    * @param threshold - Brightness threshold (0-1)
    */
   setThreshold(threshold: number): void {
-    this.threshold = Math.max(0, Math.min(1, threshold));
+    this._threshold = Math.max(0, Math.min(1, threshold));
+  }
+
+  /**
+   * Gets the brightness threshold
+   * @returns Brightness threshold
+   */
+  getThreshold(): number {
+    return this._threshold;
   }
 
   /**
@@ -229,7 +236,23 @@ export class BloomEffect extends BasePostEffect {
    * @param intensity - Bloom intensity
    */
   setIntensity(intensity: number): void {
-    this.intensity = Math.max(0, intensity);
+    this._intensity = Math.max(0, intensity);
+  }
+
+  /**
+   * Gets the bloom intensity
+   * @returns Bloom intensity
+   */
+  getIntensity(): number {
+    return this._intensity;
+  }
+
+  /**
+   * Gets the blur radius
+   * @returns Blur radius
+   */
+  getBlurRadius(): number {
+    return this._blurRadius;
   }
 
   /**
