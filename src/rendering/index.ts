@@ -60,3 +60,9 @@ export type { ToneMappingConfig } from './effects/ToneMappingEffect';
 
 export { SSAOEffect } from './effects/SSAOEffect';
 export type { SSAOConfig } from './effects/SSAOEffect';
+
+export { MotionBlurEffect } from './effects/MotionBlurEffect';
+export type { MotionBlurConfig } from './effects/MotionBlurEffect';
+
+export { DepthOfFieldEffect } from './effects/DepthOfFieldEffect';
+export type { DepthOfFieldConfig } from './effects/DepthOfFieldEffect';
