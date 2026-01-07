@@ -43,5 +43,11 @@ export * from './terrain';
 // Particle systems
 export * from './particles';
 
+// AI & Pathfinding
+export * from './ai';
+
+// Procedural Generation
+export * from './procedural';
+
 // Utilities
 export * from './utils';
