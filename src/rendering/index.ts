@@ -54,3 +54,9 @@ export type { PostEffect, PostProcessingConfig } from './PostProcessing';
 
 export { BloomEffect } from './effects/BloomEffect';
 export type { BloomConfig } from './effects/BloomEffect';
+
+export { ToneMappingEffect, ToneMappingOperator } from './effects/ToneMappingEffect';
+export type { ToneMappingConfig } from './effects/ToneMappingEffect';
+
+export { SSAOEffect } from './effects/SSAOEffect';
+export type { SSAOConfig } from './effects/SSAOEffect';
