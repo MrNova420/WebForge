@@ -34,5 +34,8 @@ export * from './audio';
 // Editor system
 export * from './editor';
 
+// Geometry system
+export * from './geometry';
+
 // Utilities
 export * from './utils';
