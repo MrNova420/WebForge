@@ -11,6 +11,7 @@ import { Camera } from '../../rendering/Camera';
 import { Scene } from '../../scene/Scene';
 import { Renderer } from '../../rendering/Renderer';
 import { Vector3 } from '../../math/Vector3';
+import { GizmoManager } from '../gizmos/GizmoManager';
 
 /**
  * Camera control mode
@@ -30,6 +31,7 @@ export class SceneViewPanel extends Panel {
     private camera: Camera | null = null;
     private scene: Scene | null = null;
     private renderer: Renderer | null = null;
+    private gizmoManager: GizmoManager | null = null;
     protected content: HTMLElement | null = null;
     
     // Camera controls
@@ -74,6 +76,9 @@ export class SceneViewPanel extends Panel {
         this.canvas = document.createElement('canvas');
         this.canvas.style.cssText = 'width: 100%; height: 100%; display: block;';
         this.content.appendChild(this.canvas);
+        
+        // Create gizmo manager
+        this.gizmoManager = new GizmoManager(this.context, this.canvas);
         
         // Create toolbar
         const toolbar = this.createToolbar();
@@ -192,6 +197,19 @@ export class SceneViewPanel extends Panel {
      * Handles mouse down event
      */
     private onMouseDown(event: MouseEvent): void {
+        if (!this.canvas) return;
+        
+        // Get mouse position relative to canvas
+        const rect = this.canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        // Check if gizmo handles the event
+        if (this.gizmoManager && this.gizmoManager.onMouseDown(x, y)) {
+            return; // Gizmo handled it
+        }
+        
+        // Otherwise, handle camera controls
         this.isMouseDown = true;
         this.lastMouseX = event.clientX;
         this.lastMouseY = event.clientY;
@@ -202,6 +220,19 @@ export class SceneViewPanel extends Panel {
      * Handles mouse move event
      */
     private onMouseMove(event: MouseEvent): void {
+        if (!this.canvas) return;
+        
+        // Get mouse position relative to canvas
+        const rect = this.canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        // Check if gizmo handles the event
+        if (this.gizmoManager && this.gizmoManager.onMouseMove(x, y)) {
+            return; // Gizmo handled it
+        }
+        
+        // Handle camera controls
         if (!this.isMouseDown) return;
         
         const deltaX = event.clientX - this.lastMouseX;
@@ -238,6 +269,12 @@ export class SceneViewPanel extends Panel {
      * Handles mouse up event
      */
     private onMouseUp(_event: MouseEvent): void {
+        // Check if gizmo handles the event
+        if (this.gizmoManager && this.gizmoManager.onMouseUp()) {
+            return; // Gizmo handled it
+        }
+        
+        // Handle camera controls
         this.isMouseDown = false;
         this.mouseButton = -1;
     }
@@ -303,6 +340,11 @@ export class SceneViewPanel extends Panel {
         if (this.canvas) {
             this.handleResize();
         }
+        
+        // Update gizmo manager camera
+        if (this.gizmoManager) {
+            this.gizmoManager.setCamera(camera);
+        }
     }
     
     /**
@@ -324,6 +366,11 @@ export class SceneViewPanel extends Panel {
         // Render grid if enabled
         if (this.showGrid) {
             this.renderGrid();
+        }
+        
+        // Render gizmos on top
+        if (this.gizmoManager) {
+            this.gizmoManager.render();
         }
     }
     
