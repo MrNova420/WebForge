@@ -52,5 +52,8 @@ export * from './procedural';
 // Network & Multiplayer
 export * from './network';
 
+// Visual Scripting
+export * from './scripting';
+
 // Utilities
 export * from './utils';
