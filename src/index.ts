@@ -34,5 +34,26 @@ export * from './audio';
 // Editor system
 export * from './editor';
 
+// Geometry system
+export * from './geometry';
+
+// Terrain system
+export * from './terrain';
+
+// Particle systems
+export * from './particles';
+
+// AI & Pathfinding
+export * from './ai';
+
+// Procedural Generation
+export * from './procedural';
+
+// Network & Multiplayer
+export * from './network';
+
+// Visual Scripting
+export * from './scripting';
+
 // Utilities
 export * from './utils';
