@@ -208,28 +208,6 @@ export class NavMesh {
     }
 
     /**
-     * Check if point is inside triangle (for nearest node finding)
-     */
-    private isPointInTriangle(p: Vector3, v0: Vector3, v1: Vector3, v2: Vector3): boolean {
-        // Barycentric coordinates method
-        const v0v1 = v1.clone().sub(v0);
-        const v0v2 = v2.clone().sub(v0);
-        const v0p = p.clone().sub(v0);
-
-        const dot00 = v0v2.dot(v0v2);
-        const dot01 = v0v2.dot(v0v1);
-        const dot02 = v0v2.dot(v0p);
-        const dot11 = v0v1.dot(v0v1);
-        const dot12 = v0v1.dot(v0p);
-
-        const invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
-        const u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-        const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-
-        return (u >= 0) && (v >= 0) && (u + v <= 1);
-    }
-
-    /**
      * Get all nodes
      */
     public getNodes(): NavNode[] {

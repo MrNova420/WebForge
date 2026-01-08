@@ -1,5 +1,6 @@
 import { NoiseGenerator } from './NoiseGenerator';
 import { Vector3 } from '../math/Vector3';
+import { Vector2 } from '../math/Vector2';
 import { MeshData } from '../geometry/MeshData';
 
 /**
@@ -62,7 +63,7 @@ export class ProceduralMeshGenerator {
 
         // Add vertices and faces
         for (const v of vertices) {
-            mesh.addVertex(v, new Vector3(), new Vector3(0, 0));
+            mesh.addVertex(v, new Vector3(), new Vector2(0, 0));
         }
 
         for (let i = 0; i < indices.length; i += 3) {
@@ -125,8 +126,8 @@ export class ProceduralMeshGenerator {
             const x = Math.cos(angle) * trunkRadius;
             const z = Math.sin(angle) * trunkRadius;
 
-            mesh.addVertex(new Vector3(x, 0, z), new Vector3(), new Vector3(0, 0));
-            mesh.addVertex(new Vector3(x, trunkHeight, z), new Vector3(), new Vector3(0, 1));
+            mesh.addVertex(new Vector3(x, 0, z), new Vector3(), new Vector2(0, 0));
+            mesh.addVertex(new Vector3(x, trunkHeight, z), new Vector3(), new Vector2(0, 1));
         }
 
         // Trunk faces
@@ -160,7 +161,7 @@ export class ProceduralMeshGenerator {
                 const vIdx = mesh.addVertex(
                     new Vector3(x * crownRadius * noise, crownY + y * crownRadius * noise, z * crownRadius * noise),
                     new Vector3(),
-                    new Vector3(0, 0)
+                    new Vector2(0, 0)
                 );
 
                 // Add faces (simplified)
@@ -204,7 +205,7 @@ export class ProceduralMeshGenerator {
 
                 const r = radius * displacement;
 
-                mesh.addVertex(new Vector3(x * r, y * r, z * r), new Vector3(), new Vector3(0, 0));
+                mesh.addVertex(new Vector3(x * r, y * r, z * r), new Vector3(), new Vector2(0, 0));
             }
         }
 
@@ -239,10 +240,10 @@ export class ProceduralMeshGenerator {
             const y = floor * floorHeight;
 
             // 4 corners
-            mesh.addVertex(new Vector3(-hw, y, -hd), new Vector3(), new Vector3(0, 0));
-            mesh.addVertex(new Vector3(hw, y, -hd), new Vector3(), new Vector3(1, 0));
-            mesh.addVertex(new Vector3(hw, y, hd), new Vector3(), new Vector3(1, 1));
-            mesh.addVertex(new Vector3(-hw, y, hd), new Vector3(), new Vector3(0, 1));
+            mesh.addVertex(new Vector3(-hw, y, -hd), new Vector3(), new Vector2(0, 0));
+            mesh.addVertex(new Vector3(hw, y, -hd), new Vector3(), new Vector2(1, 0));
+            mesh.addVertex(new Vector3(hw, y, hd), new Vector3(), new Vector2(1, 1));
+            mesh.addVertex(new Vector3(-hw, y, hd), new Vector3(), new Vector2(0, 1));
         }
 
         // Generate walls
@@ -304,7 +305,7 @@ export class ProceduralMeshGenerator {
                     const worldY = y + vy * size;
                     const worldZ = z + vz * size;
 
-                    vIndices.push(mesh.addVertex(new Vector3(worldX, worldY, worldZ), new Vector3(), new Vector3(0, 0)));
+                    vIndices.push(mesh.addVertex(new Vector3(worldX, worldY, worldZ), new Vector3(), new Vector2(0, 0)));
                 }
 
                 mesh.addFace([vIndices[0], vIndices[1], vIndices[2]]);

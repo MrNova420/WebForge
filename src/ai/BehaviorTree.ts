@@ -231,7 +231,7 @@ export class Condition extends BehaviorNode {
         this.condition = condition;
     }
 
-    public tick(deltaTime: number, blackboard: Blackboard): NodeStatus {
+    public tick(_deltaTime: number, blackboard: Blackboard): NodeStatus {
         return this.condition(blackboard) ? NodeStatus.SUCCESS : NodeStatus.FAILURE;
     }
 }

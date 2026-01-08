@@ -30,11 +30,18 @@ export class MeshData {
     /**
      * Creates a new mesh data
      */
-    constructor(attributes: MeshAttributes, indices: number[]) {
-        this.attributes = attributes;
-        this.indices = indices;
-        this.vertexCount = attributes.position.length / 3;
-        this.faceCount = indices.length / 3;
+    constructor(attributes?: MeshAttributes, indices?: number[]) {
+        this.attributes = attributes || { position: [] };
+        this.indices = indices || [];
+        this.vertexCount = this.attributes.position.length / 3;
+        this.faceCount = this.indices.length / 3;
+    }
+    
+    /**
+     * Creates an empty mesh data
+     */
+    public static empty(): MeshData {
+        return new MeshData();
     }
     
     public getPositions(): number[] { return this.attributes.position; }
@@ -82,10 +89,16 @@ export class MeshData {
         const index = this.vertexCount;
         this.attributes.position.push(position.x, position.y, position.z);
         
-        if (normal && this.attributes.normal) {
+        if (normal) {
+            if (!this.attributes.normal) {
+                this.attributes.normal = [];
+            }
             this.attributes.normal.push(normal.x, normal.y, normal.z);
         }
-        if (uv && this.attributes.uv) {
+        if (uv) {
+            if (!this.attributes.uv) {
+                this.attributes.uv = [];
+            }
             this.attributes.uv.push(uv.x, uv.y);
         }
         
@@ -96,9 +109,17 @@ export class MeshData {
     /**
      * Adds a face
      */
-    public addFace(v0: number, v1: number, v2: number): number {
+    public addFace(v0: number | number[], v1?: number, v2?: number): number {
         const index = this.faceCount;
-        this.indices.push(v0, v1, v2);
+        if (Array.isArray(v0)) {
+            // Array parameter
+            this.indices.push(v0[0], v0[1], v0[2]);
+        } else if (v1 !== undefined && v2 !== undefined) {
+            // Three separate parameters
+            this.indices.push(v0, v1, v2);
+        } else {
+            throw new Error('addFace requires either an array of 3 indices or 3 separate index parameters');
+        }
         this.faceCount++;
         return index;
     }

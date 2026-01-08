@@ -1,5 +1,3 @@
-import { Vector3 } from '../math/Vector3';
-
 /**
  * Port type for node connections
  */
