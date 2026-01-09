@@ -1,4 +1,4 @@
-import { ScriptNode, NodeType, PortType, PortDirection } from './ScriptNode';
+import { ScriptNode, NodeType, PortType } from './ScriptNode';
 
 /**
  * Connection between two nodes
@@ -173,7 +173,7 @@ export class ScriptGraph {
         if (!this.context) return;
         
         // Gather input values from connected nodes
-        for (const [portName, port] of node.inputs) {
+        for (const [_portName, port] of node.inputs) {
             if (port.connected && port.connection) {
                 const sourceNode = this.nodes.get(port.connection.nodeId);
                 if (sourceNode) {

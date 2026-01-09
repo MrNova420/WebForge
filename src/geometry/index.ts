@@ -9,6 +9,11 @@ export { HalfEdgeMesh, HalfEdge, Vertex, Face } from './HalfEdgeMesh';
 export { MeshSelection, SelectionMode } from './MeshSelection';
 export { MeshOperations } from './MeshOperations';
 export { UVUnwrapper } from './UVUnwrapper';
+export { MeshQualityEnhancer, MeshQualityMetrics, LODSettings } from './MeshQualityEnhancer';
+export { SculptingSystem, BrushType as SculptBrushType, FalloffType as SculptFalloffType, BrushSettings } from './SculptingSystem';
+export { TexturePaintingSystem, BlendMode, PaintBrushType, PaintBrushSettings } from './TexturePainting';
+export { RetopologyTools, EdgeFlowMetrics, RetopologySettings } from './RetopologyTools';
+export { WeightPaintingSystem, BoneWeight, VertexWeights, WeightBrushSettings } from './WeightPainting';
 
 // Modifiers
 export {

@@ -1,4 +1,4 @@
-import { NetworkManager, NetworkMessage, MessageType, NetworkClient } from './NetworkManager';
+import { NetworkManager, NetworkMessage, MessageType } from './NetworkManager';
 
 /**
  * WebSocket-based network manager

@@ -178,7 +178,7 @@ export abstract class NetworkManager {
     /**
      * Update network (called each frame)
      */
-    public update(deltaTime: number): void {
+    public update(_deltaTime: number): void {
         // Update ping/latency for clients
         const now = Date.now();
 

@@ -18,7 +18,7 @@ export class NodeLibrary {
         node.addInput('b', PortType.NUMBER, defaultB);
         node.addOutput('result', PortType.NUMBER);
         
-        node.setExecuteFunc((context) => {
+        node.setExecuteFunc((_context) => {
             const a = node.getInputValue('a');
             const b = node.getInputValue('b');
             let result = 0;
@@ -49,7 +49,7 @@ export class NodeLibrary {
         node.addInput('value', PortType.NUMBER, 0);
         node.addOutput('result', PortType.NUMBER);
         
-        node.setExecuteFunc((context) => {
+        node.setExecuteFunc((_context) => {
             const value = node.getInputValue('value');
             let result = 0;
             
@@ -81,7 +81,7 @@ export class NodeLibrary {
         node.addInput('max', PortType.NUMBER, max);
         node.addOutput('value', PortType.NUMBER);
         
-        node.setExecuteFunc((context) => {
+        node.setExecuteFunc((_context) => {
             const minVal = node.getInputValue('min');
             const maxVal = node.getInputValue('max');
             const result = minVal + Math.random() * (maxVal - minVal);
@@ -104,7 +104,7 @@ export class NodeLibrary {
         node.addOutput('true', PortType.EXEC);
         node.addOutput('false', PortType.EXEC);
         
-        node.setExecuteFunc((context) => {
+        node.setExecuteFunc((_context) => {
             const condition = node.getInputValue('condition');
             return condition ? 'true' : 'false';
         });
@@ -121,7 +121,7 @@ export class NodeLibrary {
         node.addInput('b', PortType.NUMBER, 0);
         node.addOutput('result', PortType.BOOLEAN);
         
-        node.setExecuteFunc((context) => {
+        node.setExecuteFunc((_context) => {
             const a = node.getInputValue('a');
             const b = node.getInputValue('b');
             let result = false;
@@ -152,7 +152,7 @@ export class NodeLibrary {
         node.addInput('b', PortType.BOOLEAN, false);
         node.addOutput('result', PortType.BOOLEAN);
         
-        node.setExecuteFunc((context) => {
+        node.setExecuteFunc((_context) => {
             const a = node.getInputValue('a');
             const b = node.getInputValue('b');
             let result = false;
@@ -257,7 +257,7 @@ export class NodeLibrary {
         node.addInput('duration', PortType.NUMBER, duration);
         node.addOutput('exec_out', PortType.EXEC);
         
-        node.setExecuteFunc((context) => {
+        node.setExecuteFunc((_context) => {
             const duration = node.getInputValue('duration');
             setTimeout(() => {
                 // Execute next node after delay
@@ -282,7 +282,7 @@ export class NodeLibrary {
         switch (operation) {
             case 'SetPosition':
                 node.addInput('position', PortType.VECTOR3, new Vector3(0, 0, 0));
-                node.setExecuteFunc((context) => {
+                node.setExecuteFunc((_context) => {
                     const target = node.getInputValue('target');
                     const position = node.getInputValue('position');
                     if (target && target.transform) {
@@ -292,7 +292,7 @@ export class NodeLibrary {
                 break;
             case 'GetPosition':
                 node.addOutput('position', PortType.VECTOR3);
-                node.setExecuteFunc((context) => {
+                node.setExecuteFunc((_context) => {
                     const target = node.getInputValue('target');
                     if (target && target.transform) {
                         node.setOutputValue('position', target.transform.position);
@@ -300,7 +300,7 @@ export class NodeLibrary {
                 });
                 break;
             case 'Destroy':
-                node.setExecuteFunc((context) => {
+                node.setExecuteFunc((_context) => {
                     const target = node.getInputValue('target');
                     if (target && target.destroy) {
                         target.destroy();
@@ -323,7 +323,7 @@ export class NodeLibrary {
         node.addInput('message', PortType.STRING, '');
         node.addOutput('exec_out', PortType.EXEC);
         
-        node.setExecuteFunc((context) => {
+        node.setExecuteFunc((_context) => {
             const message = node.getInputValue('message');
             console.log('[Script]', message);
         });

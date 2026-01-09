@@ -8,3 +8,4 @@ export { TerrainGenerator } from './TerrainGenerator';
 export { TerrainBrush, BrushType, FalloffType } from './TerrainBrush';
 export { TerrainPainting, TerrainLayer } from './TerrainPainting';
 export { TerrainLOD, TerrainLODLevel } from './TerrainLOD';
+export { EnhancedTerrainGenerator, BiomeType, TerrainGenerationParams } from './EnhancedTerrainGenerator';

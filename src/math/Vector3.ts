@@ -502,4 +502,23 @@ export class Vector3 {
   static fromJSON(json: { x: number; y: number; z: number }): Vector3 {
     return new Vector3(json.x, json.y, json.z);
   }
+
+  // Aliases for common naming conventions
+  
+  /**
+   * Alias for subtract() - subtracts another vector from this vector.
+   * @param v - Vector to subtract
+   * @returns A new vector containing the difference
+   */
+  sub(v: Vector3): Vector3 {
+    return this.subtract(v);
+  }
+
+  /**
+   * Alias for lengthSquared() - calculates the squared length of this vector.
+   * @returns The squared length
+   */
+  lengthSq(): number {
+    return this.lengthSquared();
+  }
 }
