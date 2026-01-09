@@ -6,3 +6,4 @@
 
 export * from './BuildAutomation';
 export * from './MultiPlatformExport';
+export * from './ProfilingTools';
