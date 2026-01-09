@@ -17,7 +17,7 @@
  * @module MultiPlatformExport
  */
 
-import { BuildTarget } from './BuildAutomation';
+// Build automation integration available via BuildAutomation module
 
 export enum Platform {
     WEB = 'web',
@@ -269,7 +269,8 @@ export class MultiPlatformExport {
     private async generatePWAManifest(pwaConfig: PWAConfig): Promise<void> {
         console.log('[MultiPlatformExport] Generating PWA manifest...');
         
-        const manifest = {
+        // Generate manifest.json structure
+        const manifestJson = {
             name: this.config.appName,
             short_name: this.config.appName,
             description: this.config.description,
@@ -286,14 +287,15 @@ export class MultiPlatformExport {
             ]
         };
         
-        // Would write to file system
+        // Would write manifest.json to file system
+        console.log(`[MultiPlatformExport] Manifest created: ${manifestJson.name}`);
         await new Promise(resolve => setTimeout(resolve, 50));
     }
     
     /**
      * Generate service worker
      */
-    private async generateServiceWorker(pwaConfig: PWAConfig): Promise<void> {
+    private async generateServiceWorker(_pwaConfig: PWAConfig): Promise<void> {
         console.log('[MultiPlatformExport] Generating service worker...');
         
         // Would generate service worker code
@@ -346,7 +348,7 @@ export class MultiPlatformExport {
     /**
      * Create Electron main process
      */
-    private async createElectronMain(config: ElectronConfig): Promise<void> {
+    private async createElectronMain(_config: ElectronConfig): Promise<void> {
         console.log('[MultiPlatformExport] Creating Electron main process...');
         
         // Would generate main.js
@@ -408,7 +410,7 @@ export class MultiPlatformExport {
     /**
      * Initialize mobile project
      */
-    private async initializeMobileProject(config: MobileConfig): Promise<void> {
+    private async initializeMobileProject(_config: MobileConfig): Promise<void> {
         console.log('[MultiPlatformExport] Initializing mobile project...');
         
         // Would use Capacitor CLI
