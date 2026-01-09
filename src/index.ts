@@ -7,6 +7,10 @@
  * @version 1.0.0
  */
 
+// Main Engine API
+export { WebForge, QualityPreset } from './WebForge';
+export type { WebForgeConfig } from './WebForge';
+
 // Math library
 export * from './math';
 
@@ -57,3 +61,20 @@ export * from './scripting';
 
 // Utilities
 export * from './utils';
+
+// Weather & VFX Systems
+export * from './weather';
+export * from './water';
+export * from './vfx';
+
+// Character Systems
+export * from './character';
+
+// Production Tools
+export * from './tools';
+
+// Future Tech
+export * from './future';
+
+// Default export for convenience
+export { WebForge as default } from './WebForge';

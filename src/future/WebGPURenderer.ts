@@ -32,10 +32,10 @@ export interface RenderPipelineConfig {
 export interface VertexBufferLayout {
     arrayStride: number;
     stepMode: 'vertex' | 'instance';
-    attributes: VertexAttribute[];
+    attributes: WebGPUVertexAttribute[];
 }
 
-export interface VertexAttribute {
+export interface WebGPUVertexAttribute {
     format: string;
     offset: number;
     shaderLocation: number;
