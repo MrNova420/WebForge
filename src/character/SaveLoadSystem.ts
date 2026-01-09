@@ -38,7 +38,7 @@ export interface SaveSlotMetadata {
  * Save/Load System - Part of Phase 13-14 Character Tech
  */
 export class SaveLoadSystem {
-    private currentVersion: string = '1.0.0';
+    private currentVersion: string;
     private maxSlots: number = 10;
     private autoSaveInterval: number = 300000;  // 5 minutes
     private autoSaveTimer: number = 0;

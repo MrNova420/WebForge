@@ -336,7 +336,7 @@ export class EnhancedTerrainGenerator {
             const moist = moisture[i];
             const temp = temperature[i];
             
-            let biome = BiomeType.PLAINS;
+            let biome: BiomeType;
             
             // Water biomes
             if (height < waterLevel) {
