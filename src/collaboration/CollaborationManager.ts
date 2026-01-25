@@ -428,10 +428,11 @@ export class CollaborationManager {
             return;
         }
 
-        this.syncTimer = window.setInterval(() => {
+        // Use setInterval directly for cross-environment compatibility
+        this.syncTimer = setInterval(() => {
             this.broadcastUserUpdate();
             this.broadcastQueuedOperations();
-        }, this.syncInterval);
+        }, this.syncInterval) as unknown as number;
     }
 
     /**

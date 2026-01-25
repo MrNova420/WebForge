@@ -228,25 +228,42 @@ export class PerformanceProfiler {
 
     /**
      * Capture memory snapshot
+     * 
+     * Note: performance.memory is a non-standard API available only in some
+     * Chromium-based browsers (and may require flags). We feature-detect it
+     * and fall back to simulated values when unavailable.
      */
     private captureMemorySnapshot(): MemorySnapshot {
-        // In browser environment, would use performance.memory
-        const jsHeap = (performance as any).memory || {
-            usedJSHeapSize: 0,
-            totalJSHeapSize: 0,
-            jsHeapSizeLimit: 0
+        type PerformanceMemory = {
+            usedJSHeapSize?: number;
+            totalJSHeapSize?: number;
+            jsHeapSizeLimit?: number;
         };
+
+        let usedJSHeapSize: number | undefined;
+        let jsHeapSizeLimit: number | undefined;
+
+        if (typeof performance !== 'undefined') {
+            const perfWithMemory = performance as Performance & {
+                memory?: PerformanceMemory;
+            };
+
+            if (perfWithMemory.memory) {
+                usedJSHeapSize = perfWithMemory.memory.usedJSHeapSize;
+                jsHeapSizeLimit = perfWithMemory.memory.jsHeapSizeLimit;
+            }
+        }
 
         return {
             timestamp: Date.now(),
             totalMemory: 1024 * 1024 * 1024, // 1GB simulated
-            usedMemory: jsHeap.usedJSHeapSize || 100 * 1024 * 1024,
+            usedMemory: usedJSHeapSize ?? 100 * 1024 * 1024,
             freeMemory: 924 * 1024 * 1024,
             textureMemory: 50 * 1024 * 1024,
             geometryMemory: 30 * 1024 * 1024,
             audioMemory: 10 * 1024 * 1024,
-            jsHeapSize: jsHeap.usedJSHeapSize || 10 * 1024 * 1024,
-            jsHeapLimit: jsHeap.jsHeapSizeLimit || 500 * 1024 * 1024
+            jsHeapSize: usedJSHeapSize ?? 10 * 1024 * 1024,
+            jsHeapLimit: jsHeapSizeLimit ?? 500 * 1024 * 1024
         };
     }
 

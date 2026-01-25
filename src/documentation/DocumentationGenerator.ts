@@ -293,6 +293,20 @@ engine.start();`,
     }
 
     /**
+     * Escape HTML special characters to prevent XSS
+     */
+    private escapeHtml(text: string): string {
+        const map: Record<string, string> = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, (m) => map[m]);
+    }
+
+    /**
      * Generate HTML documentation
      */
     public generateHTML(pageId: string): string {
@@ -301,13 +315,20 @@ engine.start();`,
             return '<h1>Page not found</h1>';
         }
 
+        // Escape all user-provided content
+        const safeTitle = this.escapeHtml(page.title);
+        const safeCategory = this.escapeHtml(page.category);
+        const safeType = this.escapeHtml(page.type);
+        const safeVersion = this.escapeHtml(page.version);
+        const safeTags = page.tags.map(tag => this.escapeHtml(tag));
+
         let html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${page.title} - WebForge Documentation</title>
+    <title>${safeTitle} - WebForge Documentation</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -354,14 +375,14 @@ engine.start();`,
     </style>
 </head>
 <body>
-    <h1>${page.title}</h1>
+    <h1>${safeTitle}</h1>
     <div class="meta">
-        <strong>Category:</strong> ${page.category} | 
-        <strong>Type:</strong> ${page.type} | 
-        <strong>Version:</strong> ${page.version}
+        <strong>Category:</strong> ${safeCategory} | 
+        <strong>Type:</strong> ${safeType} | 
+        <strong>Version:</strong> ${safeVersion}
     </div>
     <div class="tags">
-        ${page.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+        ${safeTags.map(tag => `<span class="tag">${tag}</span>`).join('')}
     </div>
     <div class="content">
         ${this.markdownToHTML(page.content)}
@@ -374,19 +395,49 @@ engine.start();`,
     }
 
     /**
-     * Simple markdown to HTML conversion
+     * Simple markdown to HTML conversion with HTML escaping
      */
     private markdownToHTML(markdown: string): string {
-        return markdown
-            .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-            .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-            .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.+?)\*/g, '<em>$1</em>')
-            .replace(/`([^`]+)`/g, '<code>$1</code>')
-            .replace(/```(\w+)?\n([\s\S]+?)```/g, '<pre><code>$2</code></pre>')
+        // First escape HTML in the content, but preserve markdown syntax
+        let escaped = markdown;
+        
+        // Process code blocks first (preserve their content)
+        const codeBlocks: string[] = [];
+        escaped = escaped.replace(/```(\w+)?\n([\s\S]+?)```/g, (_match, _lang, code) => {
+            const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
+            codeBlocks.push(`<pre><code>${this.escapeHtml(code)}</code></pre>`);
+            return placeholder;
+        });
+        
+        // Process inline code (preserve their content)
+        const inlineCode: string[] = [];
+        escaped = escaped.replace(/`([^`]+)`/g, (_match, code) => {
+            const placeholder = `__INLINE_CODE_${inlineCode.length}__`;
+            inlineCode.push(`<code>${this.escapeHtml(code)}</code>`);
+            return placeholder;
+        });
+        
+        // Now convert markdown to HTML
+        let html = escaped
+            .replace(/^# (.+)$/gm, (_match, text) => `<h1>${this.escapeHtml(text)}</h1>`)
+            .replace(/^## (.+)$/gm, (_match, text) => `<h2>${this.escapeHtml(text)}</h2>`)
+            .replace(/^### (.+)$/gm, (_match, text) => `<h3>${this.escapeHtml(text)}</h3>`)
+            .replace(/\*\*(.+?)\*\*/g, (_match, text) => `<strong>${this.escapeHtml(text)}</strong>`)
+            .replace(/\*(.+?)\*/g, (_match, text) => `<em>${this.escapeHtml(text)}</em>`)
             .replace(/\n\n/g, '</p><p>')
-            .replace(/^(.+)$/gm, '<p>$1</p>');
+            .replace(/^(.+)$/gm, (_match, text) => `<p>${text}</p>`);
+        
+        // Restore code blocks
+        codeBlocks.forEach((block, i) => {
+            html = html.replace(`__CODE_BLOCK_${i}__`, block);
+        });
+        
+        // Restore inline code
+        inlineCode.forEach((code, i) => {
+            html = html.replace(`__INLINE_CODE_${i}__`, code);
+        });
+        
+        return html;
     }
 
     /**
@@ -403,18 +454,22 @@ engine.start();`,
      * Import documentation from JSON
      */
     public importFromJSON(json: string): void {
-        const data = JSON.parse(json);
+        try {
+            const data = JSON.parse(json);
 
-        if (data.pages) {
-            for (const page of data.pages) {
-                this.addPage(page);
+            if (data.pages) {
+                for (const page of data.pages) {
+                    this.addPage(page);
+                }
             }
-        }
 
-        if (data.apiDocs) {
-            for (const apiDoc of data.apiDocs) {
-                this.addAPIDoc(apiDoc);
+            if (data.apiDocs) {
+                for (const apiDoc of data.apiDocs) {
+                    this.addAPIDoc(apiDoc);
+                }
             }
+        } catch (error) {
+            throw new Error(`Failed to import documentation: Invalid JSON format. ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 

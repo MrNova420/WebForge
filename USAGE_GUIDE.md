@@ -33,12 +33,14 @@ Before you start, ensure you have:
 
 #### Option 1: Use NPM Package (Recommended for Beginners)
 
+> **Note:** The `@webforge/platform` package is not yet published to npm. For now, use Option 2 (Clone from GitHub) below. This option will be available after the package is published.
+
 ```bash
 # Create a new project folder
 mkdir my-webforge-game
 cd my-webforge-game
 
-# Install WebForge
+# Install WebForge (available after publication)
 npm install @webforge/platform
 
 # Create an HTML file
@@ -89,6 +91,8 @@ npm run dev
 
 #### Option 3: CDN (Quick Prototyping)
 
+> **Note:** This CDN URL works only after `@webforge/platform` is published to npm. For local testing before publication, clone the repository and import from your local build instead.
+
 Create a single HTML file:
 
 ```html
@@ -106,6 +110,7 @@ Create a single HTML file:
 <body>
     <canvas id="game"></canvas>
     <script type="module">
+        // Available after publication to npm
         import { WebForge } from 'https://unpkg.com/@webforge/platform';
         
         const engine = new WebForge('#game', { quality: 'high' });
