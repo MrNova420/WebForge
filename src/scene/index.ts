@@ -1,10 +1,6 @@
 /**
- * @module scene
- * @fileoverview WebForge Scene - Scene graph and game objects
+ * scene module exports
  */
 
-export { Scene } from './Scene';
-export type { ISceneObject } from './Scene';
-
-export { GameObject } from './GameObject';
-export type { IComponent } from './GameObject';
+export * from './GameObject';
+export * from './Scene';

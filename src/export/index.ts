@@ -1,8 +1,5 @@
 /**
- * Export module - Multi-platform export system
- * 
- * @module export
+ * export module exports
  */
 
-export { ExportManager, ExportPlatform } from './ExportManager';
-export type { ExportConfig, IconSet, SplashScreenSet, ExportResult, ExportArtifact } from './ExportManager';
+export * from './ExportManager';

@@ -1,10 +1,6 @@
 /**
- * @module utils
- * @fileoverview WebForge Utilities - Utility classes and helpers
+ * utils module exports
  */
 
-export { ObjectPool, PoolManager, poolManager } from './ObjectPool';
-export type { ObjectFactory, ObjectReset, ObjectPoolConfig } from './ObjectPool';
-
-export { Profiler, profiler } from './Profiler';
-export type { PerformanceEntry, PerformanceStats, FrameInfo } from './Profiler';
+export * from './ObjectPool';
+export * from './Profiler';

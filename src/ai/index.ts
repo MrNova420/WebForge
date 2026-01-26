@@ -1,4 +1,8 @@
-export { NavMesh } from './NavMesh';
-export { AIAgent, AgentState } from './AIAgent';
-export { BehaviorTree, BehaviorNode, Sequence, Selector, Parallel, Inverter, Repeater, Action, Condition, NodeStatus, Blackboard } from './BehaviorTree';
-export { Steering } from './Steering';
+/**
+ * ai module exports
+ */
+
+export * from './AIAgent';
+export * from './BehaviorTree';
+export * from './NavMesh';
+export * from './Steering';

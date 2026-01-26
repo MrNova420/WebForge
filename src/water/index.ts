@@ -1,7 +1,5 @@
 /**
- * WebForge Water Simulation Module
- * 
- * Phase 13 - AAA-Grade Features: FFT-based ocean simulation
+ * water module exports
  */
 
-export { WaterSimulationSystem, WaterQualitySettings, OceanWaveParams } from './WaterSimulationSystem';
+export * from './WaterSimulationSystem';

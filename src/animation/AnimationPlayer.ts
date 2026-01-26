@@ -19,9 +19,9 @@ export enum PlaybackMode {
 }
 
 /**
- * Animation state
+ * Animation playback state
  */
-export enum AnimationState {
+export enum PlaybackState {
   /** Not playing */
   STOPPED = 'stopped',
   /** Currently playing */
@@ -36,7 +36,7 @@ export enum AnimationState {
 export class AnimationPlayer {
   private clip: AnimationClip | null = null;
   private time: number = 0;
-  private state: AnimationState = AnimationState.STOPPED;
+  private state: PlaybackState = PlaybackState.STOPPED;
   private playbackMode: PlaybackMode = PlaybackMode.ONCE;
   private speed: number = 1.0;
   private targets: Map<string, any> = new Map();
@@ -71,7 +71,7 @@ export class AnimationPlayer {
    */
   play(mode: PlaybackMode = PlaybackMode.ONCE): void {
     if (!this.clip) return;
-    this.state = AnimationState.PLAYING;
+    this.state = PlaybackState.PLAYING;
     this.playbackMode = mode;
     this.direction = 1;
     this.events.emit('play', {});
@@ -81,7 +81,7 @@ export class AnimationPlayer {
    * Pauses playback
    */
   pause(): void {
-    this.state = AnimationState.PAUSED;
+    this.state = PlaybackState.PAUSED;
     this.events.emit('pause', {});
   }
 
@@ -89,7 +89,7 @@ export class AnimationPlayer {
    * Stops playback and resets
    */
   stop(): void {
-    this.state = AnimationState.STOPPED;
+    this.state = PlaybackState.STOPPED;
     this.time = 0;
     this.events.emit('stop', {});
   }
@@ -99,7 +99,7 @@ export class AnimationPlayer {
    * @param deltaTime - Time since last update
    */
   update(deltaTime: number): void {
-    if (this.state !== AnimationState.PLAYING || !this.clip) return;
+    if (this.state !== PlaybackState.PLAYING || !this.clip) return;
 
     // Update time
     this.time += deltaTime * this.speed * this.direction;
@@ -192,7 +192,7 @@ export class AnimationPlayer {
   seek(time: number): void {
     if (!this.clip) return;
     this.time = Math.max(0, Math.min(time, this.clip.getDuration()));
-    if (this.state !== AnimationState.STOPPED) {
+    if (this.state !== PlaybackState.STOPPED) {
       this.apply();
     }
   }
@@ -217,7 +217,7 @@ export class AnimationPlayer {
    * Gets current state
    * @returns Animation state
    */
-  getState(): AnimationState {
+  getState(): PlaybackState {
     return this.state;
   }
 
@@ -234,6 +234,6 @@ export class AnimationPlayer {
    * @returns True if playing
    */
   isPlaying(): boolean {
-    return this.state === AnimationState.PLAYING;
+    return this.state === PlaybackState.PLAYING;
   }
 }

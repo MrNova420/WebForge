@@ -1,8 +1,7 @@
 /**
- * @fileoverview Particle system module exports
- * @module particles
+ * particles module exports
  */
 
-export { Particle } from './Particle';
-export { ParticleEmitter, EmitterShape, EmitterConfig } from './ParticleEmitter';
-export { ParticleSystem, ParticleForce, ParticleForces } from './ParticleSystem';
+export * from './Particle';
+export * from './ParticleEmitter';
+export * from './ParticleSystem';

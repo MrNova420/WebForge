@@ -1,8 +1,5 @@
 /**
- * Documentation module - Auto-generated documentation system
- * 
- * @module documentation
+ * documentation module exports
  */
 
-export { DocumentationGenerator, DocPageType } from './DocumentationGenerator';
-export type { DocPage, APIDoc, ParameterDoc, ReturnDoc, CodeExample, SearchResult } from './DocumentationGenerator';
+export * from './DocumentationGenerator';

@@ -2,9 +2,43 @@
 
 **The Ultimate Web Game Development Platform**
 
-[![Status](https://img.shields.io/badge/status-planning-blue)]()
-[![Version](https://img.shields.io/badge/version-1.0.0--alpha-orange)]()
+[![Status](https://img.shields.io/badge/status-alpha-green)]()
+[![Version](https://img.shields.io/badge/version-1.0.0-blue)]()
+[![Tests](https://img.shields.io/badge/tests-94%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/webforge.git
+cd webforge
+
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Run tests
+npm test
+
+# Build for production
+npm run build
+```
+
+## 📦 Available Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development server with hot reload |
+| `npm run build` | Build for production (TypeScript + Vite) |
+| `npm run compile` | TypeScript compile only |
+| `npm test` | Run all tests (94 tests) |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run lint` | Type-check without emit |
 
 ---
 
@@ -132,35 +166,35 @@ npm run dev
 
 ## 📖 Complete Documentation
 
+All documentation is in the **[docs/](./docs/)** folder.
+
 ### 📘 Start Here
 
-- **[COMPLETE_REFERENCE.md](./COMPLETE_REFERENCE.md)** - 🎯 **ALL-IN-ONE GUIDE** - Everything you need to implement WebForge or integrate it into your project
+- **[Getting Started](./docs/GETTING_STARTED.md)** - Installation and first steps
+- **[Usage Guide](./docs/USAGE_GUIDE.md)** - How to use WebForge features
+- **[Complete Reference](./docs/COMPLETE_REFERENCE.md)** - 🎯 **ALL-IN-ONE GUIDE**
+
+### 🔧 Development Tools
+
+- **[Debug System](./docs/DEBUG_SYSTEM.md)** - Professional debugger with breakpoints, watches, profiling
+- **[Performance Optimization](./docs/PERFORMANCE_OPTIMIZATION.md)** - Optimization strategies
 
 ### 📚 Detailed Documentation
 
 **Core Planning:**
-- [Master Plan](./MASTER_PLAN.md) - Complete project vision, timeline, and high-level overview
-- [Progress Tracking](./PROGRESS.md) - Current development status and milestones
+- [Master Plan](./docs/MASTER_PLAN.md) - Complete project vision and roadmap
+- [Progress Tracking](./docs/PROGRESS.md) - Current development status
 
 **Technical Specifications:**
-- [Architecture Design](./ARCHITECTURE_DESIGN.md) - Complete system architecture and technical design
-- [Development Methodology](./DEVELOPMENT_METHODOLOGY.md) - Coding standards, patterns, and best practices
-- [Performance Optimization](./PERFORMANCE_OPTIMIZATION.md) - Universal device optimization strategies
+- [Architecture Design](./docs/ARCHITECTURE_DESIGN.md) - System architecture and design
+- [Development Methodology](./docs/DEVELOPMENT_METHODOLOGY.md) - Coding standards and patterns
+- [Build & Deployment](./docs/BUILD_DEPLOYMENT.md) - Export and deployment guides
 
-**Features & Capabilities:**
-- [Features Roadmap](./FEATURES_ROADMAP.md) - Detailed specifications for 500+ planned features
-- [Game Types & Styles](./GAME_TYPES_STYLES.md) - Support for all genres and art styles
-- [Build & Deployment](./BUILD_DEPLOYMENT.md) - Export and deployment to all platforms
-
-**Development Workflows:**
-- [Rapid Development](./RAPID_DEVELOPMENT.md) - From 2-hour prototypes to AAA production
-
-### 🎓 Coming Soon
-- API Reference (auto-generated from TSDoc)
-- Interactive Tutorials
-- Video Walkthroughs
-- Example Projects & Templates
-- Community Guides
+**Features & Content:**
+- [Features Roadmap](./docs/FEATURES_ROADMAP.md) - Detailed feature specifications
+- [Game Types & Styles](./docs/GAME_TYPES_STYLES.md) - Support for all genres
+- [Quality Asset Guide](./docs/QUALITY_ASSET_GUIDE.md) - Asset creation guidelines
+- [Rapid Development](./docs/RAPID_DEVELOPMENT.md) - Quick prototyping guide
 
 ---
 
@@ -278,7 +312,7 @@ webforge/
 
 **Milestone:** Render a textured, lit, spinning cube at 144 FPS
 
-See [COMPLETE_REFERENCE.md](./COMPLETE_REFERENCE.md) for the complete implementation plan.
+See [docs/COMPLETE_REFERENCE.md](./docs/COMPLETE_REFERENCE.md) for the complete implementation plan.
 
 ---
 
@@ -318,7 +352,7 @@ This is currently under active development by **MrNova420** with AI assistance.
 
 To get involved:
 1. ⭐ Star the repository
-2. 📖 Read the [COMPLETE_REFERENCE.md](./COMPLETE_REFERENCE.md)
+2. 📖 Read the [docs/COMPLETE_REFERENCE.md](./docs/COMPLETE_REFERENCE.md)
 3. 🐛 Report bugs or suggest features
 4. 📢 Spread the word!
 

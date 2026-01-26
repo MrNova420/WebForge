@@ -8,12 +8,12 @@ import { Terrain } from './Terrain';
 /**
  * Brush type for terrain sculpting
  */
-export type BrushType = 'raise' | 'lower' | 'smooth' | 'flatten';
+export type TerrainBrushType = 'raise' | 'lower' | 'smooth' | 'flatten';
 
 /**
  * Brush falloff curve type
  */
-export type FalloffType = 'linear' | 'smooth' | 'sharp';
+export type TerrainFalloffType = 'linear' | 'smooth' | 'sharp';
 
 /**
  * Terrain sculpting brush for height modification
@@ -32,10 +32,10 @@ export type FalloffType = 'linear' | 'smooth' | 'sharp';
  * ```
  */
 export class TerrainBrush {
-    private type: BrushType;
+    private type: TerrainBrushType;
     private radius: number;
     private strength: number;
-    private falloff: FalloffType = 'smooth';
+    private falloff: TerrainFalloffType = 'smooth';
     private targetHeight: number = 0.5;
     
     /**
@@ -45,7 +45,7 @@ export class TerrainBrush {
      * @param radius - Brush radius in world units
      * @param strength - Brush strength (0-1)
      */
-    constructor(type: BrushType, radius: number, strength: number) {
+    constructor(type: TerrainBrushType, radius: number, strength: number) {
         this.type = type;
         this.radius = radius;
         this.strength = strength;
@@ -56,7 +56,7 @@ export class TerrainBrush {
      * 
      * @param type - New brush type
      */
-    public setType(type: BrushType): void {
+    public setType(type: TerrainBrushType): void {
         this.type = type;
     }
     
@@ -83,7 +83,7 @@ export class TerrainBrush {
      * 
      * @param falloff - Falloff type
      */
-    public setFalloff(falloff: FalloffType): void {
+    public setFalloff(falloff: TerrainFalloffType): void {
         this.falloff = falloff;
     }
     
@@ -208,7 +208,7 @@ export class TerrainBrush {
     /**
      * Gets brush properties
      */
-    public getProperties(): { type: BrushType; radius: number; strength: number; falloff: FalloffType } {
+    public getProperties(): { type: TerrainBrushType; radius: number; strength: number; falloff: TerrainFalloffType } {
         return {
             type: this.type,
             radius: this.radius,

@@ -1,10 +1,6 @@
 /**
- * Version Control module - Git integration and diff visualization
- * 
- * @module versioncontrol
+ * versioncontrol module exports
  */
 
-export { VersionControlSystem } from './VersionControlSystem';
-export type { GitCommit, GitFileChange, GitBranch, GitDiff, DiffHunk, DiffLine, MergeConflict, ConflictRegion } from './VersionControlSystem';
-export { DiffVisualizer, DiffMode } from './DiffVisualizer';
-export type { DiffStats, VisualDiffLine } from './DiffVisualizer';
+export * from './DiffVisualizer';
+export * from './VersionControlSystem';

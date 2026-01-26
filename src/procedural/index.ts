@@ -1,3 +1,7 @@
-export { NoiseGenerator } from './NoiseGenerator';
-export { ProceduralMeshGenerator } from './ProceduralMeshGenerator';
-export { EnhancedProceduralGenerator, QualitySettings } from './EnhancedProceduralGenerator';
+/**
+ * procedural module exports
+ */
+
+export * from './EnhancedProceduralGenerator';
+export * from './NoiseGenerator';
+export * from './ProceduralMeshGenerator';

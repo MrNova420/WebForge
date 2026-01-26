@@ -1,15 +1,5 @@
 /**
- * Profiling module - Performance profiling and analysis
- * 
- * @module profiling
+ * profiling module exports
  */
 
-export { PerformanceProfiler } from './PerformanceProfiler';
-export type { 
-    FrameProfile, 
-    MemorySnapshot, 
-    GPUMetrics, 
-    NetworkActivity, 
-    PerformanceRecommendation, 
-    ProfilingSession 
-} from './PerformanceProfiler';
+export * from './PerformanceProfiler';

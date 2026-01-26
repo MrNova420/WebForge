@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebForge Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #252526;
+            --bg-tertiary: #2d2d30;
+            --bg-hover: #3e3e42;
+            --border-color: #3c3c3c;
+            --text-primary: #cccccc;
+            --text-secondary: #858585;
+            --accent-color: #007acc;
+            --success-color: #4ec9b0;
+            --warning-color: #dcdcaa;
+            --error-color: #f14c4c;
+            --panel-header: 28px;
+            --toolbar-height: 40px;
+            --menubar-height: 28px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 13px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Menu Bar */
+        .menubar {
+            height: var(--menubar-height);
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .menu-item {
+            padding: 4px 12px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .menu-item:hover {
+            background: var(--bg-hover);
+        }
+
+        /* Toolbar */
+        .toolbar {
+            height: var(--toolbar-height);
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            gap: 4px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding: 0 8px;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .toolbar-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 3px;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .toolbar-btn.active {
+            background: var(--accent-color);
+        }
+
+        .play-btn { color: var(--success-color); }
+        .pause-btn { color: var(--warning-color); }
+        .stop-btn { color: var(--error-color); }
+
+        /* Main Editor Layout */
+        .editor-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 220px 1fr 300px;
+            grid-template-rows: 1fr 200px;
+            gap: 1px;
+            background: var(--border-color);
+            overflow: hidden;
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--bg-secondary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            height: var(--panel-header);
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            font-weight: 500;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow: auto;
+            padding: 8px;
+        }
+
+        /* Hierarchy Panel */
+        #hierarchy-panel {
+            grid-row: 1 / 2;
+        }
+
+        .tree-item {
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tree-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .tree-item.selected {
+            background: var(--accent-color);
+        }
+
+        .tree-item .icon {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .tree-indent {
+            margin-left: 16px;
+        }
+
+        /* Scene View */
+        #scene-panel {
+            grid-row: 1 / 2;
+            position: relative;
+        }
+
+        #scene-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scene-overlay {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .scene-btn {
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .scene-btn:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .scene-btn.active {
+            background: var(--accent-color);
+        }
+
+        .scene-stats {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 11px;
+        }
+
+        /* Inspector Panel */
+        #inspector-panel {
+            grid-row: 1 / 2;
+        }
+
+        .component {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+
+        .component-header {
+            padding: 8px 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .component-header:hover {
+            background: var(--bg-hover);
+        }
+
+        .component-content {
+            padding: 12px;
+        }
+
+        .property-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .property-label {
+            width: 80px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .property-input {
+            flex: 1;
+            display: flex;
+            gap: 4px;
+        }
+
+        .property-input input {
+            flex: 1;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            padding: 4px 8px;
+            color: var(--text-primary);
+            font-size: 12px;
+        }
+
+        .property-input input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .vec3-input {
+            display: flex;
+            gap: 4px;
+        }
+
+        .vec3-input input {
+            width: 60px;
+            text-align: center;
+        }
+
+        .vec3-label {
+            width: 12px;
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .x-label { color: #f14c4c; }
+        .y-label { color: #4ec9b0; }
+        .z-label { color: #569cd6; }
+
+        /* Console Panel */
+        #console-panel {
+            grid-column: 1 / 4;
+        }
+
+        .console-tabs {
+            display: flex;
+            gap: 2px;
+            margin-left: auto;
+        }
+
+        .console-tab {
+            padding: 4px 12px;
+            cursor: pointer;
+            border-radius: 3px 3px 0 0;
+            font-size: 11px;
+        }
+
+        .console-tab:hover {
+            background: var(--bg-hover);
+        }
+
+        .console-tab.active {
+            background: var(--bg-secondary);
+        }
+
+        .console-content {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .console-entry {
+            padding: 4px 8px;
+            border-bottom: 1px solid var(--bg-tertiary);
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .console-entry.info .console-icon { color: var(--accent-color); }
+        .console-entry.warn .console-icon { color: var(--warning-color); }
+        .console-entry.error .console-icon { color: var(--error-color); }
+        .console-entry.success .console-icon { color: var(--success-color); }
+
+        .console-time {
+            color: var(--text-secondary);
+            font-size: 10px;
+        }
+
+        .console-input-row {
+            display: flex;
+            padding: 8px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .console-input-row input {
+            flex: 1;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            padding: 6px 12px;
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+
+        /* Asset Browser in Console Area */
+        #assets-panel {
+            display: none;
+        }
+
+        #assets-panel.active {
+            display: flex;
+        }
+
+        .asset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .asset-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .asset-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .asset-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .asset-name {
+            font-size: 11px;
+            text-align: center;
+            word-break: break-all;
+        }
+
+        /* Status Bar */
+        .statusbar {
+            height: 24px;
+            background: var(--accent-color);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 12px;
+            gap: 20px;
+        }
+
+        .statusbar-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading WebForge Editor...</div>
+    </div>
+
+    <!-- Menu Bar -->
+    <div class="menubar">
+        <div class="menu-item">File</div>
+        <div class="menu-item">Edit</div>
+        <div class="menu-item">View</div>
+        <div class="menu-item">GameObject</div>
+        <div class="menu-item">Component</div>
+        <div class="menu-item">Window</div>
+        <div class="menu-item">Help</div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <button class="toolbar-btn" title="Select (Q)">🖱️</button>
+            <button class="toolbar-btn active" title="Move (W)">✥</button>
+            <button class="toolbar-btn" title="Rotate (E)">↻</button>
+            <button class="toolbar-btn" title="Scale (R)">⤢</button>
+        </div>
+        <div class="toolbar-group">
+            <button class="toolbar-btn" title="Local/World Space">🌐</button>
+            <button class="toolbar-btn" title="Snap Settings">🧲</button>
+        </div>
+        <div class="toolbar-group" style="margin-left: auto;">
+            <button class="toolbar-btn play-btn" title="Play (Ctrl+P)">▶</button>
+            <button class="toolbar-btn pause-btn" title="Pause">⏸</button>
+            <button class="toolbar-btn stop-btn" title="Stop">⏹</button>
+        </div>
+        <div class="toolbar-group">
+            <button class="toolbar-btn" title="Debug (`)">🐛</button>
+            <button class="toolbar-btn" title="Profiler">📊</button>
+        </div>
+    </div>
+
+    <!-- Main Editor -->
+    <div class="editor-container">
+        <!-- Hierarchy Panel -->
+        <div class="panel" id="hierarchy-panel">
+            <div class="panel-header">
+                Hierarchy
+            </div>
+            <div class="panel-content" id="hierarchy-content">
+                <div class="tree-item selected">
+                    <span class="icon">🎬</span>
+                    <span>Main Camera</span>
+                </div>
+                <div class="tree-item">
+                    <span class="icon">💡</span>
+                    <span>Directional Light</span>
+                </div>
+                <div class="tree-item">
+                    <span class="icon">📦</span>
+                    <span>Cube</span>
+                </div>
+                <div class="tree-indent">
+                    <div class="tree-item">
+                        <span class="icon">🔵</span>
+                        <span>Sphere (child)</span>
+                    </div>
+                </div>
+                <div class="tree-item">
+                    <span class="icon">🌍</span>
+                    <span>Ground Plane</span>
+                </div>
+                <div class="tree-item">
+                    <span class="icon">🎮</span>
+                    <span>Player</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene View -->
+        <div class="panel" id="scene-panel">
+            <div class="panel-header">
+                Scene
+            </div>
+            <div class="panel-content" style="padding: 0; position: relative;">
+                <canvas id="scene-canvas"></canvas>
+                <div class="scene-overlay">
+                    <button class="scene-btn active">Shaded</button>
+                    <button class="scene-btn">Wireframe</button>
+                    <button class="scene-btn">2D</button>
+                </div>
+                <div class="scene-stats" id="scene-stats">
+                    FPS: 60 | Tris: 1.2K | Draw Calls: 12
+                </div>
+            </div>
+        </div>
+
+        <!-- Inspector Panel -->
+        <div class="panel" id="inspector-panel">
+            <div class="panel-header">
+                Inspector
+            </div>
+            <div class="panel-content" id="inspector-content">
+                <div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                    <input type="text" value="Cube" style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 3px; padding: 6px 12px; color: var(--text-primary); font-size: 14px; font-weight: 500;">
+                </div>
+                
+                <div class="component">
+                    <div class="component-header">
+                        <span>📐</span>
+                        <span>Transform</span>
+                    </div>
+                    <div class="component-content">
+                        <div class="property-row">
+                            <span class="property-label">Position</span>
+                            <div class="vec3-input">
+                                <span class="vec3-label x-label">X</span>
+                                <input type="number" value="0" step="0.1">
+                                <span class="vec3-label y-label">Y</span>
+                                <input type="number" value="1" step="0.1">
+                                <span class="vec3-label z-label">Z</span>
+                                <input type="number" value="0" step="0.1">
+                            </div>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Rotation</span>
+                            <div class="vec3-input">
+                                <span class="vec3-label x-label">X</span>
+                                <input type="number" value="0" step="1">
+                                <span class="vec3-label y-label">Y</span>
+                                <input type="number" value="45" step="1">
+                                <span class="vec3-label z-label">Z</span>
+                                <input type="number" value="0" step="1">
+                            </div>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Scale</span>
+                            <div class="vec3-input">
+                                <span class="vec3-label x-label">X</span>
+                                <input type="number" value="1" step="0.1">
+                                <span class="vec3-label y-label">Y</span>
+                                <input type="number" value="1" step="0.1">
+                                <span class="vec3-label z-label">Z</span>
+                                <input type="number" value="1" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="component">
+                    <div class="component-header">
+                        <span>📦</span>
+                        <span>Mesh Renderer</span>
+                    </div>
+                    <div class="component-content">
+                        <div class="property-row">
+                            <span class="property-label">Mesh</span>
+                            <div class="property-input">
+                                <input type="text" value="Cube" readonly>
+                            </div>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Material</span>
+                            <div class="property-input">
+                                <input type="text" value="Default-Material">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="component">
+                    <div class="component-header">
+                        <span>⚡</span>
+                        <span>Rigidbody</span>
+                    </div>
+                    <div class="component-content">
+                        <div class="property-row">
+                            <span class="property-label">Mass</span>
+                            <div class="property-input">
+                                <input type="number" value="1" step="0.1">
+                            </div>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Gravity</span>
+                            <div class="property-input">
+                                <input type="checkbox" checked>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button style="width: 100%; padding: 8px; background: var(--bg-tertiary); border: 1px dashed var(--border-color); border-radius: 4px; color: var(--text-secondary); cursor: pointer; margin-top: 8px;">
+                    + Add Component
+                </button>
+            </div>
+        </div>
+
+        <!-- Console Panel -->
+        <div class="panel" id="console-panel">
+            <div class="panel-header">
+                <span>Console</span>
+                <div class="console-tabs">
+                    <span class="console-tab active" data-tab="console">Console</span>
+                    <span class="console-tab" data-tab="assets">Assets</span>
+                    <span class="console-tab" data-tab="profiler">Profiler</span>
+                </div>
+            </div>
+            <div class="panel-content console-content" id="console-content">
+                <div class="console-entry success">
+                    <span class="console-icon">✓</span>
+                    <span class="console-time">[18:24:45]</span>
+                    <span>WebForge Editor initialized successfully</span>
+                </div>
+                <div class="console-entry info">
+                    <span class="console-icon">ℹ</span>
+                    <span class="console-time">[18:24:45]</span>
+                    <span>Loaded scene: Default Scene (6 objects)</span>
+                </div>
+                <div class="console-entry info">
+                    <span class="console-icon">ℹ</span>
+                    <span class="console-time">[18:24:46]</span>
+                    <span>Debug system ready - Press ` to toggle overlay, ~ for console</span>
+                </div>
+                <div class="console-entry warn">
+                    <span class="console-icon">⚠</span>
+                    <span class="console-time">[18:24:46]</span>
+                    <span>WebGPU not available, falling back to WebGL2</span>
+                </div>
+            </div>
+            <div class="console-input-row">
+                <input type="text" placeholder="Enter command..." id="console-input">
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="statusbar">
+        <div class="statusbar-item">
+            <span>●</span>
+            <span>Ready</span>
+        </div>
+        <div class="statusbar-item">
+            Objects: 6
+        </div>
+        <div class="statusbar-item">
+            Vertices: 4,128
+        </div>
+        <div class="statusbar-item" style="margin-left: auto;">
+            WebForge v1.0.0
+        </div>
+    </div>
+
+    <script type="module">
+        // Simple Vector3 class for demo (fallback if WebForge fails to load)
+        class SimpleVector3 {
+            constructor(x = 0, y = 0, z = 0) {
+                this.x = x; this.y = y; this.z = z;
+            }
+        }
+
+        let WebForge = null;
+        let Vector3 = SimpleVector3;
+
+        // Initialize the editor
+        class EditorApp {
+            constructor() {
+                this.canvas = document.getElementById('scene-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.selectedObject = null;
+                this.objects = [];
+                this.frameCount = 0;
+                this.lastTime = performance.now();
+                this.fps = 60;
+
+                this.init();
+            }
+
+            async init() {
+                // Try to load WebForge
+                try {
+                    const module = await import('./src/index.ts');
+                    WebForge = module;
+                    Vector3 = module.Vector3 || SimpleVector3;
+                    window.WebForge = WebForge;
+                    console.log('WebForge loaded:', Object.keys(module).length, 'exports');
+                } catch (err) {
+                    console.warn('WebForge load failed, using fallback:', err.message);
+                }
+
+                // Resize canvas
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+
+                // Create demo scene
+                this.createDemoScene();
+
+                // Start render loop
+                this.render();
+
+                // Setup console input
+                this.setupConsole();
+
+                // Hide loading overlay
+                document.getElementById('loading-overlay').classList.add('hidden');
+                this.log('WebForge Editor initialized', 'success');
+                if (WebForge) {
+                    this.log(`Loaded ${Object.keys(WebForge).length} modules`, 'info');
+                } else {
+                    this.log('Running in fallback mode (WebForge not loaded)', 'warn');
+                }
+            }
+
+            resizeCanvas() {
+                const panel = this.canvas.parentElement;
+                this.canvas.width = panel.clientWidth;
+                this.canvas.height = panel.clientHeight;
+            }
+
+            createDemoScene() {
+                // Create some demo objects
+                this.objects = [
+                    {
+                        name: 'Cube',
+                        position: new Vector3(0, 0, 0),
+                        rotation: new Vector3(0, 45, 0),
+                        scale: new Vector3(1, 1, 1),
+                        color: '#4ec9b0'
+                    },
+                    {
+                        name: 'Sphere',
+                        position: new Vector3(2, 0, 0),
+                        rotation: new Vector3(0, 0, 0),
+                        scale: new Vector3(0.8, 0.8, 0.8),
+                        color: '#569cd6'
+                    },
+                    {
+                        name: 'Pyramid',
+                        position: new Vector3(-2, 0, 0),
+                        rotation: new Vector3(0, 30, 0),
+                        scale: new Vector3(1, 1.5, 1),
+                        color: '#dcdcaa'
+                    }
+                ];
+
+                this.log(`Created demo scene with ${this.objects.length} objects`, 'info');
+            }
+
+            render() {
+                const now = performance.now();
+                const delta = now - this.lastTime;
+                this.frameCount++;
+
+                // Update FPS every second
+                if (delta >= 1000) {
+                    this.fps = Math.round(this.frameCount * 1000 / delta);
+                    this.frameCount = 0;
+                    this.lastTime = now;
+                    this.updateStats();
+                }
+
+                // Clear canvas
+                this.ctx.fillStyle = '#1a1a2e';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw grid
+                this.drawGrid();
+
+                // Draw objects (simple 2D representation for now)
+                this.drawObjects();
+
+                // Draw gizmos
+                if (this.selectedObject) {
+                    this.drawGizmo(this.selectedObject);
+                }
+
+                requestAnimationFrame(() => this.render());
+            }
+
+            drawGrid() {
+                const { width, height } = this.canvas;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const gridSize = 40;
+
+                this.ctx.strokeStyle = '#2d2d30';
+                this.ctx.lineWidth = 1;
+
+                // Vertical lines
+                for (let x = centerX % gridSize; x < width; x += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, height);
+                    this.ctx.stroke();
+                }
+
+                // Horizontal lines
+                for (let y = centerY % gridSize; y < height; y += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(width, y);
+                    this.ctx.stroke();
+                }
+
+                // Center axes
+                this.ctx.strokeStyle = '#f14c4c';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, centerY);
+                this.ctx.lineTo(width, centerY);
+                this.ctx.stroke();
+
+                this.ctx.strokeStyle = '#4ec9b0';
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX, 0);
+                this.ctx.lineTo(centerX, height);
+                this.ctx.stroke();
+            }
+
+            drawObjects() {
+                const { width, height } = this.canvas;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const scale = 60;
+
+                this.objects.forEach((obj, index) => {
+                    const x = centerX + obj.position.x * scale;
+                    const y = centerY - obj.position.y * scale;
+                    const size = 40 * obj.scale.x;
+
+                    // Rotate based on time for animation
+                    const rotation = (obj.rotation.y + this.frameCount * 0.5) * Math.PI / 180;
+
+                    this.ctx.save();
+                    this.ctx.translate(x, y);
+                    this.ctx.rotate(rotation);
+
+                    // Draw shape based on name
+                    this.ctx.fillStyle = obj.color;
+                    this.ctx.strokeStyle = '#ffffff';
+                    this.ctx.lineWidth = 2;
+
+                    if (obj.name === 'Cube') {
+                        this.ctx.fillRect(-size/2, -size/2, size, size);
+                        this.ctx.strokeRect(-size/2, -size/2, size, size);
+                    } else if (obj.name === 'Sphere') {
+                        this.ctx.beginPath();
+                        this.ctx.arc(0, 0, size/2, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        this.ctx.stroke();
+                    } else if (obj.name === 'Pyramid') {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(0, -size/2);
+                        this.ctx.lineTo(size/2, size/2);
+                        this.ctx.lineTo(-size/2, size/2);
+                        this.ctx.closePath();
+                        this.ctx.fill();
+                        this.ctx.stroke();
+                    }
+
+                    this.ctx.restore();
+
+                    // Label
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.font = '11px sans-serif';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText(obj.name, x, y + size/2 + 16);
+                });
+            }
+
+            drawGizmo(obj) {
+                const { width, height } = this.canvas;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const scale = 60;
+                const x = centerX + obj.position.x * scale;
+                const y = centerY - obj.position.y * scale;
+                const gizmoSize = 50;
+
+                // X axis (red)
+                this.ctx.strokeStyle = '#f14c4c';
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y);
+                this.ctx.lineTo(x + gizmoSize, y);
+                this.ctx.stroke();
+                this.drawArrow(x + gizmoSize, y, 0, '#f14c4c');
+
+                // Y axis (green)
+                this.ctx.strokeStyle = '#4ec9b0';
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y);
+                this.ctx.lineTo(x, y - gizmoSize);
+                this.ctx.stroke();
+                this.drawArrow(x, y - gizmoSize, -90, '#4ec9b0');
+
+                // Z axis (blue) - simplified 2D representation
+                this.ctx.strokeStyle = '#569cd6';
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y);
+                this.ctx.lineTo(x + gizmoSize * 0.5, y + gizmoSize * 0.5);
+                this.ctx.stroke();
+                this.drawArrow(x + gizmoSize * 0.5, y + gizmoSize * 0.5, 45, '#569cd6');
+            }
+
+            drawArrow(x, y, angle, color) {
+                this.ctx.save();
+                this.ctx.translate(x, y);
+                this.ctx.rotate(angle * Math.PI / 180);
+                this.ctx.fillStyle = color;
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, 0);
+                this.ctx.lineTo(-10, -5);
+                this.ctx.lineTo(-10, 5);
+                this.ctx.closePath();
+                this.ctx.fill();
+                this.ctx.restore();
+            }
+
+            updateStats() {
+                const tris = this.objects.length * 12; // Simplified
+                const draws = this.objects.length + 2; // Grid + objects
+                document.getElementById('scene-stats').textContent = 
+                    `FPS: ${this.fps} | Tris: ${tris} | Draw Calls: ${draws}`;
+            }
+
+            setupConsole() {
+                const input = document.getElementById('console-input');
+                input.addEventListener('keydown', async (e) => {
+                    if (e.key === 'Enter' && input.value.trim()) {
+                        const command = input.value.trim();
+                        this.log(`> ${command}`, 'info');
+                        
+                        // Execute command
+                        try {
+                            const result = eval(command);
+                            if (result !== undefined) {
+                                this.log(String(result), 'success');
+                            }
+                        } catch (err) {
+                            this.log(err.message, 'error');
+                        }
+                        
+                        input.value = '';
+                    }
+                });
+
+                // Tab switching
+                document.querySelectorAll('.console-tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        document.querySelectorAll('.console-tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                    });
+                });
+            }
+
+            log(message, type = 'info') {
+                const console = document.getElementById('console-content');
+                const time = new Date().toLocaleTimeString();
+                const icons = { info: 'ℹ', warn: '⚠', error: '✗', success: '✓' };
+                
+                const entry = document.createElement('div');
+                entry.className = `console-entry ${type}`;
+                entry.innerHTML = `
+                    <span class="console-icon">${icons[type]}</span>
+                    <span class="console-time">[${time}]</span>
+                    <span>${message}</span>
+                `;
+                console.appendChild(entry);
+                console.scrollTop = console.scrollHeight;
+            }
+        }
+
+        // Start the editor
+        const editor = new EditorApp();
+        window.editor = editor;
+
+        // Log available modules
+        if (WebForge) {
+            console.log('WebForge loaded:', Object.keys(WebForge).length, 'modules');
+        } else {
+            console.log('WebForge running in fallback mode');
+        }
+    </script>
+</body>
+</html>

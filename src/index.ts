@@ -73,6 +73,9 @@ export * from './character';
 // Production Tools
 export * from './tools';
 
+// Professional Debugger
+export * from './debug';
+
 // Future Tech
 export * from './future';
 

@@ -1,12 +1,5 @@
 /**
- * WebForge Advanced VFX Module
- * 
- * Phase 13 - AAA-Grade Features: Volumetric effects and atmospheric scattering
+ * vfx module exports
  */
 
-export { 
-    AdvancedVFXSystem, 
-    VolumetricFogSettings, 
-    AtmosphericSettings, 
-    GodRaysSettings 
-} from './AdvancedVFXSystem';
+export * from './AdvancedVFXSystem';

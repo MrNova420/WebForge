@@ -1,11 +1,10 @@
 /**
- * @fileoverview Terrain system module exports
- * @module terrain
+ * terrain module exports
  */
 
-export { Terrain } from './Terrain';
-export { TerrainGenerator } from './TerrainGenerator';
-export { TerrainBrush, BrushType, FalloffType } from './TerrainBrush';
-export { TerrainPainting, TerrainLayer } from './TerrainPainting';
-export { TerrainLOD, TerrainLODLevel } from './TerrainLOD';
-export { EnhancedTerrainGenerator, BiomeType, TerrainGenerationParams } from './EnhancedTerrainGenerator';
+export * from './EnhancedTerrainGenerator';
+export * from './Terrain';
+export * from './TerrainBrush';
+export * from './TerrainGenerator';
+export * from './TerrainLOD';
+export * from './TerrainPainting';
