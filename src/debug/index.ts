@@ -12,3 +12,4 @@ export * from './ErrorTracker';
 export * from './StateInspector';
 export * from './TimelineProfiler';
 export * from './WatchSystem';
+export * from './LiveDebugger';

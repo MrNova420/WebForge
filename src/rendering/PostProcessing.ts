@@ -285,7 +285,8 @@ export abstract class BasePostEffect implements PostEffect {
   abstract name: string;
   enabled: boolean = true;
   
-  protected gl: WebGL2RenderingContext;
+  protected gl: WebGLRenderingContext | WebGL2RenderingContext;
+  protected glContext: WebGLContext;
   protected shader: Shader | null = null;
   protected logger: Logger;
   
@@ -293,8 +294,9 @@ export abstract class BasePostEffect implements PostEffect {
   protected quadVAO: WebGLVertexArrayObject | null = null;
   protected quadVBO: WebGLBuffer | null = null;
 
-  constructor(gl: WebGL2RenderingContext) {
-    this.gl = gl;
+  constructor(context: WebGLContext) {
+    this.glContext = context;
+    this.gl = context.getGL();
     this.logger = new Logger('PostEffect');
     this.createQuad();
   }
@@ -311,9 +313,9 @@ export abstract class BasePostEffect implements PostEffect {
        1,  1, 1, 1   // Top-right
     ]);
     
-    // Create VAO
-    this.quadVAO = this.gl.createVertexArray();
-    this.gl.bindVertexArray(this.quadVAO);
+    // Create VAO using WebGLContext helper (handles WebGL1/2)
+    this.quadVAO = this.glContext.createVertexArray();
+    this.glContext.bindVertexArray(this.quadVAO);
     
     // Create VBO
     this.quadVBO = this.gl.createBuffer();
@@ -328,16 +330,16 @@ export abstract class BasePostEffect implements PostEffect {
     this.gl.enableVertexAttribArray(1);
     this.gl.vertexAttribPointer(1, 2, this.gl.FLOAT, false, 16, 8);
     
-    this.gl.bindVertexArray(null);
+    this.glContext.bindVertexArray(null);
   }
 
   /**
    * Renders the full-screen quad
    */
   protected renderQuad(): void {
-    this.gl.bindVertexArray(this.quadVAO);
+    this.glContext.bindVertexArray(this.quadVAO);
     this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
-    this.gl.bindVertexArray(null);
+    this.glContext.bindVertexArray(null);
   }
 
   abstract render(input: Texture, output: Framebuffer | null): void;
@@ -347,7 +349,7 @@ export abstract class BasePostEffect implements PostEffect {
    */
   dispose(): void {
     if (this.quadVAO) {
-      this.gl.deleteVertexArray(this.quadVAO);
+      this.glContext.deleteVertexArray(this.quadVAO);
       this.quadVAO = null;
     }
     if (this.quadVBO) {

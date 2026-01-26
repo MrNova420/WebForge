@@ -169,6 +169,77 @@ export class WebGLContext {
     return this.events;
   }
 
+  // ============================================================================
+  // VAO HELPERS - Handle WebGL1 vs WebGL2 automatically
+  // ============================================================================
+  
+  private vaoExtension: OES_vertex_array_object | null = null;
+  
+  /**
+   * Creates a Vertex Array Object (handles WebGL1/2 differences)
+   */
+  createVertexArray(): WebGLVertexArrayObject | null {
+    if (!this.gl) return null;
+    
+    if (this.isWebGL2) {
+      return (this.gl as WebGL2RenderingContext).createVertexArray();
+    }
+    
+    // WebGL1 fallback
+    if (!this.vaoExtension) {
+      this.vaoExtension = this.gl.getExtension('OES_vertex_array_object');
+    }
+    return this.vaoExtension?.createVertexArrayOES() ?? null;
+  }
+  
+  /**
+   * Binds a Vertex Array Object (handles WebGL1/2 differences)
+   */
+  bindVertexArray(vao: WebGLVertexArrayObject | null): void {
+    if (!this.gl) return;
+    
+    if (this.isWebGL2) {
+      (this.gl as WebGL2RenderingContext).bindVertexArray(vao);
+      return;
+    }
+    
+    // WebGL1 fallback
+    if (!this.vaoExtension) {
+      this.vaoExtension = this.gl.getExtension('OES_vertex_array_object');
+    }
+    this.vaoExtension?.bindVertexArrayOES(vao);
+  }
+  
+  /**
+   * Deletes a Vertex Array Object (handles WebGL1/2 differences)
+   */
+  deleteVertexArray(vao: WebGLVertexArrayObject | null): void {
+    if (!this.gl || !vao) return;
+    
+    if (this.isWebGL2) {
+      (this.gl as WebGL2RenderingContext).deleteVertexArray(vao);
+      return;
+    }
+    
+    // WebGL1 fallback
+    if (!this.vaoExtension) {
+      this.vaoExtension = this.gl.getExtension('OES_vertex_array_object');
+    }
+    this.vaoExtension?.deleteVertexArrayOES(vao);
+  }
+  
+  /**
+   * Check if VAOs are supported
+   */
+  supportsVAO(): boolean {
+    if (this.isWebGL2) return true;
+    if (!this.gl) return false;
+    if (!this.vaoExtension) {
+      this.vaoExtension = this.gl.getExtension('OES_vertex_array_object');
+    }
+    return this.vaoExtension !== null;
+  }
+
   destroy(): void {
     if (this.canvas) {
       this.canvas.removeEventListener('webglcontextlost', this.onContextLost);

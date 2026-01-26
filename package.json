@@ -19,16 +19,23 @@
   ],
   "scripts": {
     "dev": "vite",
+    "dev:editor": "vite --open /editor.html",
     "build": "tsc && vite build",
+    "build:watch": "tsc && vite build --watch",
     "compile": "tsc",
-    "watch": "tsc --watch",
+    "compile:watch": "tsc --watch",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "lint": "tsc --noEmit",
-    "debug": "node --inspect node_modules/vite/bin/vite.js"
+    "lint:fix": "tsc --noEmit && echo 'TypeScript check passed'",
+    "debug": "node --inspect node_modules/vite/bin/vite.js",
+    "check": "npm run lint && npm test",
+    "health": "npm run lint && npm test && echo '✅ All checks passed!'",
+    "docs": "echo 'View docs at docs/README.md'"
   },
   "keywords": [
     "game-engine",

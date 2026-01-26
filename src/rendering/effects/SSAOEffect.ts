@@ -4,6 +4,7 @@
  */
 
 import { BasePostEffect } from '../PostProcessing';
+import { WebGLContext } from '../WebGLContext';
 import { Framebuffer } from '../Framebuffer';
 import { Texture } from '../Texture';
 import { Shader } from '../Shader';
@@ -49,18 +50,18 @@ export class SSAOEffect extends BasePostEffect {
 
   /**
    * Creates a new SSAO effect
-   * @param gl - WebGL context
+   * @param context - WebGL context wrapper
    * @param width - Render target width
    * @param height - Render target height
    * @param config - SSAO configuration
    */
   constructor(
-    gl: WebGL2RenderingContext,
+    context: WebGLContext,
     width: number,
     height: number,
     config: SSAOConfig = {}
   ) {
-    super(gl);
+    super(context);
     
     this.width = width;
     this.height = height;

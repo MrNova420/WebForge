@@ -7,7 +7,10 @@
 export {
     CameraController,
     CameraControlMode,
-    ViewDirection,
+    ViewDirection
+} from './CameraController';
+
+export type {
     CameraBookmark,
     CameraControllerSettings
 } from './CameraController';

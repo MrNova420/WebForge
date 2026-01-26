@@ -10,3 +10,4 @@ export * from './LayoutManager';
 export * from './panels';
 export * from './gizmos';
 export * from './camera';
+export * from './app';

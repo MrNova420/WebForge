@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+<canvas id="scene-canvas"></canvas>
+<script type="module">
+import { EditorApplication, getLiveDebugger, getDevCenter } from './src/index.ts';
+
+// Start devtools first
+const devCenter = getDevCenter({ autoStart: true, autoShowOnError: true });
+const liveDebugger = getLiveDebugger();
+liveDebugger.initialize();
+
+console.log('DevCenter started');
+
+try {
+    const canvas = document.getElementById('scene-canvas');
+    console.log('Canvas:', canvas);
+    
+    const editor = new EditorApplication({
+        canvas: canvas,
+        debug: true,
+        createDemoScene: true
+    });
+    console.log('Editor created');
+    
+    await editor.initialize();
+    console.log('Editor initialized!');
+    
+} catch(e) {
+    console.error('ERROR:', e.message);
+    console.error(e.stack);
+}
+</script>
+</body>
+</html>

@@ -16,20 +16,25 @@
             --bg-secondary: #252526;
             --bg-tertiary: #2d2d30;
             --bg-hover: #3e3e42;
+            --bg-active: #094771;
             --border-color: #3c3c3c;
             --text-primary: #cccccc;
             --text-secondary: #858585;
+            --text-muted: #6e6e6e;
             --accent-color: #007acc;
+            --accent-hover: #1c97ea;
             --success-color: #4ec9b0;
             --warning-color: #dcdcaa;
             --error-color: #f14c4c;
+            --info-color: #569cd6;
             --panel-header: 28px;
             --toolbar-height: 40px;
             --menubar-height: 28px;
+            --statusbar-height: 22px;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
             font-size: 13px;
             background: var(--bg-primary);
             color: var(--text-primary);
@@ -37,9 +42,10 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
+            user-select: none;
         }
 
-        /* Menu Bar */
+        /* =============== MENU BAR =============== */
         .menubar {
             height: var(--menubar-height);
             background: var(--bg-tertiary);
@@ -47,19 +53,64 @@
             align-items: center;
             padding: 0 8px;
             border-bottom: 1px solid var(--border-color);
+            gap: 2px;
         }
 
         .menu-item {
-            padding: 4px 12px;
+            padding: 4px 10px;
             cursor: pointer;
             border-radius: 3px;
+            font-size: 12px;
         }
 
         .menu-item:hover {
             background: var(--bg-hover);
         }
 
-        /* Toolbar */
+        .menu-item.active {
+            background: var(--bg-active);
+        }
+
+        .menu-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            min-width: 200px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 1000;
+        }
+
+        .menu-dropdown.show {
+            display: block;
+        }
+
+        .menu-dropdown-item {
+            padding: 6px 12px;
+            display: flex;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .menu-dropdown-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .menu-dropdown-item .shortcut {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .menu-separator {
+            height: 1px;
+            background: var(--border-color);
+            margin: 4px 0;
+        }
+
+        /* =============== TOOLBAR =============== */
         .toolbar {
             height: var(--toolbar-height);
             background: var(--bg-secondary);
@@ -78,6 +129,10 @@
             border-right: 1px solid var(--border-color);
         }
 
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
         .toolbar-btn {
             width: 28px;
             height: 28px;
@@ -85,11 +140,12 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            border-radius: 3px;
+            border-radius: 4px;
             border: none;
             background: transparent;
             color: var(--text-primary);
-            font-size: 16px;
+            font-size: 14px;
+            transition: background 0.15s;
         }
 
         .toolbar-btn:hover {
@@ -98,24 +154,38 @@
 
         .toolbar-btn.active {
             background: var(--accent-color);
+            color: white;
         }
 
-        .play-btn { color: var(--success-color); }
-        .pause-btn { color: var(--warning-color); }
-        .stop-btn { color: var(--error-color); }
+        .toolbar-btn.play { color: var(--success-color); }
+        .toolbar-btn.pause { color: var(--warning-color); }
+        .toolbar-btn.stop { color: var(--error-color); }
 
-        /* Main Editor Layout */
+        .toolbar-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        .toolbar-separator {
+            width: 1px;
+            height: 20px;
+            background: var(--border-color);
+            margin: 0 4px;
+        }
+
+        /* =============== MAIN LAYOUT =============== */
         .editor-container {
             flex: 1;
             display: grid;
-            grid-template-columns: 220px 1fr 300px;
+            grid-template-columns: 240px 1fr 300px;
             grid-template-rows: 1fr 200px;
             gap: 1px;
             background: var(--border-color);
             overflow: hidden;
         }
 
-        /* Panels */
+        /* =============== PANELS =============== */
         .panel {
             background: var(--bg-secondary);
             display: flex;
@@ -128,6 +198,7 @@
             background: var(--bg-tertiary);
             display: flex;
             align-items: center;
+            justify-content: space-between;
             padding: 0 12px;
             font-weight: 500;
             font-size: 11px;
@@ -137,24 +208,83 @@
             flex-shrink: 0;
         }
 
+        .panel-header-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .panel-btn {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 3px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .panel-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
         .panel-content {
             flex: 1;
             overflow: auto;
             padding: 8px;
         }
 
-        /* Hierarchy Panel */
+        .panel-content::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .panel-content::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        .panel-content::-webkit-scrollbar-thumb {
+            background: var(--bg-hover);
+            border-radius: 5px;
+        }
+
+        /* =============== HIERARCHY PANEL =============== */
         #hierarchy-panel {
             grid-row: 1 / 2;
         }
 
+        .hierarchy-search {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .hierarchy-search input {
+            width: 100%;
+            padding: 6px 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 12px;
+        }
+
+        .hierarchy-search input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
         .tree-item {
             padding: 4px 8px;
+            padding-left: calc(8px + var(--indent, 0) * 16px);
             cursor: pointer;
             border-radius: 3px;
             display: flex;
             align-items: center;
             gap: 6px;
+            font-size: 12px;
         }
 
         .tree-item:hover {
@@ -166,15 +296,19 @@
         }
 
         .tree-item .icon {
-            font-size: 14px;
-            opacity: 0.8;
+            font-size: 12px;
+            opacity: 0.7;
+            width: 16px;
+            text-align: center;
         }
 
-        .tree-indent {
-            margin-left: 16px;
+        .tree-item .expand-btn {
+            width: 12px;
+            text-align: center;
+            opacity: 0.5;
         }
 
-        /* Scene View */
+        /* =============== SCENE VIEW =============== */
         #scene-panel {
             grid-row: 1 / 2;
             position: relative;
@@ -184,6 +318,7 @@
             width: 100%;
             height: 100%;
             display: block;
+            outline: none;
         }
 
         .scene-overlay {
@@ -192,40 +327,66 @@
             left: 8px;
             display: flex;
             gap: 4px;
+            z-index: 10;
         }
 
         .scene-btn {
-            padding: 4px 8px;
-            background: rgba(0, 0, 0, 0.6);
+            padding: 4px 10px;
+            background: rgba(0, 0, 0, 0.7);
             border: 1px solid var(--border-color);
-            border-radius: 3px;
+            border-radius: 4px;
             color: var(--text-primary);
             cursor: pointer;
             font-size: 11px;
+            transition: background 0.15s;
         }
 
         .scene-btn:hover {
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
         }
 
         .scene-btn.active {
             background: var(--accent-color);
+            border-color: var(--accent-color);
         }
 
         .scene-stats {
             position: absolute;
             bottom: 8px;
             left: 8px;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 8px;
-            border-radius: 3px;
-            font-family: monospace;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
             font-size: 11px;
+            z-index: 10;
         }
 
-        /* Inspector Panel */
+        .scene-stats .stat-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .scene-stats .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .scene-stats .stat-value {
+            color: var(--success-color);
+            font-weight: 500;
+        }
+
+        /* =============== INSPECTOR PANEL =============== */
         #inspector-panel {
             grid-row: 1 / 2;
+        }
+
+        .inspector-empty {
+            color: var(--text-muted);
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
         }
 
         .component {
@@ -243,10 +404,20 @@
             gap: 8px;
             cursor: pointer;
             border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
         }
 
         .component-header:hover {
             background: var(--bg-hover);
+        }
+
+        .component-header .icon {
+            opacity: 0.7;
+        }
+
+        .component-header .toggle {
+            margin-left: auto;
+            opacity: 0.5;
         }
 
         .component-content {
@@ -259,10 +430,15 @@
             margin-bottom: 8px;
         }
 
+        .property-row:last-child {
+            margin-bottom: 0;
+        }
+
         .property-label {
             width: 80px;
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-secondary);
+            flex-shrink: 0;
         }
 
         .property-input {
@@ -273,12 +449,14 @@
 
         .property-input input {
             flex: 1;
+            min-width: 0;
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
             border-radius: 3px;
             padding: 4px 8px;
             color: var(--text-primary);
             font-size: 12px;
+            font-family: inherit;
         }
 
         .property-input input:focus {
@@ -291,145 +469,141 @@
             gap: 4px;
         }
 
-        .vec3-input input {
-            width: 60px;
-            text-align: center;
+        .vec3-input .vec3-field {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 2px;
         }
 
-        .vec3-label {
+        .vec3-input .vec3-label {
+            font-size: 10px;
+            font-weight: 600;
             width: 12px;
             text-align: center;
-            font-size: 11px;
-            color: var(--text-secondary);
         }
 
-        .x-label { color: #f14c4c; }
-        .y-label { color: #4ec9b0; }
-        .z-label { color: #569cd6; }
+        .vec3-input .x-label { color: #f14c4c; }
+        .vec3-input .y-label { color: #4ec9b0; }
+        .vec3-input .z-label { color: #569cd6; }
 
-        /* Console Panel */
+        .vec3-input input {
+            width: 100%;
+            min-width: 0;
+            text-align: center;
+        }
+
+        /* =============== CONSOLE PANEL =============== */
         #console-panel {
-            grid-column: 1 / 4;
+            grid-column: 1 / -1;
         }
 
         .console-tabs {
             display: flex;
             gap: 2px;
-            margin-left: auto;
+            padding: 0 8px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .console-tab {
-            padding: 4px 12px;
+            padding: 6px 12px;
             cursor: pointer;
-            border-radius: 3px 3px 0 0;
             font-size: 11px;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary);
         }
 
         .console-tab:hover {
-            background: var(--bg-hover);
+            color: var(--text-primary);
         }
 
         .console-tab.active {
-            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-bottom-color: var(--accent-color);
+        }
+
+        .console-toolbar {
+            display: flex;
+            gap: 4px;
+            padding: 4px 8px;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .console-content {
-            font-family: 'Consolas', 'Courier New', monospace;
+            flex: 1;
+            overflow: auto;
+            padding: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
             font-size: 12px;
-            line-height: 1.6;
         }
 
         .console-entry {
-            padding: 4px 8px;
-            border-bottom: 1px solid var(--bg-tertiary);
             display: flex;
             align-items: flex-start;
             gap: 8px;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .console-entry.info .console-icon { color: var(--accent-color); }
+        .console-entry:last-child {
+            border-bottom: none;
+        }
+
+        .console-entry.info .console-icon { color: var(--info-color); }
         .console-entry.warn .console-icon { color: var(--warning-color); }
         .console-entry.error .console-icon { color: var(--error-color); }
         .console-entry.success .console-icon { color: var(--success-color); }
 
+        .console-icon {
+            width: 16px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
         .console-time {
-            color: var(--text-secondary);
+            color: var(--text-muted);
             font-size: 10px;
+            flex-shrink: 0;
+        }
+
+        .console-message {
+            flex: 1;
+            word-break: break-word;
         }
 
         .console-input-row {
             display: flex;
             padding: 8px;
             border-top: 1px solid var(--border-color);
-            background: var(--bg-tertiary);
+            gap: 8px;
         }
 
         .console-input-row input {
             flex: 1;
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
-            border-radius: 3px;
-            padding: 6px 12px;
+            border-radius: 4px;
+            padding: 6px 10px;
             color: var(--text-primary);
-            font-family: inherit;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
         }
 
-        /* Asset Browser in Console Area */
-        #assets-panel {
-            display: none;
+        .console-input-row input:focus {
+            outline: none;
+            border-color: var(--accent-color);
         }
 
-        #assets-panel.active {
-            display: flex;
-        }
-
-        .asset-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-            gap: 8px;
-            padding: 8px;
-        }
-
-        .asset-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 8px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .asset-item:hover {
-            background: var(--bg-hover);
-        }
-
-        .asset-icon {
-            width: 48px;
-            height: 48px;
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            margin-bottom: 4px;
-        }
-
-        .asset-name {
-            font-size: 11px;
-            text-align: center;
-            word-break: break-all;
-        }
-
-        /* Status Bar */
+        /* =============== STATUS BAR =============== */
         .statusbar {
-            height: 24px;
+            height: var(--statusbar-height);
             background: var(--accent-color);
             display: flex;
             align-items: center;
             padding: 0 12px;
-            font-size: 12px;
-            gap: 20px;
+            font-size: 11px;
+            gap: 16px;
         }
 
         .statusbar-item {
@@ -438,7 +612,11 @@
             gap: 6px;
         }
 
-        /* Loading Overlay */
+        .statusbar-item.right {
+            margin-left: auto;
+        }
+
+        /* =============== LOADING OVERLAY =============== */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -450,125 +628,182 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 9999;
+            transition: opacity 0.3s, visibility 0.3s;
         }
 
         .loading-overlay.hidden {
-            display: none;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loading-logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
         }
 
         .loading-spinner {
-            width: 48px;
-            height: 48px;
+            width: 40px;
+            height: 40px;
             border: 3px solid var(--border-color);
             border-top-color: var(--accent-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-bottom: 16px;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
 
-        .loading-text {
-            font-size: 14px;
-            color: var(--text-secondary);
+        /* =============== CONTEXT MENU =============== */
+        .context-menu {
+            position: fixed;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 10000;
+            display: none;
+        }
+
+        .context-menu.show {
+            display: block;
+        }
+
+        .context-menu-item {
+            padding: 6px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .context-menu-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .context-menu-item .shortcut {
+            color: var(--text-muted);
+            font-size: 10px;
         }
     </style>
 </head>
 <body>
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-logo">🔥</div>
+        <div class="loading-text">WebForge Editor</div>
         <div class="loading-spinner"></div>
-        <div class="loading-text">Loading WebForge Editor...</div>
     </div>
 
     <!-- Menu Bar -->
     <div class="menubar">
-        <div class="menu-item">File</div>
-        <div class="menu-item">Edit</div>
-        <div class="menu-item">View</div>
-        <div class="menu-item">GameObject</div>
-        <div class="menu-item">Component</div>
-        <div class="menu-item">Window</div>
-        <div class="menu-item">Help</div>
+        <div class="menu-item" data-menu="file">File</div>
+        <div class="menu-item" data-menu="edit">Edit</div>
+        <div class="menu-item" data-menu="view">View</div>
+        <div class="menu-item" data-menu="gameobject">GameObject</div>
+        <div class="menu-item" data-menu="component">Component</div>
+        <div class="menu-item" data-menu="window">Window</div>
+        <div class="menu-item" data-menu="help">Help</div>
     </div>
 
     <!-- Toolbar -->
     <div class="toolbar">
+        <!-- Transform Tools -->
         <div class="toolbar-group">
-            <button class="toolbar-btn" title="Select (Q)">🖱️</button>
-            <button class="toolbar-btn active" title="Move (W)">✥</button>
-            <button class="toolbar-btn" title="Rotate (E)">↻</button>
-            <button class="toolbar-btn" title="Scale (R)">⤢</button>
+            <button class="toolbar-btn active" id="tool-select" title="Select (Q)">
+                <svg viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+            </button>
+            <button class="toolbar-btn" id="tool-translate" title="Translate (W)">
+                <svg viewBox="0 0 24 24"><path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/></svg>
+            </button>
+            <button class="toolbar-btn" id="tool-rotate" title="Rotate (E)">
+                <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+            </button>
+            <button class="toolbar-btn" id="tool-scale" title="Scale (R)">
+                <svg viewBox="0 0 24 24"><path d="M21 15h2v2h-2v-2zm0-4h2v2h-2v-2zm2 8h-2v2c1 0 2-1 2-2zM13 3h2v2h-2V3zm8 4h2v2h-2V7zm0-4v2h2c0-1-1-2-2-2zM1 7h2v2H1V7zm16-4h2v2h-2V3zm0 16h2v2h-2v-2zM3 3C2 3 1 4 1 5h2V3zm6 0h2v2H9V3zM5 3h2v2H5V3zm-4 8v8c0 1.1.9 2 2 2h12V11H1zm2 8l2.5-3.21 1.79 2.15 2.5-3.22L13 19H3z"/></svg>
+            </button>
         </div>
+
+        <!-- Transform Space -->
         <div class="toolbar-group">
-            <button class="toolbar-btn" title="Local/World Space">🌐</button>
-            <button class="toolbar-btn" title="Snap Settings">🧲</button>
+            <button class="toolbar-btn active" id="space-local" title="Local Space">L</button>
+            <button class="toolbar-btn" id="space-world" title="World Space">W</button>
         </div>
+
+        <!-- Snap Settings -->
+        <div class="toolbar-group">
+            <button class="toolbar-btn" id="snap-grid" title="Grid Snap (Ctrl+G)">⊞</button>
+            <button class="toolbar-btn" id="snap-angle" title="Angle Snap">∠</button>
+        </div>
+
+        <!-- Play Controls -->
         <div class="toolbar-group" style="margin-left: auto;">
-            <button class="toolbar-btn play-btn" title="Play (Ctrl+P)">▶</button>
-            <button class="toolbar-btn pause-btn" title="Pause">⏸</button>
-            <button class="toolbar-btn stop-btn" title="Stop">⏹</button>
-        </div>
-        <div class="toolbar-group">
-            <button class="toolbar-btn" title="Debug (`)">🐛</button>
-            <button class="toolbar-btn" title="Profiler">📊</button>
+            <button class="toolbar-btn play" id="btn-play" title="Play (Ctrl+P)">▶</button>
+            <button class="toolbar-btn pause" id="btn-pause" title="Pause">⏸</button>
+            <button class="toolbar-btn stop" id="btn-stop" title="Stop">⏹</button>
         </div>
     </div>
 
-    <!-- Main Editor -->
+    <!-- Main Editor Layout -->
     <div class="editor-container">
         <!-- Hierarchy Panel -->
         <div class="panel" id="hierarchy-panel">
             <div class="panel-header">
-                Hierarchy
+                <span>Hierarchy</span>
+                <div class="panel-header-actions">
+                    <button class="panel-btn" id="btn-create-object" title="Create Object">+</button>
+                </div>
+            </div>
+            <div class="hierarchy-search">
+                <input type="text" placeholder="Search objects..." id="hierarchy-search">
             </div>
             <div class="panel-content" id="hierarchy-content">
-                <div class="tree-item selected">
-                    <span class="icon">🎬</span>
-                    <span>Main Camera</span>
-                </div>
-                <div class="tree-item">
-                    <span class="icon">💡</span>
-                    <span>Directional Light</span>
-                </div>
-                <div class="tree-item">
-                    <span class="icon">📦</span>
-                    <span>Cube</span>
-                </div>
-                <div class="tree-indent">
-                    <div class="tree-item">
-                        <span class="icon">🔵</span>
-                        <span>Sphere (child)</span>
-                    </div>
-                </div>
-                <div class="tree-item">
-                    <span class="icon">🌍</span>
-                    <span>Ground Plane</span>
-                </div>
-                <div class="tree-item">
-                    <span class="icon">🎮</span>
-                    <span>Player</span>
-                </div>
+                <!-- Tree items populated by JavaScript -->
             </div>
         </div>
 
         <!-- Scene View -->
         <div class="panel" id="scene-panel">
             <div class="panel-header">
-                Scene
+                <span>Scene</span>
+                <div class="panel-header-actions">
+                    <button class="panel-btn" id="btn-view-menu" title="View Options">⋮</button>
+                </div>
             </div>
             <div class="panel-content" style="padding: 0; position: relative;">
-                <canvas id="scene-canvas"></canvas>
+                <canvas id="scene-canvas" tabindex="0"></canvas>
+                
+                <!-- Scene Overlay Controls -->
                 <div class="scene-overlay">
-                    <button class="scene-btn active">Shaded</button>
-                    <button class="scene-btn">Wireframe</button>
-                    <button class="scene-btn">2D</button>
+                    <button class="scene-btn" id="view-perspective">Persp</button>
+                    <button class="scene-btn" id="view-top">Top</button>
+                    <button class="scene-btn" id="view-front">Front</button>
+                    <button class="scene-btn" id="view-right">Right</button>
                 </div>
+                
+                <!-- Stats Display -->
                 <div class="scene-stats" id="scene-stats">
-                    FPS: 60 | Tris: 1.2K | Draw Calls: 12
+                    <div class="stat-row">
+                        <span class="stat-label">FPS:</span>
+                        <span class="stat-value" id="stat-fps">60</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Tris:</span>
+                        <span class="stat-value" id="stat-tris">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Draw:</span>
+                        <span class="stat-value" id="stat-draws">0</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -576,134 +811,28 @@
         <!-- Inspector Panel -->
         <div class="panel" id="inspector-panel">
             <div class="panel-header">
-                Inspector
+                <span>Inspector</span>
             </div>
             <div class="panel-content" id="inspector-content">
-                <div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
-                    <input type="text" value="Cube" style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 3px; padding: 6px 12px; color: var(--text-primary); font-size: 14px; font-weight: 500;">
-                </div>
-                
-                <div class="component">
-                    <div class="component-header">
-                        <span>📐</span>
-                        <span>Transform</span>
-                    </div>
-                    <div class="component-content">
-                        <div class="property-row">
-                            <span class="property-label">Position</span>
-                            <div class="vec3-input">
-                                <span class="vec3-label x-label">X</span>
-                                <input type="number" value="0" step="0.1">
-                                <span class="vec3-label y-label">Y</span>
-                                <input type="number" value="1" step="0.1">
-                                <span class="vec3-label z-label">Z</span>
-                                <input type="number" value="0" step="0.1">
-                            </div>
-                        </div>
-                        <div class="property-row">
-                            <span class="property-label">Rotation</span>
-                            <div class="vec3-input">
-                                <span class="vec3-label x-label">X</span>
-                                <input type="number" value="0" step="1">
-                                <span class="vec3-label y-label">Y</span>
-                                <input type="number" value="45" step="1">
-                                <span class="vec3-label z-label">Z</span>
-                                <input type="number" value="0" step="1">
-                            </div>
-                        </div>
-                        <div class="property-row">
-                            <span class="property-label">Scale</span>
-                            <div class="vec3-input">
-                                <span class="vec3-label x-label">X</span>
-                                <input type="number" value="1" step="0.1">
-                                <span class="vec3-label y-label">Y</span>
-                                <input type="number" value="1" step="0.1">
-                                <span class="vec3-label z-label">Z</span>
-                                <input type="number" value="1" step="0.1">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="component">
-                    <div class="component-header">
-                        <span>📦</span>
-                        <span>Mesh Renderer</span>
-                    </div>
-                    <div class="component-content">
-                        <div class="property-row">
-                            <span class="property-label">Mesh</span>
-                            <div class="property-input">
-                                <input type="text" value="Cube" readonly>
-                            </div>
-                        </div>
-                        <div class="property-row">
-                            <span class="property-label">Material</span>
-                            <div class="property-input">
-                                <input type="text" value="Default-Material">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="component">
-                    <div class="component-header">
-                        <span>⚡</span>
-                        <span>Rigidbody</span>
-                    </div>
-                    <div class="component-content">
-                        <div class="property-row">
-                            <span class="property-label">Mass</span>
-                            <div class="property-input">
-                                <input type="number" value="1" step="0.1">
-                            </div>
-                        </div>
-                        <div class="property-row">
-                            <span class="property-label">Gravity</span>
-                            <div class="property-input">
-                                <input type="checkbox" checked>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <button style="width: 100%; padding: 8px; background: var(--bg-tertiary); border: 1px dashed var(--border-color); border-radius: 4px; color: var(--text-secondary); cursor: pointer; margin-top: 8px;">
-                    + Add Component
-                </button>
+                <div class="inspector-empty">No object selected</div>
             </div>
         </div>
 
         <!-- Console Panel -->
         <div class="panel" id="console-panel">
-            <div class="panel-header">
-                <span>Console</span>
-                <div class="console-tabs">
-                    <span class="console-tab active" data-tab="console">Console</span>
-                    <span class="console-tab" data-tab="assets">Assets</span>
-                    <span class="console-tab" data-tab="profiler">Profiler</span>
-                </div>
+            <div class="console-tabs">
+                <div class="console-tab active" data-tab="console">Console</div>
+                <div class="console-tab" data-tab="profiler">Profiler</div>
+                <div class="console-tab" data-tab="network">Network</div>
             </div>
-            <div class="panel-content console-content" id="console-content">
-                <div class="console-entry success">
-                    <span class="console-icon">✓</span>
-                    <span class="console-time">[18:24:45]</span>
-                    <span>WebForge Editor initialized successfully</span>
-                </div>
-                <div class="console-entry info">
-                    <span class="console-icon">ℹ</span>
-                    <span class="console-time">[18:24:45]</span>
-                    <span>Loaded scene: Default Scene (6 objects)</span>
-                </div>
-                <div class="console-entry info">
-                    <span class="console-icon">ℹ</span>
-                    <span class="console-time">[18:24:46]</span>
-                    <span>Debug system ready - Press ` to toggle overlay, ~ for console</span>
-                </div>
-                <div class="console-entry warn">
-                    <span class="console-icon">⚠</span>
-                    <span class="console-time">[18:24:46]</span>
-                    <span>WebGPU not available, falling back to WebGL2</span>
-                </div>
+            <div class="console-toolbar">
+                <button class="panel-btn" id="console-clear" title="Clear">🗑</button>
+                <button class="panel-btn" id="console-filter-info" title="Info">ℹ</button>
+                <button class="panel-btn" id="console-filter-warn" title="Warnings">⚠</button>
+                <button class="panel-btn" id="console-filter-error" title="Errors">✗</button>
+            </div>
+            <div class="console-content" id="console-content">
+                <!-- Console entries populated by JavaScript -->
             </div>
             <div class="console-input-row">
                 <input type="text" placeholder="Enter command..." id="console-input">
@@ -714,350 +843,639 @@
     <!-- Status Bar -->
     <div class="statusbar">
         <div class="statusbar-item">
-            <span>●</span>
-            <span>Ready</span>
+            <span id="status-indicator">●</span>
+            <span id="status-text">Ready</span>
         </div>
         <div class="statusbar-item">
-            Objects: 6
+            <span>Objects:</span>
+            <span id="status-objects">0</span>
         </div>
-        <div class="statusbar-item">
-            Vertices: 4,128
-        </div>
-        <div class="statusbar-item" style="margin-left: auto;">
+        <div class="statusbar-item right">
             WebForge v1.0.0
         </div>
     </div>
 
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" data-action="create-cube">Create Cube <span class="shortcut">Ctrl+Shift+1</span></div>
+        <div class="context-menu-item" data-action="create-sphere">Create Sphere <span class="shortcut">Ctrl+Shift+2</span></div>
+        <div class="context-menu-item" data-action="create-plane">Create Plane <span class="shortcut">Ctrl+Shift+3</span></div>
+        <div class="menu-separator"></div>
+        <div class="context-menu-item" data-action="create-light">Create Light <span class="shortcut">Ctrl+Shift+L</span></div>
+        <div class="menu-separator"></div>
+        <div class="context-menu-item" data-action="duplicate">Duplicate <span class="shortcut">Ctrl+D</span></div>
+        <div class="context-menu-item" data-action="delete">Delete <span class="shortcut">Delete</span></div>
+    </div>
+
+    <!-- Main Editor Script -->
     <script type="module">
-        // Simple Vector3 class for demo (fallback if WebForge fails to load)
-        class SimpleVector3 {
-            constructor(x = 0, y = 0, z = 0) {
-                this.x = x; this.y = y; this.z = z;
+        // Import WebForge modules
+        import { 
+            EditorApplication,
+            TransformMode,
+            TransformSpace,
+            Vector3,
+            GameObject,
+            Logger,
+            getLiveDebugger,
+            getDevTools,
+            getDevCenter
+        } from './src/index.ts';
+        
+        // =============== UNIFIED DEVCENTER - ALL-IN-ONE ===============
+        // This is the main dev tool - catches EVERYTHING automatically
+        const devCenter = getDevCenter({
+            autoStart: true,
+            autoShowOnError: true,
+            enableErrorCapture: true,
+            enableConsoleCapture: true,
+            enableNetworkMonitoring: true,
+            enableWebSocketMonitoring: true,
+            enablePerformanceMonitoring: true,
+            enableMemoryMonitoring: true,
+            enableDOMMonitoring: true,
+            enableResourceMonitoring: true,
+            enableSecurityMonitoring: true,
+            enableHotkeys: true,
+            fpsWarningThreshold: 50,
+            fpsErrorThreshold: 30,
+            memoryWarningMB: 200,
+            memoryErrorMB: 500
+        });
+        
+        // Also keep LiveDebugger and DevTools as options
+        const liveDebugger = getLiveDebugger();
+        liveDebugger.initialize();
+        
+        const devTools = getDevTools();
+        devTools.initialize();
+        
+        // Link LiveDebugger to DevCenter for unified reporting
+        liveDebugger.onIssue((issue) => {
+            devCenter.logIssue(
+                issue.severity === 'critical' ? 'error' : issue.severity,
+                issue.category,
+                issue.title || issue.category,
+                issue.message,
+                issue.suggestions?.[0]
+            );
+            
+            // Also link to DevTools so it can display the errors
+            if (issue.severity === 'error' || issue.severity === 'critical') {
+                devTools.errors.capture({
+                    type: 'error',
+                    category: issue.category === 'websocket' ? 'network' : 
+                             issue.category === 'console' ? 'runtime' : 'runtime',
+                    message: issue.message,
+                    context: issue.context
+                });
+            } else if (issue.severity === 'warning') {
+                devTools.errors.capture({
+                    type: 'warning',
+                    category: 'runtime',
+                    message: issue.message,
+                    context: issue.context
+                });
             }
-        }
+        });
 
-        let WebForge = null;
-        let Vector3 = SimpleVector3;
-
-        // Initialize the editor
-        class EditorApp {
+        // =============== EDITOR UI CLASS ===============
+        class EditorUI {
             constructor() {
-                this.canvas = document.getElementById('scene-canvas');
-                this.ctx = this.canvas.getContext('2d');
-                this.selectedObject = null;
-                this.objects = [];
-                this.frameCount = 0;
-                this.lastTime = performance.now();
-                this.fps = 60;
-
-                this.init();
+                this.editor = null;
+                this.selectedTreeItem = null;
             }
 
-            async init() {
-                // Try to load WebForge
-                try {
-                    const module = await import('./src/index.ts');
-                    WebForge = module;
-                    Vector3 = module.Vector3 || SimpleVector3;
-                    window.WebForge = WebForge;
-                    console.log('WebForge loaded:', Object.keys(module).length, 'exports');
-                } catch (err) {
-                    console.warn('WebForge load failed, using fallback:', err.message);
-                }
+            async initialize() {
+                // Get canvas
+                const canvas = document.getElementById('scene-canvas');
+                
+                // Create editor application
+                this.editor = new EditorApplication({
+                    canvas: canvas,
+                    debug: true,
+                    createDemoScene: true
+                });
 
-                // Resize canvas
-                this.resizeCanvas();
-                window.addEventListener('resize', () => this.resizeCanvas());
-
-                // Create demo scene
-                this.createDemoScene();
-
+                // Initialize editor
+                await this.editor.initialize();
+                
+                // Setup event listeners
+                this.setupEditorEvents();
+                this.setupToolbarEvents();
+                this.setupPanelEvents();
+                this.setupContextMenu();
+                
                 // Start render loop
-                this.render();
-
-                // Setup console input
-                this.setupConsole();
-
+                this.editor.start();
+                
                 // Hide loading overlay
                 document.getElementById('loading-overlay').classList.add('hidden');
+                
+                // Initial UI update
+                this.updateHierarchy();
                 this.log('WebForge Editor initialized', 'success');
-                if (WebForge) {
-                    this.log(`Loaded ${Object.keys(WebForge).length} modules`, 'info');
-                } else {
-                    this.log('Running in fallback mode (WebForge not loaded)', 'warn');
-                }
+                this.log(`Loaded ${this.editor.getScene()?.getObjectCount() || 0} objects`, 'info');
             }
 
-            resizeCanvas() {
-                const panel = this.canvas.parentElement;
-                this.canvas.width = panel.clientWidth;
-                this.canvas.height = panel.clientHeight;
-            }
+            // =============== EDITOR EVENTS ===============
+            setupEditorEvents() {
+                const events = this.editor.getEvents();
+                
+                events.on('statsUpdated', (stats) => {
+                    document.getElementById('stat-fps').textContent = stats.fps;
+                    document.getElementById('stat-tris').textContent = stats.triangles.toLocaleString();
+                    document.getElementById('stat-draws').textContent = stats.drawCalls;
+                    document.getElementById('status-objects').textContent = stats.gameObjects;
+                });
 
-            createDemoScene() {
-                // Create some demo objects
-                this.objects = [
-                    {
-                        name: 'Cube',
-                        position: new Vector3(0, 0, 0),
-                        rotation: new Vector3(0, 45, 0),
-                        scale: new Vector3(1, 1, 1),
-                        color: '#4ec9b0'
-                    },
-                    {
-                        name: 'Sphere',
-                        position: new Vector3(2, 0, 0),
-                        rotation: new Vector3(0, 0, 0),
-                        scale: new Vector3(0.8, 0.8, 0.8),
-                        color: '#569cd6'
-                    },
-                    {
-                        name: 'Pyramid',
-                        position: new Vector3(-2, 0, 0),
-                        rotation: new Vector3(0, 30, 0),
-                        scale: new Vector3(1, 1.5, 1),
-                        color: '#dcdcaa'
-                    }
-                ];
+                events.on('selectionChanged', (objects) => {
+                    this.updateInspector(objects);
+                    this.updateHierarchySelection(objects);
+                });
 
-                this.log(`Created demo scene with ${this.objects.length} objects`, 'info');
-            }
+                events.on('hierarchyUpdated', () => {
+                    this.updateHierarchy();
+                });
 
-            render() {
-                const now = performance.now();
-                const delta = now - this.lastTime;
-                this.frameCount++;
+                events.on('consoleLog', (data) => {
+                    this.addConsoleEntry(data.message, data.type);
+                });
 
-                // Update FPS every second
-                if (delta >= 1000) {
-                    this.fps = Math.round(this.frameCount * 1000 / delta);
-                    this.frameCount = 0;
-                    this.lastTime = now;
-                    this.updateStats();
-                }
+                events.on('transformModeChanged', (mode) => {
+                    this.updateToolbarMode(mode);
+                });
 
-                // Clear canvas
-                this.ctx.fillStyle = '#1a1a2e';
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                events.on('playStarted', () => {
+                    document.getElementById('btn-play').classList.add('active');
+                    document.getElementById('status-text').textContent = 'Playing';
+                });
 
-                // Draw grid
-                this.drawGrid();
-
-                // Draw objects (simple 2D representation for now)
-                this.drawObjects();
-
-                // Draw gizmos
-                if (this.selectedObject) {
-                    this.drawGizmo(this.selectedObject);
-                }
-
-                requestAnimationFrame(() => this.render());
-            }
-
-            drawGrid() {
-                const { width, height } = this.canvas;
-                const centerX = width / 2;
-                const centerY = height / 2;
-                const gridSize = 40;
-
-                this.ctx.strokeStyle = '#2d2d30';
-                this.ctx.lineWidth = 1;
-
-                // Vertical lines
-                for (let x = centerX % gridSize; x < width; x += gridSize) {
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(x, 0);
-                    this.ctx.lineTo(x, height);
-                    this.ctx.stroke();
-                }
-
-                // Horizontal lines
-                for (let y = centerY % gridSize; y < height; y += gridSize) {
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(0, y);
-                    this.ctx.lineTo(width, y);
-                    this.ctx.stroke();
-                }
-
-                // Center axes
-                this.ctx.strokeStyle = '#f14c4c';
-                this.ctx.lineWidth = 2;
-                this.ctx.beginPath();
-                this.ctx.moveTo(0, centerY);
-                this.ctx.lineTo(width, centerY);
-                this.ctx.stroke();
-
-                this.ctx.strokeStyle = '#4ec9b0';
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX, 0);
-                this.ctx.lineTo(centerX, height);
-                this.ctx.stroke();
-            }
-
-            drawObjects() {
-                const { width, height } = this.canvas;
-                const centerX = width / 2;
-                const centerY = height / 2;
-                const scale = 60;
-
-                this.objects.forEach((obj, index) => {
-                    const x = centerX + obj.position.x * scale;
-                    const y = centerY - obj.position.y * scale;
-                    const size = 40 * obj.scale.x;
-
-                    // Rotate based on time for animation
-                    const rotation = (obj.rotation.y + this.frameCount * 0.5) * Math.PI / 180;
-
-                    this.ctx.save();
-                    this.ctx.translate(x, y);
-                    this.ctx.rotate(rotation);
-
-                    // Draw shape based on name
-                    this.ctx.fillStyle = obj.color;
-                    this.ctx.strokeStyle = '#ffffff';
-                    this.ctx.lineWidth = 2;
-
-                    if (obj.name === 'Cube') {
-                        this.ctx.fillRect(-size/2, -size/2, size, size);
-                        this.ctx.strokeRect(-size/2, -size/2, size, size);
-                    } else if (obj.name === 'Sphere') {
-                        this.ctx.beginPath();
-                        this.ctx.arc(0, 0, size/2, 0, Math.PI * 2);
-                        this.ctx.fill();
-                        this.ctx.stroke();
-                    } else if (obj.name === 'Pyramid') {
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(0, -size/2);
-                        this.ctx.lineTo(size/2, size/2);
-                        this.ctx.lineTo(-size/2, size/2);
-                        this.ctx.closePath();
-                        this.ctx.fill();
-                        this.ctx.stroke();
-                    }
-
-                    this.ctx.restore();
-
-                    // Label
-                    this.ctx.fillStyle = '#ffffff';
-                    this.ctx.font = '11px sans-serif';
-                    this.ctx.textAlign = 'center';
-                    this.ctx.fillText(obj.name, x, y + size/2 + 16);
+                events.on('playStopped', () => {
+                    document.getElementById('btn-play').classList.remove('active');
+                    document.getElementById('status-text').textContent = 'Ready';
                 });
             }
 
-            drawGizmo(obj) {
-                const { width, height } = this.canvas;
-                const centerX = width / 2;
-                const centerY = height / 2;
-                const scale = 60;
-                const x = centerX + obj.position.x * scale;
-                const y = centerY - obj.position.y * scale;
-                const gizmoSize = 50;
+            // =============== TOOLBAR EVENTS ===============
+            setupToolbarEvents() {
+                // Transform tools
+                document.getElementById('tool-select').onclick = () => {
+                    this.editor.setTransformMode(TransformMode.SELECT);
+                };
+                document.getElementById('tool-translate').onclick = () => {
+                    this.editor.setTransformMode(TransformMode.TRANSLATE);
+                };
+                document.getElementById('tool-rotate').onclick = () => {
+                    this.editor.setTransformMode(TransformMode.ROTATE);
+                };
+                document.getElementById('tool-scale').onclick = () => {
+                    this.editor.setTransformMode(TransformMode.SCALE);
+                };
 
-                // X axis (red)
-                this.ctx.strokeStyle = '#f14c4c';
-                this.ctx.lineWidth = 3;
-                this.ctx.beginPath();
-                this.ctx.moveTo(x, y);
-                this.ctx.lineTo(x + gizmoSize, y);
-                this.ctx.stroke();
-                this.drawArrow(x + gizmoSize, y, 0, '#f14c4c');
+                // Transform space
+                document.getElementById('space-local').onclick = () => {
+                    this.editor.setTransformSpace(TransformSpace.LOCAL);
+                    document.getElementById('space-local').classList.add('active');
+                    document.getElementById('space-world').classList.remove('active');
+                };
+                document.getElementById('space-world').onclick = () => {
+                    this.editor.setTransformSpace(TransformSpace.WORLD);
+                    document.getElementById('space-world').classList.add('active');
+                    document.getElementById('space-local').classList.remove('active');
+                };
 
-                // Y axis (green)
-                this.ctx.strokeStyle = '#4ec9b0';
-                this.ctx.beginPath();
-                this.ctx.moveTo(x, y);
-                this.ctx.lineTo(x, y - gizmoSize);
-                this.ctx.stroke();
-                this.drawArrow(x, y - gizmoSize, -90, '#4ec9b0');
+                // Snap
+                document.getElementById('snap-grid').onclick = () => {
+                    this.editor.toggleGridSnap();
+                    document.getElementById('snap-grid').classList.toggle('active');
+                };
 
-                // Z axis (blue) - simplified 2D representation
-                this.ctx.strokeStyle = '#569cd6';
-                this.ctx.beginPath();
-                this.ctx.moveTo(x, y);
-                this.ctx.lineTo(x + gizmoSize * 0.5, y + gizmoSize * 0.5);
-                this.ctx.stroke();
-                this.drawArrow(x + gizmoSize * 0.5, y + gizmoSize * 0.5, 45, '#569cd6');
-            }
-
-            drawArrow(x, y, angle, color) {
-                this.ctx.save();
-                this.ctx.translate(x, y);
-                this.ctx.rotate(angle * Math.PI / 180);
-                this.ctx.fillStyle = color;
-                this.ctx.beginPath();
-                this.ctx.moveTo(0, 0);
-                this.ctx.lineTo(-10, -5);
-                this.ctx.lineTo(-10, 5);
-                this.ctx.closePath();
-                this.ctx.fill();
-                this.ctx.restore();
-            }
-
-            updateStats() {
-                const tris = this.objects.length * 12; // Simplified
-                const draws = this.objects.length + 2; // Grid + objects
-                document.getElementById('scene-stats').textContent = 
-                    `FPS: ${this.fps} | Tris: ${tris} | Draw Calls: ${draws}`;
-            }
-
-            setupConsole() {
-                const input = document.getElementById('console-input');
-                input.addEventListener('keydown', async (e) => {
-                    if (e.key === 'Enter' && input.value.trim()) {
-                        const command = input.value.trim();
-                        this.log(`> ${command}`, 'info');
-                        
-                        // Execute command
-                        try {
-                            const result = eval(command);
-                            if (result !== undefined) {
-                                this.log(String(result), 'success');
-                            }
-                        } catch (err) {
-                            this.log(err.message, 'error');
-                        }
-                        
-                        input.value = '';
+                // Play controls
+                document.getElementById('btn-play').onclick = () => {
+                    if (this.editor.getIsPlaying()) {
+                        this.editor.stopPlay();
+                    } else {
+                        this.editor.play();
                     }
-                });
+                };
+                document.getElementById('btn-pause').onclick = () => {
+                    this.editor.pause();
+                };
+                document.getElementById('btn-stop').onclick = () => {
+                    this.editor.stopPlay();
+                };
 
-                // Tab switching
+                // View buttons
+                document.getElementById('view-perspective').onclick = () => {
+                    this.editor.setView('perspective');
+                };
+                document.getElementById('view-top').onclick = () => {
+                    this.editor.setView('top');
+                };
+                document.getElementById('view-front').onclick = () => {
+                    this.editor.setView('front');
+                };
+                document.getElementById('view-right').onclick = () => {
+                    this.editor.setView('right');
+                };
+            }
+
+            updateToolbarMode(mode) {
+                document.querySelectorAll('.toolbar-group:first-child .toolbar-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                switch (mode) {
+                    case TransformMode.SELECT:
+                        document.getElementById('tool-select').classList.add('active');
+                        break;
+                    case TransformMode.TRANSLATE:
+                        document.getElementById('tool-translate').classList.add('active');
+                        break;
+                    case TransformMode.ROTATE:
+                        document.getElementById('tool-rotate').classList.add('active');
+                        break;
+                    case TransformMode.SCALE:
+                        document.getElementById('tool-scale').classList.add('active');
+                        break;
+                }
+            }
+
+            // =============== PANEL EVENTS ===============
+            setupPanelEvents() {
+                // Create object button
+                document.getElementById('btn-create-object').onclick = () => {
+                    this.editor.createGameObject();
+                };
+
+                // Hierarchy search
+                document.getElementById('hierarchy-search').oninput = (e) => {
+                    this.filterHierarchy(e.target.value);
+                };
+
+                // Console input
+                document.getElementById('console-input').onkeydown = (e) => {
+                    if (e.key === 'Enter' && e.target.value.trim()) {
+                        this.executeCommand(e.target.value.trim());
+                        e.target.value = '';
+                    }
+                };
+
+                // Console clear
+                document.getElementById('console-clear').onclick = () => {
+                    document.getElementById('console-content').innerHTML = '';
+                };
+
+                // Console tabs
                 document.querySelectorAll('.console-tab').forEach(tab => {
-                    tab.addEventListener('click', () => {
+                    tab.onclick = () => {
                         document.querySelectorAll('.console-tab').forEach(t => t.classList.remove('active'));
                         tab.classList.add('active');
-                    });
+                    };
                 });
             }
 
+            // =============== HIERARCHY ===============
+            updateHierarchy() {
+                const container = document.getElementById('hierarchy-content');
+                const scene = this.editor.getScene();
+                if (!scene) return;
+
+                const objects = scene.getAllGameObjects();
+                container.innerHTML = '';
+
+                objects.forEach(obj => {
+                    const item = document.createElement('div');
+                    item.className = 'tree-item';
+                    item.dataset.name = obj.name;
+                    
+                    const isLight = (obj).lightType;
+                    const icon = isLight ? '💡' : '📦';
+                    
+                    item.innerHTML = `
+                        <span class="icon">${icon}</span>
+                        <span class="name">${obj.name}</span>
+                    `;
+
+                    item.onclick = () => {
+                        this.editor.selectByName(obj.name);
+                    };
+
+                    item.ondblclick = () => {
+                        this.editor.frameSelected();
+                    };
+
+                    container.appendChild(item);
+                });
+            }
+
+            updateHierarchySelection(objects) {
+                document.querySelectorAll('.tree-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+
+                objects.forEach(obj => {
+                    const item = document.querySelector(`.tree-item[data-name="${obj.name}"]`);
+                    if (item) {
+                        item.classList.add('selected');
+                    }
+                });
+            }
+
+            filterHierarchy(query) {
+                const items = document.querySelectorAll('.tree-item');
+                const lowerQuery = query.toLowerCase();
+                
+                items.forEach(item => {
+                    const name = item.dataset.name.toLowerCase();
+                    item.style.display = name.includes(lowerQuery) ? '' : 'none';
+                });
+            }
+
+            // =============== INSPECTOR ===============
+            updateInspector(objects) {
+                const container = document.getElementById('inspector-content');
+                
+                if (!objects || objects.length === 0) {
+                    container.innerHTML = '<div class="inspector-empty">No object selected</div>';
+                    return;
+                }
+
+                const obj = objects[0]; // Show first selected
+                const transform = obj.transform;
+
+                container.innerHTML = `
+                    <div class="component">
+                        <div class="component-header">
+                            <span class="icon">📦</span>
+                            <span>${obj.name}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="component">
+                        <div class="component-header">
+                            <span class="icon">↔</span>
+                            <span>Transform</span>
+                            <span class="toggle">▼</span>
+                        </div>
+                        <div class="component-content">
+                            <div class="property-row">
+                                <span class="property-label">Position</span>
+                                <div class="property-input vec3-input">
+                                    <div class="vec3-field">
+                                        <span class="vec3-label x-label">X</span>
+                                        <input type="number" step="0.1" value="${transform.position.x.toFixed(2)}" 
+                                               data-prop="position" data-axis="x">
+                                    </div>
+                                    <div class="vec3-field">
+                                        <span class="vec3-label y-label">Y</span>
+                                        <input type="number" step="0.1" value="${transform.position.y.toFixed(2)}"
+                                               data-prop="position" data-axis="y">
+                                    </div>
+                                    <div class="vec3-field">
+                                        <span class="vec3-label z-label">Z</span>
+                                        <input type="number" step="0.1" value="${transform.position.z.toFixed(2)}"
+                                               data-prop="position" data-axis="z">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="property-row">
+                                <span class="property-label">Rotation</span>
+                                <div class="property-input vec3-input">
+                                    <div class="vec3-field">
+                                        <span class="vec3-label x-label">X</span>
+                                        <input type="number" step="1" value="${(transform.rotation.x * 180 / Math.PI).toFixed(1)}"
+                                               data-prop="rotation" data-axis="x">
+                                    </div>
+                                    <div class="vec3-field">
+                                        <span class="vec3-label y-label">Y</span>
+                                        <input type="number" step="1" value="${(transform.rotation.y * 180 / Math.PI).toFixed(1)}"
+                                               data-prop="rotation" data-axis="y">
+                                    </div>
+                                    <div class="vec3-field">
+                                        <span class="vec3-label z-label">Z</span>
+                                        <input type="number" step="1" value="${(transform.rotation.z * 180 / Math.PI).toFixed(1)}"
+                                               data-prop="rotation" data-axis="z">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="property-row">
+                                <span class="property-label">Scale</span>
+                                <div class="property-input vec3-input">
+                                    <div class="vec3-field">
+                                        <span class="vec3-label x-label">X</span>
+                                        <input type="number" step="0.1" value="${transform.scale.x.toFixed(2)}"
+                                               data-prop="scale" data-axis="x">
+                                    </div>
+                                    <div class="vec3-field">
+                                        <span class="vec3-label y-label">Y</span>
+                                        <input type="number" step="0.1" value="${transform.scale.y.toFixed(2)}"
+                                               data-prop="scale" data-axis="y">
+                                    </div>
+                                    <div class="vec3-field">
+                                        <span class="vec3-label z-label">Z</span>
+                                        <input type="number" step="0.1" value="${transform.scale.z.toFixed(2)}"
+                                               data-prop="scale" data-axis="z">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Bind input events
+                container.querySelectorAll('input[data-prop]').forEach(input => {
+                    input.onchange = (e) => {
+                        const prop = e.target.dataset.prop;
+                        const axis = e.target.dataset.axis;
+                        let value = parseFloat(e.target.value) || 0;
+                        
+                        // Convert degrees to radians for rotation
+                        if (prop === 'rotation') {
+                            value = value * Math.PI / 180;
+                        }
+                        
+                        transform[prop][axis] = value;
+                    };
+                });
+            }
+
+            // =============== CONSOLE ===============
             log(message, type = 'info') {
-                const console = document.getElementById('console-content');
+                this.addConsoleEntry(message, type);
+            }
+
+            addConsoleEntry(message, type = 'info') {
+                const container = document.getElementById('console-content');
                 const time = new Date().toLocaleTimeString();
                 const icons = { info: 'ℹ', warn: '⚠', error: '✗', success: '✓' };
                 
                 const entry = document.createElement('div');
                 entry.className = `console-entry ${type}`;
                 entry.innerHTML = `
-                    <span class="console-icon">${icons[type]}</span>
+                    <span class="console-icon">${icons[type] || 'ℹ'}</span>
                     <span class="console-time">[${time}]</span>
-                    <span>${message}</span>
+                    <span class="console-message">${message}</span>
                 `;
-                console.appendChild(entry);
-                console.scrollTop = console.scrollHeight;
+                
+                container.appendChild(entry);
+                container.scrollTop = container.scrollHeight;
+            }
+
+            executeCommand(command) {
+                this.log(`> ${command}`, 'info');
+                
+                try {
+                    // Simple command parser
+                    const parts = command.split(' ');
+                    const cmd = parts[0].toLowerCase();
+                    
+                    switch (cmd) {
+                        case 'help':
+                            this.log('Commands: help, clear, create [cube|sphere|plane], delete, list', 'info');
+                            break;
+                        case 'clear':
+                            document.getElementById('console-content').innerHTML = '';
+                            break;
+                        case 'create':
+                            const type = parts[1] || 'cube';
+                            this.editor.createPrimitive(type);
+                            break;
+                        case 'delete':
+                            this.editor.deleteSelected();
+                            break;
+                        case 'list':
+                            const objects = this.editor.getScene()?.getAllGameObjects() || [];
+                            this.log(`Objects: ${objects.map(o => o.name).join(', ')}`, 'info');
+                            break;
+                        default:
+                            // Try to evaluate as JavaScript
+                            const result = eval(command);
+                            if (result !== undefined) {
+                                this.log(String(result), 'success');
+                            }
+                    }
+                } catch (err) {
+                    this.log(err.message, 'error');
+                }
+            }
+
+            // =============== CONTEXT MENU ===============
+            setupContextMenu() {
+                const menu = document.getElementById('context-menu');
+                
+                // Show context menu on right click in scene or hierarchy
+                document.getElementById('scene-canvas').oncontextmenu = (e) => {
+                    e.preventDefault();
+                    this.showContextMenu(e.clientX, e.clientY);
+                };
+
+                document.getElementById('hierarchy-content').oncontextmenu = (e) => {
+                    e.preventDefault();
+                    this.showContextMenu(e.clientX, e.clientY);
+                };
+
+                // Hide on click elsewhere
+                document.addEventListener('click', () => {
+                    menu.classList.remove('show');
+                });
+
+                // Handle menu item clicks
+                menu.querySelectorAll('.context-menu-item').forEach(item => {
+                    item.onclick = () => {
+                        const action = item.dataset.action;
+                        this.handleContextAction(action);
+                        menu.classList.remove('show');
+                    };
+                });
+            }
+
+            showContextMenu(x, y) {
+                const menu = document.getElementById('context-menu');
+                menu.style.left = x + 'px';
+                menu.style.top = y + 'px';
+                menu.classList.add('show');
+            }
+
+            handleContextAction(action) {
+                switch (action) {
+                    case 'create-cube':
+                        this.editor.createPrimitive('cube');
+                        break;
+                    case 'create-sphere':
+                        this.editor.createPrimitive('sphere');
+                        break;
+                    case 'create-plane':
+                        this.editor.createPrimitive('plane');
+                        break;
+                    case 'create-light':
+                        this.editor.createLight('point');
+                        break;
+                    case 'duplicate':
+                        this.editor.duplicateSelected();
+                        break;
+                    case 'delete':
+                        this.editor.deleteSelected();
+                        break;
+                }
             }
         }
 
-        // Start the editor
-        const editor = new EditorApp();
-        window.editor = editor;
+        // =============== INITIALIZE ===============
+        const editorUI = new EditorUI();
+        
+        editorUI.initialize().catch(err => {
+            console.error('Failed to initialize editor:', err);
+            document.getElementById('loading-overlay').innerHTML = `
+                <div class="loading-logo">⚠️</div>
+                <div class="loading-text" style="color: var(--error-color);">Failed to initialize</div>
+                <div style="color: var(--text-secondary); max-width: 400px; text-align: center;">
+                    ${err.message}
+                </div>
+            `;
+        });
 
-        // Log available modules
-        if (WebForge) {
-            console.log('WebForge loaded:', Object.keys(WebForge).length, 'modules');
-        } else {
-            console.log('WebForge running in fallback mode');
-        }
+        // =============== HOOK DEVCENTER INDICATOR TO TOGGLE ALL PANELS ===============
+        // Track panel state
+        let devPanelsOpen = false;
+        
+        // Wait for DevCenter to create its indicator, then hook into it
+        setTimeout(() => {
+            const devCenterIndicator = document.getElementById('webforge-devcenter-indicator');
+            if (devCenterIndicator) {
+                // Clone and replace to remove original listener
+                const newIndicator = devCenterIndicator.cloneNode(true);
+                devCenterIndicator.parentNode.replaceChild(newIndicator, devCenterIndicator);
+                
+                // Add unified toggle handler
+                newIndicator.addEventListener('click', () => {
+                    // Check if DevCenter overlay exists (it's created/destroyed, not hidden)
+                    const overlay = document.getElementById('webforge-devcenter-overlay');
+                    const isOpen = overlay !== null;
+                    
+                    if (isOpen) {
+                        // Close all
+                        devCenter.hideOverlay();
+                        liveDebugger.hide();
+                        devTools.hideOverlay();
+                        devPanelsOpen = false;
+                    } else {
+                        // Open all
+                        devCenter.showOverlay();
+                        liveDebugger.show();
+                        devTools.showOverlay();
+                        devPanelsOpen = true;
+                    }
+                });
+            }
+        }, 500);
+
+        // Expose to window for debugging
+        window.editorUI = editorUI;
+        window.devCenter = devCenter;
+        window.liveDebugger = liveDebugger;
+        window.devTools = devTools;
     </script>
 </body>
 </html>
