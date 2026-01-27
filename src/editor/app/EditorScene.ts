@@ -85,38 +85,40 @@ export class EditorScene {
      * Create a demo scene with sample objects
      */
     createDemoScene(): void {
-        this.logger.info('Creating demo scene...');
+        this.logger.info('Loading demo scene...');
+        
+        // Ground plane - 4 chunks (2x2 layout, each chunk is 10x10 units)
+        const ground = new GameObject('Ground');
+        (ground as any).primitiveType = 'plane';
+        (ground as any).editorColor = [0.25, 0.25, 0.25];
+        ground.transform.position.set(0, 0, 0);
+        ground.transform.scale.set(20, 1, 20); // 20x20 = 4 chunks (2x2)
+        this.addGameObject(ground);
         
         // Create some demo objects
-        const cube = this.createPrimitive('cube');
-        if (cube) {
-            cube.name = 'Demo Cube';
-            cube.transform.position.set(0, 0.5, 0);
-            (cube as any).editorColor = [0.3, 0.7, 0.4];
-        }
+        const cube = new GameObject('Demo Cube');
+        (cube as any).primitiveType = 'cube';
+        (cube as any).editorColor = [0.3, 0.7, 0.4];
+        cube.transform.position.set(0, 0.5, 0);
+        this.addGameObject(cube);
         
-        const sphere = this.createPrimitive('sphere');
-        if (sphere) {
-            sphere.name = 'Demo Sphere';
-            sphere.transform.position.set(2, 0.5, 0);
-            (sphere as any).editorColor = [0.4, 0.5, 0.8];
-        }
+        const sphere = new GameObject('Demo Sphere');
+        (sphere as any).primitiveType = 'sphere';
+        (sphere as any).editorColor = [0.4, 0.5, 0.8];
+        sphere.transform.position.set(2, 0.5, 0);
+        this.addGameObject(sphere);
         
-        const plane = this.createPrimitive('plane');
-        if (plane) {
-            plane.name = 'Ground';
-            plane.transform.position.set(0, 0, 0);
-            plane.transform.scale.set(10, 1, 10);
-            (plane as any).editorColor = [0.5, 0.5, 0.5];
-        }
+        const light = new GameObject('Main Light');
+        (light as any).lightType = 'directional';
+        (light as any).lightColor = [1, 1, 1];
+        (light as any).lightIntensity = 1;
+        (light as any).primitiveType = 'sphere';
+        (light as any).editorColor = [1, 0.9, 0.5];
+        light.transform.position.set(5, 10, 5);
+        light.transform.scale.set(0.2, 0.2, 0.2);
+        this.addGameObject(light);
         
-        const light = this.createLight('directional');
-        if (light) {
-            light.name = 'Main Light';
-            light.transform.position.set(5, 10, 5);
-        }
-        
-        this.logger.info('Demo scene created');
+        this.logger.info(`Demo scene loaded - ${this.gameObjects.size} objects`);
     }
 
     /**
@@ -150,6 +152,18 @@ export class EditorScene {
             capsule: [0.4, 0.8, 0.6]
         };
         (gameObject as any).editorColor = colors[type] || [0.5, 0.5, 0.5];
+        
+        // Position objects above ground (y=0) by default
+        // Use half-height so bottom sits on ground
+        const defaultHeights: Record<PrimitiveType, number> = {
+            cube: 0.5,
+            sphere: 0.5,
+            plane: 0,      // Plane is flat on ground
+            cylinder: 0.5,
+            cone: 0.5,
+            capsule: 0.5
+        };
+        gameObject.transform.position.set(0, defaultHeights[type] || 0.5, 0);
         
         this.addGameObject(gameObject);
         return gameObject;

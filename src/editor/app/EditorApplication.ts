@@ -85,7 +85,6 @@ export class EditorApplication {
     
     // Configuration
     private config: EditorConfig;
-    private panels: EditorPanels = {};
     
     // State
     private isInitialized: boolean = false;
@@ -174,6 +173,9 @@ export class EditorApplication {
             
             // Setup resize handler
             this.setupResizeHandler();
+            
+            // Update hierarchy with initial objects
+            this.updateHierarchy();
             
             this.isInitialized = true;
             this.events.emit('initialized');
@@ -283,6 +285,11 @@ export class EditorApplication {
         this.context.on('selectionChanged', (objects: GameObject[]) => {
             this.events.emit('selectionChanged', objects);
             this.updateInspector();
+            
+            // Auto-switch to Translate mode when selecting an object (if in Select mode)
+            if (objects.length > 0 && this.context.getTransformMode() === TransformMode.SELECT) {
+                this.context.setTransformMode(TransformMode.TRANSLATE);
+            }
         });
         
         this.context.on('transformModeChanged', (mode: TransformMode) => {
@@ -336,20 +343,10 @@ export class EditorApplication {
     // ========== Panel Connections ==========
 
     /**
-     * Register UI panels
-     */
-    registerPanels(panels: EditorPanels): void {
-        this.panels = panels;
-        this.updateHierarchy();
-        this.updateInspector();
-        this.logger.info('Panels registered');
-    }
-
-    /**
      * Update hierarchy panel
      */
     updateHierarchy(): void {
-        if (!this.panels.hierarchy || !this.scene) return;
+        if (!this.scene) return;
         
         const objects = this.scene.getAllGameObjects();
         this.events.emit('hierarchyUpdated', objects);
@@ -492,7 +489,12 @@ export class EditorApplication {
         this.log(`Grid snap: ${!settings.gridSnapping ? 'ON' : 'OFF'}`, 'info');
     }
 
-    // ========== Undo/Redo ==========
+    toggleGrid(): void {
+        if (this.renderer) {
+            this.renderer.toggleGrid();
+            this.log(`Grid: ${this.renderer.isGridVisible() ? 'ON' : 'OFF'}`, 'info');
+        }
+    }
 
     /**
      * Undo last action
@@ -573,14 +575,6 @@ export class EditorApplication {
         const current = this.context.getViewportSettings().wireframe;
         this.context.setWireframe(!current);
         this.renderer.setWireframe(!current);
-    }
-
-    /**
-     * Toggle grid visibility
-     */
-    toggleGrid(): void {
-        const current = this.context.getViewportSettings().showGrid;
-        this.context.setShowGrid(!current);
     }
 
     // ========== Getters ==========

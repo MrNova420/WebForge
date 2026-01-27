@@ -464,8 +464,8 @@ export class DebugManager {
 
     private setupKeyboardShortcuts(): void {
         document.addEventListener('keydown', (e) => {
-            // F12 or Ctrl+Shift+D - Toggle debug panel
-            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'D')) {
+            // Ctrl+Shift+D - Toggle debug panel (F12 removed to allow browser devtools)
+            if (e.ctrlKey && e.shiftKey && e.key === 'D') {
                 e.preventDefault();
                 this.toggleOverlay();
             }

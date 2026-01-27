@@ -92,9 +92,10 @@ export class Transform {
   }
 
   /**
-   * Marks local matrix as dirty and notifies callback
+   * Marks local matrix as dirty and notifies callback.
+   * Call this after directly modifying position, rotation, or scale.
    */
-  private markLocalDirty(): void {
+  markLocalDirty(): void {
     this._localDirty = true;
     this.markWorldDirty();
     if (this._changeCallback) {
@@ -329,25 +330,46 @@ export class Transform {
   /**
    * Looks at a target position in world space.
    * @param target - Target position to look at
-   * @param up - Up vector (default: world up) - reserved for future use
+   * @param up - Up vector (default: world up)
    */
   lookAt(target: Vector3, up: Vector3 = Vector3.up()): void {
     const worldPos = this.getWorldPosition();
-    const direction = target.subtract(worldPos).normalize();
     
-    // Calculate rotation to look at target
-    const forward = Vector3.forward().negate(); // -Z is forward in OpenGL
-    const axis = forward.cross(direction).normalize();
-    const angle = Math.acos(forward.dot(direction));
-    
-    if (axis.lengthSquared() > 0.001) {
-      this.rotation = Quaternion.fromAxisAngle(axis, angle);
-      this.markLocalDirty();
+    // Calculate forward direction (from position toward target)
+    const forward = target.subtract(worldPos);
+    if (forward.lengthSquared() < 0.0001) {
+      // Target is at same position, don't change rotation
+      return;
     }
+    forward.normalizeSelf();
     
-    // TODO: Use up vector for proper look-at calculation
-    // Currently simplified version without up vector consideration
-    void up; // Suppress unused parameter warning
+    // Calculate right vector (perpendicular to up and forward)
+    // Using right-hand rule: right = forward × up (then negate for OpenGL)
+    let right = forward.cross(up);
+    if (right.lengthSquared() < 0.0001) {
+      // forward is parallel to up, use a different up vector
+      const altUp = Math.abs(up.y) < 0.9 ? Vector3.up() : Vector3.right();
+      right = forward.cross(altUp);
+    }
+    right.normalizeSelf();
+    
+    // Recalculate up to be perpendicular to both forward and right
+    const realUp = right.cross(forward).normalize();
+    
+    // Build rotation matrix from basis vectors
+    // In OpenGL/WebGL convention: -Z is forward, +X is right, +Y is up
+    // The columns of the rotation matrix are the basis vectors
+    const m = new Matrix4();
+    m.set(
+      right.x, realUp.x, -forward.x, 0,
+      right.y, realUp.y, -forward.y, 0,
+      right.z, realUp.z, -forward.z, 0,
+      0, 0, 0, 1
+    );
+    
+    // Convert rotation matrix to quaternion
+    this.rotation = Quaternion.fromMatrix4(m);
+    this.markLocalDirty();
   }
 
   /**

@@ -217,7 +217,7 @@ export class Camera {
     }
     
     this.viewProjectionMatrix.copy(this.projectionMatrix);
-    this.viewProjectionMatrix.multiply(this.viewMatrix);
+    this.viewProjectionMatrix.multiplySelf(this.viewMatrix);
     
     return this.viewProjectionMatrix;
   }
@@ -227,8 +227,7 @@ export class Camera {
    */
   private updateViewMatrix(): void {
     const worldMatrix = this.transform.getWorldMatrix();
-    this.viewMatrix.copy(worldMatrix);
-    this.viewMatrix.invert();
+    this.viewMatrix = worldMatrix.invert();
     this.viewDirty = false;
   }
 

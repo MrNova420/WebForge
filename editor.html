@@ -167,6 +167,20 @@
             fill: currentColor;
         }
 
+        /* Keyboard key styling */
+        kbd {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 11px;
+            color: #e0e0e0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            margin: 0 2px;
+        }
+
         .toolbar-separator {
             width: 1px;
             height: 20px;
@@ -177,12 +191,82 @@
         /* =============== MAIN LAYOUT =============== */
         .editor-container {
             flex: 1;
-            display: grid;
-            grid-template-columns: 240px 1fr 300px;
-            grid-template-rows: 1fr 200px;
-            gap: 1px;
+            display: flex;
             background: var(--border-color);
             overflow: hidden;
+        }
+
+        /* Left column (Hierarchy + Assets) */
+        .left-column {
+            width: 240px;
+            min-width: 150px;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+        }
+
+        #hierarchy-panel {
+            height: 50%;
+            min-height: 100px;
+            flex-shrink: 0;
+        }
+
+        .resize-handle-h {
+            height: 4px;
+            background: var(--border-color);
+            cursor: ns-resize;
+            flex-shrink: 0;
+        }
+
+        .resize-handle-h:hover {
+            background: var(--accent-color);
+        }
+
+        #assets-panel {
+            flex: 1;
+            min-height: 150px;
+        }
+
+        /* Vertical resize handle */
+        .resize-handle-v {
+            width: 4px;
+            background: var(--border-color);
+            cursor: ew-resize;
+        }
+
+        .resize-handle-v:hover {
+            background: var(--accent-color);
+        }
+
+        /* Center column (Scene + Console) */
+        .center-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 300px;
+        }
+
+        #scene-panel {
+            flex: 1;
+            min-height: 200px;
+        }
+
+        #console-panel {
+            height: 200px;
+            min-height: 100px;
+            max-height: 400px;
+        }
+
+        /* Right column (Inspector) */
+        .right-column {
+            width: 300px;
+            min-width: 200px;
+            max-width: 500px;
+        }
+
+        #inspector-panel {
+            height: 100%;
         }
 
         /* =============== PANELS =============== */
@@ -715,32 +799,46 @@
         <div class="menu-item" data-menu="help">Help</div>
     </div>
 
+    <!-- Help Menu Dropdown -->
+    <div id="help-menu" class="menu-dropdown" style="display: none; position: absolute; top: 30px; right: 10px; background: #2a2a2a; border: 1px solid #444; border-radius: 4px; min-width: 200px; z-index: 10000; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+        <div style="padding: 8px 12px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'" onclick="document.querySelector('.console-tab[data-tab=keybinds]').click()">
+            ⌨️ Keyboard Shortcuts
+        </div>
+        <div style="padding: 8px 12px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'" onclick="window.open('https://github.com/webforge/webforge', '_blank')">
+            📖 Documentation
+        </div>
+        <div style="padding: 8px 12px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'" onclick="alert('WebForge v1.0.0\\nBrowser-based game development platform\\n\\nBuilt with TypeScript, WebGL, and modern web technologies')">
+            ℹ️ About WebForge
+        </div>
+    </div>
+
     <!-- Toolbar -->
     <div class="toolbar">
         <!-- Transform Tools -->
         <div class="toolbar-group">
-            <button class="toolbar-btn active" id="tool-select" title="Select (Q)">
+            <button class="toolbar-btn active" id="tool-select" title="Select Tool (Q) - Click objects to select">
                 <svg viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
             </button>
-            <button class="toolbar-btn" id="tool-translate" title="Translate (W)">
+            <button class="toolbar-btn" id="tool-translate" title="Move Tool (W) - Drag axes to move objects">
                 <svg viewBox="0 0 24 24"><path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/></svg>
             </button>
-            <button class="toolbar-btn" id="tool-rotate" title="Rotate (E)">
+            <button class="toolbar-btn" id="tool-rotate" title="Rotate Tool (E) - Drag circles to rotate objects">
                 <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
             </button>
-            <button class="toolbar-btn" id="tool-scale" title="Scale (R)">
+            <button class="toolbar-btn" id="tool-scale" title="Scale Tool (R) - Drag boxes to scale objects">
                 <svg viewBox="0 0 24 24"><path d="M21 15h2v2h-2v-2zm0-4h2v2h-2v-2zm2 8h-2v2c1 0 2-1 2-2zM13 3h2v2h-2V3zm8 4h2v2h-2V7zm0-4v2h2c0-1-1-2-2-2zM1 7h2v2H1V7zm16-4h2v2h-2V3zm0 16h2v2h-2v-2zM3 3C2 3 1 4 1 5h2V3zm6 0h2v2H9V3zM5 3h2v2H5V3zm-4 8v8c0 1.1.9 2 2 2h12V11H1zm2 8l2.5-3.21 1.79 2.15 2.5-3.22L13 19H3z"/></svg>
             </button>
         </div>
 
         <!-- Transform Space -->
         <div class="toolbar-group">
-            <button class="toolbar-btn active" id="space-local" title="Local Space">L</button>
-            <button class="toolbar-btn" id="space-world" title="World Space">W</button>
+            <button class="toolbar-btn active" id="space-local" title="Local Space - Transform relative to object">L</button>
+            <button class="toolbar-btn" id="space-world" title="World Space - Transform relative to world">W</button>
         </div>
 
         <!-- Snap Settings -->
         <div class="toolbar-group">
+            <button class="toolbar-btn" id="toggle-grid" title="Toggle Grid (G)">⊞</button>
             <button class="toolbar-btn" id="snap-grid" title="Grid Snap (Ctrl+G)">⊞</button>
             <button class="toolbar-btn" id="snap-angle" title="Angle Snap">∠</button>
         </div>
@@ -755,87 +853,273 @@
 
     <!-- Main Editor Layout -->
     <div class="editor-container">
-        <!-- Hierarchy Panel -->
-        <div class="panel" id="hierarchy-panel">
-            <div class="panel-header">
-                <span>Hierarchy</span>
-                <div class="panel-header-actions">
-                    <button class="panel-btn" id="btn-create-object" title="Create Object">+</button>
+        <!-- Left Column: Hierarchy + Assets -->
+        <div class="left-column" id="left-column">
+            <!-- Hierarchy Panel -->
+            <div class="panel" id="hierarchy-panel">
+                <div class="panel-header">
+                    <span>Hierarchy</span>
+                    <div class="panel-header-actions">
+                        <button class="panel-btn" id="btn-create-object" title="Create Object">+</button>
+                    </div>
+                </div>
+                <div class="hierarchy-search">
+                    <input type="text" placeholder="Search objects..." id="hierarchy-search">
+                </div>
+                <div class="panel-content" id="hierarchy-content">
+                    <!-- Tree items populated by JavaScript -->
                 </div>
             </div>
-            <div class="hierarchy-search">
-                <input type="text" placeholder="Search objects..." id="hierarchy-search">
-            </div>
-            <div class="panel-content" id="hierarchy-content">
-                <!-- Tree items populated by JavaScript -->
+
+            <!-- Horizontal Resize Handle -->
+            <div class="resize-handle-h" id="resize-hierarchy"></div>
+
+            <!-- Assets Panel -->
+            <div class="panel" id="assets-panel">
+                <div class="panel-header">
+                    <span>Assets</span>
+                    <div class="panel-header-actions">
+                        <button class="panel-btn" id="btn-import-asset" title="Import Asset">📁</button>
+                    </div>
+                </div>
+                <div class="panel-content" id="assets-content" style="padding: 8px; overflow-y: auto;">
+                    <div style="margin-bottom: 8px; font-size: 11px; color: #888; text-transform: uppercase;">Primitives</div>
+                    <div class="asset-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                        <div class="asset-item" data-type="cube" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
+                            <div style="font-size: 24px;">📦</div>
+                            <div style="font-size: 10px; margin-top: 4px;">Cube</div>
+                        </div>
+                        <div class="asset-item" data-type="sphere" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
+                            <div style="font-size: 24px;">⚪</div>
+                            <div style="font-size: 10px; margin-top: 4px;">Sphere</div>
+                        </div>
+                        <div class="asset-item" data-type="plane" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
+                            <div style="font-size: 24px;">⬜</div>
+                            <div style="font-size: 10px; margin-top: 4px;">Plane</div>
+                        </div>
+                        <div class="asset-item" data-type="cylinder" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
+                            <div style="font-size: 24px;">🛢️</div>
+                            <div style="font-size: 10px; margin-top: 4px;">Cylinder</div>
+                        </div>
+                        <div class="asset-item" data-type="cone" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
+                            <div style="font-size: 24px;">▲</div>
+                            <div style="font-size: 10px; margin-top: 4px;">Cone</div>
+                        </div>
+                        <div class="asset-item" data-type="light" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
+                            <div style="font-size: 24px;">💡</div>
+                            <div style="font-size: 10px; margin-top: 4px;">Light</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Scene View -->
-        <div class="panel" id="scene-panel">
-            <div class="panel-header">
-                <span>Scene</span>
-                <div class="panel-header-actions">
-                    <button class="panel-btn" id="btn-view-menu" title="View Options">⋮</button>
+        <!-- Vertical Resize Handle (Left) -->
+        <div class="resize-handle-v" id="resize-left"></div>
+
+        <!-- Center Column: Scene + Console -->
+        <div class="center-column" id="center-column">
+            <!-- Scene View -->
+            <div class="panel" id="scene-panel">
+                <div class="panel-header">
+                    <span>Scene</span>
+                    <div class="panel-header-actions">
+                        <button class="panel-btn" id="btn-view-menu" title="View Options">⋮</button>
+                    </div>
+                </div>
+                <div class="panel-content" style="padding: 0; position: relative;">
+                    <canvas id="scene-canvas" tabindex="0"></canvas>
+                    
+                    <!-- Scene Overlay Controls -->
+                    <div class="scene-overlay">
+                        <button class="scene-btn" id="view-perspective">Persp</button>
+                        <button class="scene-btn" id="view-top">Top</button>
+                        <button class="scene-btn" id="view-front">Front</button>
+                        <button class="scene-btn" id="view-right">Right</button>
+                    </div>
+                    
+                    <!-- Stats Display -->
+                    <div class="scene-stats" id="scene-stats">
+                        <div class="stat-row">
+                            <span class="stat-label">FPS:</span>
+                            <span class="stat-value" id="stat-fps">60</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Tris:</span>
+                            <span class="stat-value" id="stat-tris">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Draw:</span>
+                            <span class="stat-value" id="stat-draws">0</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="panel-content" style="padding: 0; position: relative;">
-                <canvas id="scene-canvas" tabindex="0"></canvas>
-                
-                <!-- Scene Overlay Controls -->
-                <div class="scene-overlay">
-                    <button class="scene-btn" id="view-perspective">Persp</button>
-                    <button class="scene-btn" id="view-top">Top</button>
-                    <button class="scene-btn" id="view-front">Front</button>
-                    <button class="scene-btn" id="view-right">Right</button>
+
+            <!-- Horizontal Resize Handle -->
+            <!-- Horizontal Resize Handle -->
+            <div class="resize-handle-h" id="resize-console"></div>
+
+            <!-- Console Panel -->
+            <div class="panel" id="console-panel">
+                <div class="console-tabs">
+                    <div class="console-tab active" data-tab="console">Console</div>
+                    <div class="console-tab" data-tab="debug">Debug</div>
+                    <div class="console-tab" data-tab="keybinds">Keybinds</div>
+                    <div class="console-tab" data-tab="profiler">Profiler</div>
+                    <div class="console-tab" data-tab="network">Network</div>
                 </div>
-                
-                <!-- Stats Display -->
-                <div class="scene-stats" id="scene-stats">
-                    <div class="stat-row">
-                        <span class="stat-label">FPS:</span>
-                        <span class="stat-value" id="stat-fps">60</span>
+                <div class="console-toolbar">
+                    <button class="panel-btn" id="console-clear" title="Clear">🗑</button>
+                    <button class="panel-btn" id="console-filter-info" title="Info">ℹ</button>
+                    <button class="panel-btn" id="console-filter-warn" title="Warnings">⚠</button>
+                    <button class="panel-btn" id="console-filter-error" title="Errors">✗</button>
+                </div>
+                <div class="console-content" id="console-content">
+                    <!-- Console entries populated by JavaScript -->
+                </div>
+                <div class="console-content" id="debug-content" style="display: none;">
+                    <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="color: #888; font-size: 11px; border-bottom: 1px solid #333; padding-bottom: 8px;">
+                            Debug Log - Real-time debugging information
+                        </div>
+                        <div id="debug-log" style="font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto;">
+                        </div>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Tris:</span>
-                        <span class="stat-value" id="stat-tris">0</span>
+                </div>
+                <div class="console-content" id="keybinds-content" style="display: none;">
+                    <div style="padding: 10px; overflow-y: auto; max-height: 100%;">
+                        <div style="color: #888; font-size: 11px; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 12px;">
+                            Keyboard Shortcuts & Controls
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 16px; font-size: 12px;">
+                            <!-- View Controls -->
+                            <div>
+                                <div style="color: #4CAF50; font-weight: bold; margin-bottom: 6px;">🎥 View Controls</div>
+                                <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 8px;">
+                                    <div><kbd>Left Click + Drag</kbd> - Orbit camera around target</div>
+                                    <div><kbd>Right Click + Drag</kbd> - Orbit camera (alternative)</div>
+                                    <div><kbd>Middle Click + Drag</kbd> - Pan camera</div>
+                                    <div><kbd>Shift + Left Drag</kbd> - Pan camera (alternative)</div>
+                                    <div><kbd>Mouse Wheel</kbd> - Zoom in/out</div>
+                                    <div><kbd>G</kbd> - Toggle grid visibility</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Transform Tools -->
+                            <div>
+                                <div style="color: #2196F3; font-weight: bold; margin-bottom: 6px;">🛠️ Transform Tools</div>
+                                <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 8px;">
+                                    <div><kbd>Q</kbd> - Select mode</div>
+                                    <div><kbd>W</kbd> - Translate (move) mode</div>
+                                    <div><kbd>E</kbd> - Rotate mode</div>
+                                    <div><kbd>R</kbd> - Scale mode</div>
+                                    <div><kbd>Alt + Left Drag</kbd> - Free drag selected object (no gizmo)</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Selection -->
+                            <div>
+                                <div style="color: #FF9800; font-weight: bold; margin-bottom: 6px;">🎯 Selection</div>
+                                <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 8px;">
+                                    <div><kbd>Left Click</kbd> - Select object</div>
+                                    <div><kbd>F</kbd> - Frame selected object in view</div>
+                                    <div><kbd>Delete</kbd> - Delete selected object</div>
+                                </div>
+                            </div>
+                            
+                            <!-- File Operations -->
+                            <div>
+                                <div style="color: #9C27B0; font-weight: bold; margin-bottom: 6px;">💾 File Operations</div>
+                                <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 8px;">
+                                    <div><kbd>Ctrl + S</kbd> - Save scene</div>
+                                    <div><kbd>Ctrl + O</kbd> - Open scene</div>
+                                    <div><kbd>Ctrl + N</kbd> - New scene</div>
+                                    <div><kbd>Ctrl + Shift + S</kbd> - Save as</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Edit -->
+                            <div>
+                                <div style="color: #E91E63; font-weight: bold; margin-bottom: 6px;">✏️ Edit</div>
+                                <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 8px;">
+                                    <div><kbd>Ctrl + Z</kbd> - Undo</div>
+                                    <div><kbd>Ctrl + Y</kbd> - Redo</div>
+                                    <div><kbd>Ctrl + D</kbd> - Duplicate object</div>
+                                    <div><kbd>Ctrl + G</kbd> - Toggle grid snap</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Play -->
+                            <div>
+                                <div style="color: #4CAF50; font-weight: bold; margin-bottom: 6px;">▶️ Playback</div>
+                                <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 8px;">
+                                    <div><kbd>Ctrl + P</kbd> - Play/Stop</div>
+                                    <div><kbd>Space</kbd> - Pause/Resume</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Debug -->
+                            <div>
+                                <div style="color: #FF5252; font-weight: bold; margin-bottom: 6px;">🐛 Debug</div>
+                                <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 8px;">
+                                    <div><kbd>Ctrl + Shift + D</kbd> - Toggle debug panel</div>
+                                    <div><kbd>F12</kbd> - Browser DevTools</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Draw:</span>
-                        <span class="stat-value" id="stat-draws">0</span>
+                </div>
+                <div class="console-content" id="profiler-content" style="display: none;">
+                    <div class="profiler-stats" style="display: flex; gap: 20px; padding: 10px; background: #252525; border-bottom: 1px solid #333;">
+                        <div class="profiler-stat">
+                            <span style="color: #888;">Frame Time:</span>
+                            <span id="profiler-frametime" style="color: #4CAF50;">0.00 ms</span>
+                        </div>
+                        <div class="profiler-stat">
+                            <span style="color: #888;">Draw Calls:</span>
+                            <span id="profiler-draws" style="color: #2196F3;">0</span>
+                        </div>
+                        <div class="profiler-stat">
+                            <span style="color: #888;">Vertices:</span>
+                            <span id="profiler-verts" style="color: #FF9800;">0</span>
+                        </div>
+                        <div class="profiler-stat">
+                            <span style="color: #888;">Memory:</span>
+                            <span id="profiler-memory" style="color: #9C27B0;">0 MB</span>
+                        </div>
                     </div>
+                    <div class="profiler-graph" style="height: 100px; background: #1a1a1a; margin: 10px; border-radius: 4px;">
+                        <canvas id="profiler-canvas" style="width: 100%; height: 100%;"></canvas>
+                    </div>
+                    <div style="padding: 10px; color: #888; font-style: italic;">
+                        Frame timeline profiler - showing last 60 frames
+                    </div>
+                </div>
+                <div class="console-content" id="network-content" style="display: none;">
+                    <div style="padding: 20px; color: #888; text-align: center; font-style: italic;">
+                        No network activity
+                    </div>
+                </div>
+                <div class="console-input-row">
+                    <input type="text" placeholder="Enter command..." id="console-input">
                 </div>
             </div>
         </div>
 
-        <!-- Inspector Panel -->
-        <div class="panel" id="inspector-panel">
-            <div class="panel-header">
-                <span>Inspector</span>
-            </div>
-            <div class="panel-content" id="inspector-content">
-                <div class="inspector-empty">No object selected</div>
-            </div>
-        </div>
+        <!-- Vertical Resize Handle (Right) -->
+        <div class="resize-handle-v" id="resize-right"></div>
 
-        <!-- Console Panel -->
-        <div class="panel" id="console-panel">
-            <div class="console-tabs">
-                <div class="console-tab active" data-tab="console">Console</div>
-                <div class="console-tab" data-tab="profiler">Profiler</div>
-                <div class="console-tab" data-tab="network">Network</div>
-            </div>
-            <div class="console-toolbar">
-                <button class="panel-btn" id="console-clear" title="Clear">🗑</button>
-                <button class="panel-btn" id="console-filter-info" title="Info">ℹ</button>
-                <button class="panel-btn" id="console-filter-warn" title="Warnings">⚠</button>
-                <button class="panel-btn" id="console-filter-error" title="Errors">✗</button>
-            </div>
-            <div class="console-content" id="console-content">
-                <!-- Console entries populated by JavaScript -->
-            </div>
-            <div class="console-input-row">
-                <input type="text" placeholder="Enter command..." id="console-input">
+        <!-- Right Column: Inspector -->
+        <div class="right-column" id="right-column">
+            <div class="panel" id="inspector-panel">
+                <div class="panel-header">
+                    <span>Inspector</span>
+                </div>
+                <div class="panel-content" id="inspector-content">
+                    <div class="inspector-empty">No object selected</div>
+                </div>
             </div>
         </div>
     </div>
@@ -875,6 +1159,7 @@
             TransformMode,
             TransformSpace,
             Vector3,
+            Quaternion,
             GameObject,
             Logger,
             getLiveDebugger,
@@ -938,6 +1223,25 @@
                 });
             }
         });
+        
+        // Help menu toggle
+        document.querySelector('.menu-item[data-menu="help"]').onclick = function(e) {
+            e.stopPropagation();
+            const helpMenu = document.getElementById('help-menu');
+            const isVisible = helpMenu.style.display !== 'none';
+            helpMenu.style.display = isVisible ? 'none' : 'block';
+            
+            // Position below the help button
+            const rect = this.getBoundingClientRect();
+            helpMenu.style.top = rect.bottom + 'px';
+            helpMenu.style.left = rect.left + 'px';
+            helpMenu.style.right = 'auto';
+        };
+        
+        // Close help menu when clicking outside
+        document.addEventListener('click', function() {
+            document.getElementById('help-menu').style.display = 'none';
+        });
 
         // =============== EDITOR UI CLASS ===============
         class EditorUI {
@@ -975,7 +1279,8 @@
                 // Initial UI update
                 this.updateHierarchy();
                 this.log('WebForge Editor initialized', 'success');
-                this.log(`Loaded ${this.editor.getScene()?.getObjectCount() || 0} objects`, 'info');
+                this.log('Loading demo scene...', 'info');
+                this.log(`Demo scene loaded - ${this.editor.getScene()?.getObjectCount() || 0} objects`, 'info');
             }
 
             // =============== EDITOR EVENTS ===============
@@ -987,6 +1292,20 @@
                     document.getElementById('stat-tris').textContent = stats.triangles.toLocaleString();
                     document.getElementById('stat-draws').textContent = stats.drawCalls;
                     document.getElementById('status-objects').textContent = stats.gameObjects;
+                    
+                    // Update profiler
+                    document.getElementById('profiler-frametime').textContent = stats.frameTime.toFixed(2) + ' ms';
+                    document.getElementById('profiler-draws').textContent = stats.drawCalls;
+                    document.getElementById('profiler-verts').textContent = stats.vertices.toLocaleString();
+                    
+                    // Memory usage (if available)
+                    if (performance.memory) {
+                        const mb = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+                        document.getElementById('profiler-memory').textContent = mb + ' MB';
+                    }
+                    
+                    // Update graph
+                    this.updateProfilerGraph(stats);
                 });
 
                 events.on('selectionChanged', (objects) => {
@@ -1044,6 +1363,14 @@
                     document.getElementById('space-world').classList.add('active');
                     document.getElementById('space-local').classList.remove('active');
                 };
+
+                // Grid toggle
+                document.getElementById('toggle-grid').onclick = () => {
+                    this.editor.toggleGrid();
+                    document.getElementById('toggle-grid').classList.toggle('active');
+                };
+                // Start with grid enabled
+                document.getElementById('toggle-grid').classList.add('active');
 
                 // Snap
                 document.getElementById('snap-grid').onclick = () => {
@@ -1132,7 +1459,31 @@
                     tab.onclick = () => {
                         document.querySelectorAll('.console-tab').forEach(t => t.classList.remove('active'));
                         tab.classList.add('active');
+                        
+                        // Show/hide content based on tab
+                        const tabName = tab.dataset.tab;
+                        document.getElementById('console-content').style.display = tabName === 'console' ? 'block' : 'none';
+                        document.getElementById('debug-content').style.display = tabName === 'debug' ? 'block' : 'none';
+                        document.getElementById('keybinds-content').style.display = tabName === 'keybinds' ? 'block' : 'none';
+                        document.getElementById('profiler-content').style.display = tabName === 'profiler' ? 'block' : 'none';
+                        document.getElementById('network-content').style.display = tabName === 'network' ? 'block' : 'none';
                     };
+                });
+
+                // Asset items (click to create)
+                document.querySelectorAll('.asset-item').forEach(item => {
+                    item.onclick = () => {
+                        const type = item.dataset.type;
+                        if (type === 'light') {
+                            this.editor.createLight('point');
+                        } else {
+                            this.editor.createPrimitive(type);
+                        }
+                    };
+                    
+                    // Hover effect
+                    item.onmouseenter = () => item.style.background = '#444';
+                    item.onmouseleave = () => item.style.background = '#333';
                 });
             }
 
@@ -1243,21 +1594,26 @@
                             <div class="property-row">
                                 <span class="property-label">Rotation</span>
                                 <div class="property-input vec3-input">
+                                    ${(() => {
+                                        const euler = transform.rotation.toEuler();
+                                        const toDeg = (rad) => (rad * 180 / Math.PI).toFixed(1);
+                                        return `
                                     <div class="vec3-field">
                                         <span class="vec3-label x-label">X</span>
-                                        <input type="number" step="1" value="${(transform.rotation.x * 180 / Math.PI).toFixed(1)}"
+                                        <input type="number" step="1" value="${toDeg(euler.x)}"
                                                data-prop="rotation" data-axis="x">
                                     </div>
                                     <div class="vec3-field">
                                         <span class="vec3-label y-label">Y</span>
-                                        <input type="number" step="1" value="${(transform.rotation.y * 180 / Math.PI).toFixed(1)}"
+                                        <input type="number" step="1" value="${toDeg(euler.y)}"
                                                data-prop="rotation" data-axis="y">
                                     </div>
                                     <div class="vec3-field">
                                         <span class="vec3-label z-label">Z</span>
-                                        <input type="number" step="1" value="${(transform.rotation.z * 180 / Math.PI).toFixed(1)}"
+                                        <input type="number" step="1" value="${toDeg(euler.z)}"
                                                data-prop="rotation" data-axis="z">
-                                    </div>
+                                    </div>`;
+                                    })()}
                                 </div>
                             </div>
                             <div class="property-row">
@@ -1291,12 +1647,19 @@
                         const axis = e.target.dataset.axis;
                         let value = parseFloat(e.target.value) || 0;
                         
-                        // Convert degrees to radians for rotation
                         if (prop === 'rotation') {
-                            value = value * Math.PI / 180;
+                            // Get current Euler angles, update one axis, convert back to quaternion
+                            const euler = transform.rotation.toEuler();
+                            const toRad = (deg) => deg * Math.PI / 180;
+                            euler[axis] = toRad(value);
+                            transform.rotation = Quaternion.fromEuler(euler.x, euler.y, euler.z);
+                        } else {
+                            // Position and scale - directly set
+                            transform[prop][axis] = value;
                         }
                         
-                        transform[prop][axis] = value;
+                        // Mark transform as dirty to update rendering
+                        transform.markLocalDirty();
                     };
                 });
             }
@@ -1323,6 +1686,61 @@
                 container.scrollTop = container.scrollHeight;
             }
 
+            // =============== PROFILER ===============
+            profilerHistory = [];
+            
+            updateProfilerGraph(stats) {
+                // Keep last 60 frames
+                this.profilerHistory.push(stats.frameTime);
+                if (this.profilerHistory.length > 60) {
+                    this.profilerHistory.shift();
+                }
+                
+                const canvas = document.getElementById('profiler-canvas');
+                if (!canvas) return;
+                
+                const ctx = canvas.getContext('2d');
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                
+                // Clear
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw target line (16.67ms = 60fps)
+                ctx.strokeStyle = '#4CAF50';
+                ctx.setLineDash([5, 5]);
+                const targetY = canvas.height - (16.67 / 50) * canvas.height;
+                ctx.beginPath();
+                ctx.moveTo(0, targetY);
+                ctx.lineTo(canvas.width, targetY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Draw graph
+                if (this.profilerHistory.length > 1) {
+                    const barWidth = canvas.width / 60;
+                    
+                    this.profilerHistory.forEach((frameTime, i) => {
+                        const barHeight = Math.min((frameTime / 50) * canvas.height, canvas.height);
+                        const x = i * barWidth;
+                        const y = canvas.height - barHeight;
+                        
+                        // Color based on frame time
+                        if (frameTime < 16.67) {
+                            ctx.fillStyle = '#4CAF50'; // Green = good
+                        } else if (frameTime < 33.33) {
+                            ctx.fillStyle = '#FF9800'; // Orange = ok
+                        } else {
+                            ctx.fillStyle = '#f44336'; // Red = bad
+                        }
+                        
+                        ctx.fillRect(x, y, barWidth - 1, barHeight);
+                    });
+                }
+            }
+
             executeCommand(command) {
                 this.log(`> ${command}`, 'info');
                 
@@ -1333,7 +1751,7 @@
                     
                     switch (cmd) {
                         case 'help':
-                            this.log('Commands: help, clear, create [cube|sphere|plane], delete, list', 'info');
+                            this.log('Commands: help, clear, create [type], delete, list, select [name], frame, translate, rotate, scale, info', 'info');
                             break;
                         case 'clear':
                             document.getElementById('console-content').innerHTML = '';
@@ -1349,12 +1767,36 @@
                             const objects = this.editor.getScene()?.getAllGameObjects() || [];
                             this.log(`Objects: ${objects.map(o => o.name).join(', ')}`, 'info');
                             break;
-                        default:
-                            // Try to evaluate as JavaScript
-                            const result = eval(command);
-                            if (result !== undefined) {
-                                this.log(String(result), 'success');
+                        case 'select':
+                            if (parts[1]) {
+                                this.editor.selectByName(parts[1]);
                             }
+                            break;
+                        case 'frame':
+                            this.editor.frameSelected();
+                            break;
+                        case 'translate':
+                        case 'move':
+                            this.editor.setTransformMode(TransformMode.TRANSLATE);
+                            break;
+                        case 'rotate':
+                            this.editor.setTransformMode(TransformMode.ROTATE);
+                            break;
+                        case 'scale':
+                            this.editor.setTransformMode(TransformMode.SCALE);
+                            break;
+                        case 'info':
+                            const selected = this.editor.getContext().getSelection();
+                            if (selected.length > 0) {
+                                const obj = selected[0];
+                                const pos = obj.transform.position;
+                                this.log(`${obj.name}: pos(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`, 'info');
+                            } else {
+                                this.log('No object selected', 'warn');
+                            }
+                            break;
+                        default:
+                            this.log(`Unknown command: ${cmd}. Type 'help' for available commands.`, 'warn');
                     }
                 } catch (err) {
                     this.log(err.message, 'error');
@@ -1421,6 +1863,109 @@
                 }
             }
         }
+
+        // =============== RESIZABLE PANELS ===============
+        function setupResizablePanels() {
+            // Left column resize (horizontal - width)
+            const leftColumn = document.getElementById('left-column');
+            const resizeLeft = document.getElementById('resize-left');
+            
+            let isResizingLeft = false;
+            resizeLeft.addEventListener('mousedown', (e) => {
+                isResizingLeft = true;
+                document.body.style.cursor = 'ew-resize';
+                e.preventDefault();
+            });
+            
+            // Right column resize (horizontal - width)
+            const rightColumn = document.getElementById('right-column');
+            const resizeRight = document.getElementById('resize-right');
+            
+            let isResizingRight = false;
+            resizeRight.addEventListener('mousedown', (e) => {
+                isResizingRight = true;
+                document.body.style.cursor = 'ew-resize';
+                e.preventDefault();
+            });
+            
+            // Hierarchy/Assets resize (vertical - height)
+            const hierarchyPanel = document.getElementById('hierarchy-panel');
+            const assetsPanel = document.getElementById('assets-panel');
+            const resizeHierarchy = document.getElementById('resize-hierarchy');
+            
+            let isResizingHierarchy = false;
+            resizeHierarchy.addEventListener('mousedown', (e) => {
+                isResizingHierarchy = true;
+                document.body.style.cursor = 'ns-resize';
+                e.preventDefault();
+            });
+            
+            // Console resize (vertical - height)
+            const consolePanel = document.getElementById('console-panel');
+            const resizeConsole = document.getElementById('resize-console');
+            
+            let isResizingConsole = false;
+            resizeConsole.addEventListener('mousedown', (e) => {
+                isResizingConsole = true;
+                document.body.style.cursor = 'ns-resize';
+                e.preventDefault();
+            });
+            
+            // Mouse move handler
+            document.addEventListener('mousemove', (e) => {
+                if (isResizingLeft) {
+                    const newWidth = e.clientX;
+                    if (newWidth >= 150 && newWidth <= 400) {
+                        leftColumn.style.width = newWidth + 'px';
+                    }
+                }
+                
+                if (isResizingRight) {
+                    const containerRect = document.querySelector('.editor-container').getBoundingClientRect();
+                    const newWidth = containerRect.right - e.clientX;
+                    if (newWidth >= 200 && newWidth <= 500) {
+                        rightColumn.style.width = newWidth + 'px';
+                    }
+                }
+                
+                if (isResizingHierarchy) {
+                    const leftRect = leftColumn.getBoundingClientRect();
+                    const newHeight = e.clientY - leftRect.top;
+                    const totalHeight = leftRect.height;
+                    if (newHeight >= 100 && newHeight <= totalHeight - 100) {
+                        hierarchyPanel.style.flex = 'none';
+                        hierarchyPanel.style.height = newHeight + 'px';
+                        assetsPanel.style.flex = '1';
+                    }
+                }
+                
+                if (isResizingConsole) {
+                    const centerColumn = document.getElementById('center-column');
+                    const centerRect = centerColumn.getBoundingClientRect();
+                    const newHeight = centerRect.bottom - e.clientY;
+                    if (newHeight >= 100 && newHeight <= 400) {
+                        consolePanel.style.height = newHeight + 'px';
+                    }
+                }
+            });
+            
+            // Mouse up handler
+            document.addEventListener('mouseup', () => {
+                if (isResizingLeft || isResizingRight || isResizingHierarchy || isResizingConsole) {
+                    isResizingLeft = false;
+                    isResizingRight = false;
+                    isResizingHierarchy = false;
+                    isResizingConsole = false;
+                    document.body.style.cursor = '';
+                    
+                    // Trigger resize event for canvas
+                    window.dispatchEvent(new Event('resize'));
+                }
+            });
+        }
+        
+        // Initialize resizable panels after DOM load
+        setupResizablePanels();
 
         // =============== INITIALIZE ===============
         const editorUI = new EditorUI();

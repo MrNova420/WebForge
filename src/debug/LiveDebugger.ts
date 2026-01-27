@@ -264,7 +264,7 @@ export class LiveDebugger {
         
         console.log('%c🔍 WebForge Live Debugger Active', 'color: #4ade80; font-weight: bold; font-size: 14px;');
         console.log('%cAutomatically watching for errors, performance issues, and more...', 'color: #888; font-size: 11px;');
-        console.log('%cPress F12 or Ctrl+Shift+D to toggle debugger panel', 'color: #888; font-size: 11px;');
+        console.log('%cPress Ctrl+Shift+D to toggle debugger panel', 'color: #888; font-size: 11px;');
         
         // Install all watchers
         if (this.config.watchErrors) this.installErrorWatchers();
@@ -1221,8 +1221,8 @@ export class LiveDebugger {
     
     private installKeyboardShortcuts(): void {
         window.addEventListener('keydown', (e) => {
-            // F12 or Ctrl+Shift+D - Toggle debugger
-            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'D')) {
+            // Ctrl+Shift+D - Toggle debugger (F12 removed to allow browser devtools)
+            if (e.ctrlKey && e.shiftKey && e.key === 'D') {
                 e.preventDefault();
                 this.toggleOverlay();
             }

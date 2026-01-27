@@ -268,7 +268,7 @@ export class DevCenter {
             maxIssuesDisplayed: 100,
             maxNetworkEntries: 200,
             maxConsoleEntries: 500,
-            autoShowOnError: true,
+            autoShowOnError: false,
             persistBetweenReloads: true,
             integrateWithDevTools: true,
             integrateWithLiveDebugger: true,
@@ -970,8 +970,8 @@ export class DevCenter {
     
     private setupHotkeys(): void {
         window.addEventListener('keydown', (event) => {
-            // Ctrl+Shift+D or F12 - toggle overlay
-            if ((event.ctrlKey && event.shiftKey && event.key === 'D') || event.key === 'F12') {
+            // Ctrl+Shift+D - toggle overlay (F12 removed to allow browser devtools)
+            if (event.ctrlKey && event.shiftKey && event.key === 'D') {
                 event.preventDefault();
                 this.toggleOverlay();
             }
@@ -1682,7 +1682,7 @@ export class DevCenter {
                 <div class="devcenter-section-title">Keyboard Shortcuts</div>
                 <div style="background: #1f1f3a; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 11px;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <span>Toggle DevCenter</span><span style="color: #4ade80;">Ctrl+Shift+D / F12</span>
+                        <span>Toggle DevCenter</span><span style="color: #4ade80;">Ctrl+Shift+D</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                         <span>Close DevCenter</span><span style="color: #4ade80;">Escape</span>
@@ -1827,22 +1827,25 @@ export class DevCenter {
                     position: fixed;
                     bottom: 10px;
                     right: 10px;
-                    background: #1a1a2e;
-                    border: 1px solid #333;
+                    background: rgba(26, 26, 46, 0.4);
+                    border: 1px solid rgba(51, 51, 51, 0.4);
                     border-radius: 20px;
                     padding: 6px 12px;
                     font-family: 'Segoe UI', system-ui, sans-serif;
                     font-size: 11px;
-                    color: #e0e0e0;
+                    color: rgba(224, 224, 224, 0.6);
                     z-index: 2147483647;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
                     gap: 8px;
                     transition: all 0.2s;
+                    opacity: 0.4;
                 }
                 #webforge-devcenter-indicator:hover {
-                    background: #2a2a4a;
+                    background: rgba(42, 42, 74, 0.9);
+                    opacity: 1;
+                    color: #e0e0e0;
                 }
                 .indicator-dot {
                     width: 8px;
