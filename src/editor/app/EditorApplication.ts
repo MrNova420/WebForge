@@ -384,10 +384,14 @@ export class EditorApplication {
     /**
      * Create primitive
      */
-    createPrimitive(type: 'cube' | 'sphere' | 'plane' | 'cylinder' | 'cone'): GameObject | null {
+    createPrimitive(type: 'cube' | 'sphere' | 'plane' | 'cylinder' | 'cone', position?: { x: number; y: number; z: number }): GameObject | null {
         if (!this.scene) return null;
         
         const gameObject = this.scene.createPrimitive(type);
+        if (position) {
+            gameObject.transform.position.set(position.x, position.y, position.z);
+            gameObject.transform.markLocalDirty();
+        }
         this.updateHierarchy();
         this.log(`Created ${type}`, 'success');
         return gameObject;
@@ -396,10 +400,14 @@ export class EditorApplication {
     /**
      * Create light
      */
-    createLight(type: 'directional' | 'point' | 'spot'): GameObject | null {
+    createLight(type: 'directional' | 'point' | 'spot', position?: { x: number; y: number; z: number }): GameObject | null {
         if (!this.scene) return null;
         
         const gameObject = this.scene.createLight(type);
+        if (position) {
+            gameObject.transform.position.set(position.x, position.y, position.z);
+            gameObject.transform.markLocalDirty();
+        }
         this.updateHierarchy();
         this.log(`Created ${type} light`, 'success');
         return gameObject;
@@ -462,6 +470,34 @@ export class EditorApplication {
         
         this.renderer.frameObjects(selected);
         this.log('Framed selection', 'info');
+    }
+
+    /**
+     * Update live placement preview position
+     */
+    setPreviewPosition(pos: { x: number; y: number; z: number } | null, type?: string): void {
+        this.renderer?.setPreviewPosition(pos, type);
+    }
+
+    /**
+     * Clear placement preview
+     */
+    clearPreviewPosition(): void {
+        this.renderer?.clearPreviewPosition();
+    }
+
+    /**
+     * Convert normalized screen coords to ground-plane hit (y=0)
+     */
+    screenToGround(normX: number, normY: number) {
+        return this.renderer?.screenToGround(normX, normY) || null;
+    }
+
+    /**
+     * Raycast to surfaces for placement
+     */
+    screenToSurface(normX: number, normY: number) {
+        return this.renderer?.screenToSurface(normX, normY) || null;
     }
 
     // ========== Transform Mode ==========

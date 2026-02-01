@@ -1248,6 +1248,7 @@
             constructor() {
                 this.editor = null;
                 this.selectedTreeItem = null;
+                this.currentDragType = null;
             }
 
             async initialize() {
@@ -1470,7 +1471,7 @@
                     };
                 });
 
-                // Asset items (click to create)
+                // Asset items (click to create + drag to place)
                 document.querySelectorAll('.asset-item').forEach(item => {
                     item.onclick = () => {
                         const type = item.dataset.type;
@@ -1481,10 +1482,79 @@
                         }
                     };
                     
+                    // Drag support
+                    item.draggable = true;
+                    item.ondragstart = (e) => {
+                        e.dataTransfer?.setData('text/webforge-asset', item.dataset.type || '');
+                        e.dataTransfer?.setData('text/plain', item.dataset.type || '');
+                        if (e.dataTransfer) {
+                            e.dataTransfer.effectAllowed = 'copy';
+                            // Hide default file drag ghost so we only see the 3D preview
+                            const ghost = document.createElement('canvas');
+                            ghost.width = ghost.height = 1;
+                            e.dataTransfer.setDragImage(ghost, 0, 0);
+                        }
+                        this.currentDragType = item.dataset.type || null;
+                    };
+                    item.ondragend = () => {
+                        this.currentDragType = null;
+                    };
+
                     // Hover effect
                     item.onmouseenter = () => item.style.background = '#444';
                     item.onmouseleave = () => item.style.background = '#333';
                 });
+
+                // Scene canvas drag/drop for Unreal-style placement preview
+                const canvas = document.getElementById('scene-canvas');
+                if (canvas) {
+                    const getHitPoint = (clientX, clientY) => {
+                        const rect = canvas.getBoundingClientRect();
+                        const x = (clientX - rect.left) / rect.width;
+                        const y = (clientY - rect.top) / rect.height;
+                        // Prefer surface hits; fall back to ground
+                        const surface = this.editor.screenToSurface(x, y);
+                        if (surface) return { point: surface.point, surface };
+                        const ground = this.editor.screenToGround(x, y);
+                        return ground ? { point: ground, surface: null } : null;
+                    };
+
+                    const updatePreview = (e) => {
+                        const type = e.dataTransfer?.getData('text/webforge-asset') || e.dataTransfer?.getData('text/plain') || this.currentDragType || null;
+                        const hit = getHitPoint(e.clientX, e.clientY);
+                        if (hit) {
+                            this.editor.setPreviewPosition(hit.point, type || undefined);
+                        } else {
+                            this.editor.clearPreviewPosition();
+                        }
+                    };
+
+                    canvas.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'copy';
+                        updatePreview(e);
+                    });
+
+                    canvas.addEventListener('dragleave', () => {
+                        this.editor.clearPreviewPosition();
+                    });
+
+                    canvas.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        const type = e.dataTransfer?.getData('text/webforge-asset') || e.dataTransfer?.getData('text/plain');
+                        const hit = getHitPoint(e.clientX, e.clientY);
+                        if (type && hit) {
+                            if (type === 'light') {
+                                this.editor.createLight('point', hit.point);
+                            } else {
+                                this.editor.createPrimitive(type, hit.point);
+                            }
+                            this.editor.setTransformMode(TransformMode.TRANSLATE);
+                        }
+                        this.editor.clearPreviewPosition();
+                        this.currentDragType = null;
+                    });
+                }
             }
 
             // =============== HIERARCHY ===============
@@ -1806,9 +1876,37 @@
             // =============== CONTEXT MENU ===============
             setupContextMenu() {
                 const menu = document.getElementById('context-menu');
+                const canvas = document.getElementById('scene-canvas');
+                let rightDragMoved = false;
+                let rightDownPos = null;
+
+                if (canvas) {
+                    canvas.addEventListener('mousedown', (e) => {
+                        if (e.button === 2) {
+                            rightDownPos = { x: e.clientX, y: e.clientY };
+                            rightDragMoved = false;
+                        }
+                    });
+                    canvas.addEventListener('mousemove', (e) => {
+                        if (e.buttons === 2 && rightDownPos) {
+                            const dist = Math.abs(e.clientX - rightDownPos.x) + Math.abs(e.clientY - rightDownPos.y);
+                            if (dist > 3) rightDragMoved = true;
+                        }
+                    });
+                    canvas.addEventListener('mouseup', (e) => {
+                        if (e.button === 2) {
+                            const dist = rightDownPos ? Math.abs(e.clientX - rightDownPos.x) + Math.abs(e.clientY - rightDownPos.y) : 0;
+                            if (dist > 3) rightDragMoved = true;
+                        }
+                    });
+                }
                 
                 // Show context menu on right click in scene or hierarchy
                 document.getElementById('scene-canvas').oncontextmenu = (e) => {
+                    if (rightDragMoved) {
+                        rightDragMoved = false;
+                        return;
+                    }
                     e.preventDefault();
                     this.showContextMenu(e.clientX, e.clientY);
                 };

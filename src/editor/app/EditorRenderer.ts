@@ -65,6 +65,10 @@ export class EditorRenderer {
     private gridVAO: WebGLVertexArrayObject | null = null;
     private gridVertexCount: number = 0;
     
+    // Drag/drop live preview
+    private previewPosition: Vector3 | null = null;
+    private previewType: string | null = null;
+    
     // Primitive buffers
     private cubeVAO: WebGLVertexArrayObject | null = null;
     private sphereVAO: WebGLVertexArrayObject | null = null;
@@ -308,6 +312,7 @@ export class EditorRenderer {
             uniform vec3 uColor;
             uniform vec3 uCameraPos;
             uniform bool uSelected;
+            uniform bool uIsPreview;
             void main() {
                 vec3 normal = normalize(vNormal);
                 vec3 lightDir = normalize(vec3(1.0, 2.0, 1.5));
@@ -322,7 +327,8 @@ export class EditorRenderer {
                     color += vec3(0.0, 0.5, 1.0) * fresnel * 0.5;
                 }
                 
-                fragColor = vec4(color, 1.0);
+                float alpha = uIsPreview ? 0.45 : 1.0;
+                fragColor = vec4(color, alpha);
             }
         `;
         
@@ -744,7 +750,7 @@ export class EditorRenderer {
         }
         
         // Check for direct object dragging (Alt + Left click on selected object)
-        if (e.button === 0 && e.altKey && selected.length > 0) {
+        if (e.button === 2 && e.altKey && selected.length > 0) {
             const clickedObj = this.raycastPick(mouseX, mouseY);
             if (clickedObj && selected.includes(clickedObj)) {
                 this.objectDragging = true;
@@ -1435,6 +1441,9 @@ export class EditorRenderer {
         if (this.showGrid) {
             this.renderGrid(gl, viewProj);
         }
+
+        // Render live placement preview (during drag/drop)
+        this.renderPreview(gl, viewProj);
         
         // Render gizmos for selected objects (only in transform modes, not select mode)
         const selected = this.context.getSelection();
@@ -1442,6 +1451,65 @@ export class EditorRenderer {
         if (selected.length > 0 && transformMode !== TransformMode.SELECT) {
             this.renderGizmos(gl, viewProj, selected);
         }
+    }
+
+    /**
+     * Render live placement preview as a wireframe box
+     */
+    private renderPreview(gl: WebGL2RenderingContext, viewProj: Matrix4): void {
+        if (!this.previewPosition || !this.objectShader) return;
+
+        // Choose geometry based on type
+        const type = this.previewType || 'cube';
+        let vao: WebGLVertexArrayObject | null = null;
+        let color: [number, number, number] = [0.1, 0.8, 1.0];
+        switch (type) {
+            case 'sphere': vao = this.sphereVAO; color = [0.8, 0.4, 0.4]; break;
+            case 'plane': vao = this.planeVAO; color = [0.5, 0.5, 0.5]; break;
+            case 'cylinder': vao = this.cylinderVAO; color = [0.6, 0.8, 0.4]; break;
+            case 'cone': vao = this.coneVAO; color = [0.8, 0.6, 0.4]; break;
+            case 'capsule': vao = this.cylinderVAO; color = [0.4, 0.8, 0.6]; break;
+            case 'light': vao = this.sphereVAO; color = [1.0, 0.9, 0.5]; break;
+            default: vao = this.cubeVAO; color = [0.1, 0.8, 1.0];
+        }
+        if (!vao) return;
+
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthMask(false);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+        gl.useProgram(this.objectShader);
+        gl.uniformMatrix4fv(gl.getUniformLocation(this.objectShader, 'uViewProjection'), false, viewProj.elements);
+        gl.uniform3fv(gl.getUniformLocation(this.objectShader, 'uCameraPos'), this.camera.getPosition().toArray());
+
+        const model = Matrix4.translation(this.previewPosition);
+        gl.uniformMatrix4fv(gl.getUniformLocation(this.objectShader, 'uModel'), false, model.elements);
+        const normalMatrix = model.clone().invert().transpose();
+        const normalMat3 = [
+            normalMatrix.elements[0], normalMatrix.elements[1], normalMatrix.elements[2],
+            normalMatrix.elements[4], normalMatrix.elements[5], normalMatrix.elements[6],
+            normalMatrix.elements[8], normalMatrix.elements[9], normalMatrix.elements[10]
+        ];
+        gl.uniformMatrix3fv(gl.getUniformLocation(this.objectShader, 'uNormalMatrix'), false, normalMat3);
+
+        const previewColor: [number, number, number] = [
+            color[0] * 0.6 + 0.2,
+            color[1] * 0.6 + 0.2,
+            color[2] * 0.6 + 0.2
+        ];
+        gl.uniform3fv(gl.getUniformLocation(this.objectShader, 'uColor'), previewColor);
+        gl.uniform1i(gl.getUniformLocation(this.objectShader, 'uSelected'), 0);
+        gl.uniform1i(gl.getUniformLocation(this.objectShader, 'uIsPreview'), 1);
+
+        this.glContext.bindVertexArray(vao);
+        const indexCount = (vao as any).indexCount || 36;
+        gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+        this.glContext.bindVertexArray(null);
+
+        gl.uniform1i(gl.getUniformLocation(this.objectShader, 'uIsPreview'), 0);
+        gl.disable(gl.BLEND);
+        gl.depthMask(true);
     }
 
     /**
@@ -1525,6 +1593,7 @@ export class EditorRenderer {
         const color = (obj as any).editorColor || [0.4, 0.6, 0.8];
         gl.uniform3fv(gl.getUniformLocation(this.objectShader, 'uColor'), color);
         gl.uniform1i(gl.getUniformLocation(this.objectShader, 'uSelected'), isSelected ? 1 : 0);
+        gl.uniform1i(gl.getUniformLocation(this.objectShader, 'uIsPreview'), 0);
         
         // Determine primitive type
         const primitiveType = (obj as any).primitiveType || 'cube';
@@ -1804,6 +1873,76 @@ export class EditorRenderer {
      */
     isGridVisible(): boolean {
         return this.showGrid;
+    }
+
+    /**
+     * Update live preview position for drag-drop placement
+     */
+    setPreviewPosition(pos: { x: number; y: number; z: number } | null, type?: string): void {
+        this.previewPosition = pos ? new Vector3(pos.x, pos.y, pos.z) : null;
+        this.previewType = pos ? (type || null) : null;
+    }
+
+    /**
+     * Clear placement preview
+     */
+    clearPreviewPosition(): void {
+        this.previewPosition = null;
+        this.previewType = null;
+    }
+
+    /**
+     * Convert normalized screen coords (0-1) to ground plane hit (y=0)
+     */
+    screenToGround(normX: number, normY: number): Vector3 | null {
+        const canvas = this.glContext.canvas as HTMLCanvasElement;
+        const screenX = normX * canvas.width;
+        const screenY = normY * canvas.height;
+        const ray = this.screenToRay(screenX, screenY);
+        if (!ray) return null;
+
+        const denom = ray.direction.y;
+        if (Math.abs(denom) < 1e-5) return null;
+
+        const t = -ray.origin.y / denom;
+        if (t < 0) return null;
+
+        return ray.origin.clone().add(ray.direction.clone().multiplyScalar(t));
+    }
+
+    /**
+     * Raycast to scene objects to place on surfaces; returns hit position or null
+     */
+    screenToSurface(normX: number, normY: number): { point: Vector3, normal: Vector3 } | null {
+        const canvas = this.glContext.canvas as HTMLCanvasElement;
+        const screenX = normX * canvas.width;
+        const screenY = normY * canvas.height;
+        const ray = this.screenToRay(screenX, screenY);
+        if (!ray || !this.currentScene) return null;
+
+        // Simple AABB intersection against objects
+        let closest: { point: Vector3, normal: Vector3, t: number } | null = null;
+        for (const obj of this.currentScene.getAllGameObjects()) {
+            const pos = obj.transform.position;
+            const scale = obj.transform.scale;
+            const half = scale.clone().multiplyScalar(0.5);
+            const min = pos.clone().subtract(half);
+            const max = pos.clone().add(half);
+            const t = this.rayIntersectAABB(ray.origin, ray.direction, min, max);
+            if (t !== null && t >= 0 && t < (closest?.t ?? Infinity)) {
+                const hitPoint = ray.origin.clone().add(ray.direction.clone().multiplyScalar(t));
+                // Approximate normal by which face was hit
+                const epsilon = 1e-4;
+                let normal = new Vector3(0, 1, 0);
+                const rel = hitPoint.clone().subtract(pos);
+                if (Math.abs(Math.abs(rel.x) - half.x) < epsilon) normal = new Vector3(Math.sign(rel.x), 0, 0);
+                else if (Math.abs(Math.abs(rel.y) - half.y) < epsilon) normal = new Vector3(0, Math.sign(rel.y), 0);
+                else if (Math.abs(Math.abs(rel.z) - half.z) < epsilon) normal = new Vector3(0, 0, Math.sign(rel.z));
+
+                closest = { point: hitPoint, normal, t };
+            }
+        }
+        return closest ? { point: closest.point, normal: closest.normal } : null;
     }
 
     /**
