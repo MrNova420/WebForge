@@ -317,7 +317,7 @@ export class EditorRenderer {
                 vec3 normal = normalize(vNormal);
                 vec3 lightDir = normalize(vec3(1.0, 2.0, 1.5));
                 float diffuse = max(dot(normal, lightDir), 0.0);
-                float ambient = 0.3;
+                float ambient = 0.12;
                 vec3 color = uColor * (ambient + diffuse * 0.7);
                 
                 // Selection highlight
@@ -327,7 +327,7 @@ export class EditorRenderer {
                     color += vec3(0.0, 0.5, 1.0) * fresnel * 0.5;
                 }
                 
-                float alpha = uIsPreview ? 0.45 : 1.0;
+                float alpha = uIsPreview ? 0.35 : 1.0;
                 fragColor = vec4(color, alpha);
             }
         `;
@@ -1437,12 +1437,12 @@ export class EditorRenderer {
         // Render scene objects first
         this.renderObjects(gl, viewProj, scene);
         
-        // Render grid AFTER objects so depth test works correctly
+        // Render grid after objects so it respects depth
         if (this.showGrid) {
             this.renderGrid(gl, viewProj);
         }
-
-        // Render live placement preview (during drag/drop)
+        
+        // Render live placement preview (during drag/drop) on top
         this.renderPreview(gl, viewProj);
         
         // Render gizmos for selected objects (only in transform modes, not select mode)
@@ -1477,7 +1477,7 @@ export class EditorRenderer {
         gl.enable(gl.DEPTH_TEST);
         gl.depthMask(false);
         gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
         gl.useProgram(this.objectShader);
         gl.uniformMatrix4fv(gl.getUniformLocation(this.objectShader, 'uViewProjection'), false, viewProj.elements);
@@ -1510,6 +1510,7 @@ export class EditorRenderer {
         gl.uniform1i(gl.getUniformLocation(this.objectShader, 'uIsPreview'), 0);
         gl.disable(gl.BLEND);
         gl.depthMask(true);
+        gl.depthMask(true);
     }
 
     /**
@@ -1518,9 +1519,12 @@ export class EditorRenderer {
     private renderGrid(gl: WebGL2RenderingContext, _viewProj: Matrix4): void {
         if (!this.gridShader || !this.gridVAO) return;
         
-        // Enable blending for grid transparency
+        // Enable blending for grid transparency, but keep depth writes/tests so grid sits behind geometry
         gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        gl.depthMask(true);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
         
         gl.useProgram(this.gridShader);
         
@@ -1549,6 +1553,8 @@ export class EditorRenderer {
         this.glContext.bindVertexArray(null);
         
         gl.disable(gl.BLEND);
+        gl.depthMask(true);
+        gl.depthMask(true);
         
         this.stats.drawCalls++;
         this.stats.vertices += this.gridVertexCount;

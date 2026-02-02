@@ -361,9 +361,16 @@ export class GameObject implements ISceneObject {
     // Clone tags
     this.tags.forEach(tag => clone.addTag(tag));
     
-    // Note: Components are not cloned by default as they may have complex state
-    // Implement custom cloning logic in subclasses if needed
+    // Clone simple metadata used by editor (primitive type, color, light data, custom fields)
+    (clone as any).primitiveType = (this as any).primitiveType;
+    (clone as any).editorColor = (this as any).editorColor;
+    (clone as any).lightType = (this as any).lightType;
+    (clone as any).lightColor = (this as any).lightColor ? [...(this as any).lightColor] : undefined;
+    (clone as any).lightIntensity = (this as any).lightIntensity;
+    (clone as any).lightRange = (this as any).lightRange;
+    (clone as any).lightAngle = (this as any).lightAngle;
     
+    // Components are not cloned by default as they may have complex state.
     return clone;
   }
 
