@@ -1,4 +1,4 @@
-import { ScriptNode, NodeType, PortType } from './ScriptNode';
+import { ScriptNode, NodeType, PortType, type NodePort } from './ScriptNode';
 
 /**
  * Connection between two nodes
@@ -253,8 +253,68 @@ export class ScriptGraph {
         const graph = new ScriptGraph();
         graph.name = data.name;
         
-        // Restore nodes (simplified - would need full node reconstruction)
-        // This is a placeholder for actual implementation
+        // Restore nodes
+        if (data.nodes) {
+            for (const nodeData of data.nodes) {
+                const node = new ScriptNode(nodeData.name, nodeData.type as NodeType);
+                // Preserve original ID for connection restoration
+                node.id = nodeData.id;
+                node.x = nodeData.x || 0;
+                node.y = nodeData.y || 0;
+                
+                // Restore input ports
+                if (nodeData.inputs) {
+                    for (const [portName, portDef] of nodeData.inputs) {
+                        node.inputs.set(portName, portDef as NodePort);
+                    }
+                }
+                
+                // Restore output ports
+                if (nodeData.outputs) {
+                    for (const [portName, portDef] of nodeData.outputs) {
+                        node.outputs.set(portName, portDef as NodePort);
+                    }
+                }
+                
+                // Restore properties
+                if (nodeData.properties) {
+                    for (const [key, value] of nodeData.properties) {
+                        node.properties.set(key, value);
+                    }
+                }
+                
+                graph.nodes.set(node.id, node);
+            }
+        }
+        
+        // Restore connections via connectNodes() to update port state
+        if (data.connections) {
+            for (const conn of data.connections) {
+                const connected = graph.connectNodes(
+                    conn.sourceNodeId,
+                    conn.sourcePort,
+                    conn.targetNodeId,
+                    conn.targetPort
+                );
+                if (!connected) {
+                    // Fallback: add the raw connection if connectNodes fails
+                    // (e.g. type mismatch), so the graph structure is preserved
+                    graph.connections.push({
+                        sourceNodeId: conn.sourceNodeId,
+                        sourcePort: conn.sourcePort,
+                        targetNodeId: conn.targetNodeId,
+                        targetPort: conn.targetPort
+                    });
+                }
+            }
+        }
+        
+        // Restore variables
+        if (data.variables) {
+            for (const [key, value] of data.variables) {
+                graph.variables.set(key, value);
+            }
+        }
         
         return graph;
     }

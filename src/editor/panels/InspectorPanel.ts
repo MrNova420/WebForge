@@ -395,9 +395,97 @@ export class InspectorPanel extends Panel {
      * Shows the add component menu
      */
     private showAddComponentMenu(): void {
-        // This would show a dropdown or modal with available components
-        // For now, just a placeholder
-        console.log('Add component menu');
+        // Create dropdown overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 9999;
+        `;
+
+        const menu = document.createElement('div');
+        menu.style.cssText = `
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2a2a2a;
+            border: 1px solid #555;
+            border-radius: 6px;
+            padding: 10px;
+            min-width: 250px;
+            max-height: 400px;
+            overflow-y: auto;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        `;
+
+        const title = document.createElement('div');
+        title.textContent = 'Add Component';
+        title.style.cssText = 'font-weight: bold; font-size: 14px; padding: 8px; border-bottom: 1px solid #444; margin-bottom: 8px;';
+        menu.appendChild(title);
+
+        // Search input
+        const search = document.createElement('input');
+        search.type = 'text';
+        search.placeholder = 'Search components...';
+        search.style.cssText = `
+            width: 100%; padding: 6px 8px; margin-bottom: 8px;
+            background: #1a1a1a; border: 1px solid #444; border-radius: 3px;
+            color: #e0e0e0; font-size: 12px; box-sizing: border-box;
+        `;
+        menu.appendChild(search);
+
+        const componentCategories: Record<string, string[]> = {
+            'Rendering': ['MeshRenderer', 'Light', 'Camera', 'ParticleSystem', 'SpriteRenderer'],
+            'Physics': ['RigidBody', 'BoxCollider', 'SphereCollider', 'CapsuleCollider', 'MeshCollider'],
+            'Audio': ['AudioSource', 'AudioListener'],
+            'Animation': ['Animator', 'AnimationPlayer'],
+            'AI': ['NavMeshAgent', 'BehaviorTree'],
+            'Scripting': ['ScriptComponent', 'VisualScript'],
+            'UI': ['Canvas', 'Text', 'Image', 'Button']
+        };
+
+        const itemContainer = document.createElement('div');
+
+        const renderItems = (filter: string) => {
+            itemContainer.innerHTML = '';
+            const lowerFilter = filter.toLowerCase();
+            for (const [category, components] of Object.entries(componentCategories)) {
+                const filtered = components.filter(c => c.toLowerCase().includes(lowerFilter));
+                if (filtered.length === 0) continue;
+
+                const catLabel = document.createElement('div');
+                catLabel.textContent = category;
+                catLabel.style.cssText = 'font-size: 11px; color: #888; padding: 4px 8px; text-transform: uppercase;';
+                itemContainer.appendChild(catLabel);
+
+                for (const comp of filtered) {
+                    const item = document.createElement('div');
+                    item.textContent = comp;
+                    item.style.cssText = `
+                        padding: 6px 12px; cursor: pointer; border-radius: 3px;
+                        font-size: 13px; transition: background 0.15s;
+                    `;
+                    item.onmouseenter = () => { item.style.background = '#3a3a3a'; };
+                    item.onmouseleave = () => { item.style.background = ''; };
+                    item.onclick = () => {
+                        console.log(`[Inspector] Adding component: ${comp}`);
+                        overlay.remove();
+                    };
+                    itemContainer.appendChild(item);
+                }
+            }
+        };
+
+        renderItems('');
+        search.oninput = () => renderItems(search.value);
+
+        menu.appendChild(itemContainer);
+        overlay.appendChild(menu);
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+        document.body.appendChild(overlay);
+        search.focus();
     }
     
     /**

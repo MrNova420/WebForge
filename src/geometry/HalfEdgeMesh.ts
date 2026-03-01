@@ -243,6 +243,8 @@ export class HalfEdgeMesh {
      * Subdivides a face
      */
     public subdivideFace(faceIndex: number): void {
+        if (faceIndex < 0 || faceIndex >= this.faces.length) return;
+        
         const verts = this.getFaceVertices(faceIndex);
         
         if (verts.length !== 3) return; // Only triangles for now
@@ -259,10 +261,103 @@ export class HalfEdgeMesh {
         );
         
         // Add center vertex
-        this.vertices.push(new Vertex(center));
+        const centerIndex = this.vertices.length;
+        const centerVertex = new Vertex(center);
+        this.vertices.push(centerVertex);
         
-        // Create three new faces (simplified - full implementation would be more complex)
-        // This is a placeholder for the actual subdivision logic
+        const v0 = verts[0];
+        const v1 = verts[1];
+        const v2 = verts[2];
+        
+        // Reuse the original face for the first triangle (v0, v1, center)
+        const face0 = this.faces[faceIndex];
+        
+        // Create two new faces
+        const face1 = new Face(); // (v1, v2, center)
+        const face1Index = this.faces.length;
+        this.faces.push(face1);
+        
+        const face2 = new Face(); // (v2, v0, center)
+        const face2Index = this.faces.length;
+        this.faces.push(face2);
+        
+        // Create half-edges for face0: v0 -> v1 -> center -> v0
+        const he0a = new HalfEdge(v1, faceIndex);
+        const he0b = new HalfEdge(centerIndex, faceIndex);
+        const he0c = new HalfEdge(v0, faceIndex);
+        
+        const he0aIdx = this.halfEdges.length;
+        const he0bIdx = he0aIdx + 1;
+        const he0cIdx = he0aIdx + 2;
+        
+        he0a.next = he0bIdx; he0a.prev = he0cIdx;
+        he0b.next = he0cIdx; he0b.prev = he0aIdx;
+        he0c.next = he0aIdx; he0c.prev = he0bIdx;
+        
+        this.halfEdges.push(he0a, he0b, he0c);
+        face0.halfEdge = he0aIdx;
+        
+        // Create half-edges for face1: v1 -> v2 -> center -> v1
+        const he1a = new HalfEdge(v2, face1Index);
+        const he1b = new HalfEdge(centerIndex, face1Index);
+        const he1c = new HalfEdge(v1, face1Index);
+        
+        const he1aIdx = this.halfEdges.length;
+        const he1bIdx = he1aIdx + 1;
+        const he1cIdx = he1aIdx + 2;
+        
+        he1a.next = he1bIdx; he1a.prev = he1cIdx;
+        he1b.next = he1cIdx; he1b.prev = he1aIdx;
+        he1c.next = he1aIdx; he1c.prev = he1bIdx;
+        
+        this.halfEdges.push(he1a, he1b, he1c);
+        face1.halfEdge = he1aIdx;
+        
+        // Create half-edges for face2: v2 -> v0 -> center -> v2
+        const he2a = new HalfEdge(v0, face2Index);
+        const he2b = new HalfEdge(centerIndex, face2Index);
+        const he2c = new HalfEdge(v2, face2Index);
+        
+        const he2aIdx = this.halfEdges.length;
+        const he2bIdx = he2aIdx + 1;
+        const he2cIdx = he2aIdx + 2;
+        
+        he2a.next = he2bIdx; he2a.prev = he2cIdx;
+        he2b.next = he2cIdx; he2b.prev = he2aIdx;
+        he2c.next = he2aIdx; he2c.prev = he2bIdx;
+        
+        this.halfEdges.push(he2a, he2b, he2c);
+        face2.halfEdge = he2aIdx;
+        
+        // Connect twin edges between the three new internal edges
+        // he0b (v1->center) <-> he1c (center->v1)
+        he0b.twin = he1cIdx;
+        he1c.twin = he0bIdx;
+        
+        // he1b (v2->center) <-> he2c (center->v2)
+        he1b.twin = he2cIdx;
+        he2c.twin = he1bIdx;
+        
+        // he2b (v0->center) <-> he0c (center->v0)
+        he2b.twin = he0cIdx;
+        he0c.twin = he2bIdx;
+        
+        // Set center vertex's half-edge
+        centerVertex.halfEdge = he0cIdx;
+
+        // Ensure original corner vertices point to valid outgoing half-edges
+        if (v0 >= 0 && v0 < this.vertices.length) {
+            // he2b is the half-edge from v0 to the new center vertex
+            this.vertices[v0].halfEdge = he2bIdx;
+        }
+        if (v1 >= 0 && v1 < this.vertices.length) {
+            // he0b is the half-edge from v1 to the new center vertex
+            this.vertices[v1].halfEdge = he0bIdx;
+        }
+        if (v2 >= 0 && v2 < this.vertices.length) {
+            // he1b is the half-edge from v2 to the new center vertex
+            this.vertices[v2].halfEdge = he1bIdx;
+        }
     }
     
     public getVertexCount(): number { return this.vertices.length; }

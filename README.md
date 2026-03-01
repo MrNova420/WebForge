@@ -2,16 +2,16 @@
 
 **The Ultimate Web Game Development Platform**
 
-[![Status](https://img.shields.io/badge/status-alpha-green)]()
+[![Status](https://img.shields.io/badge/status-beta-green)]()
 [![Version](https://img.shields.io/badge/version-1.0.0-blue)]()
-[![Tests](https://img.shields.io/badge/tests-476%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-579%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ---
 
 ## ⚠️ Development Status — Honest Notes
 
-> **The engine is feature-complete for game development.** 221 TypeScript source files, 215 compiled modules, 476 passing tests. The `WebForge` facade creates real `Scene`, `GameObject`, `Camera`, and `PhysicsWorld` instances. All editor panels are wired and interactive. Full game runtime systems are in place.
+> **The engine is feature-complete for game development.** 227 TypeScript source files, 233 compiled modules, 579 passing tests. The `WebForge` facade creates real `Scene`, `GameObject`, `Camera`, and `PhysicsWorld` instances. All editor panels are wired and interactive. Full game runtime systems are in place.
 
 ### ✅ Engine API — fully wired
 - `WebForge` facade uses real `Engine`, `Scene`, `GameObject`, `Camera`, `PhysicsWorld` classes
@@ -20,12 +20,12 @@
 - Physics runs on fixed-update loop with GJK collision detection
 - Landing page code example is a working, tested code path (see tests)
 
-### ✅ Backend — fully implemented (`src/`, 221 files across 33 modules)
+### ✅ Backend — fully implemented (`src/`, 227 files across 33 modules)
 - **Core engine** — event system, input (rebindable action maps), resource manager, game state machine
-- **Rendering** — WebGL pipeline, PBR, shadow maps, post-processing (SSAO, DOF, motion blur), 2D sprites/tilemaps
+- **Rendering** — WebGL pipeline, PBR, shadow maps, post-processing (SSAO, DOF, motion blur), 2D sprites/tilemaps, texture streaming (LOD + LRU)
 - **Scene graph** — GameObject, Scene, world streaming (chunk-based open world), scene serialization
-- **Animation** — skeletal animation, blend trees, state machines, IK, root motion, events
-- **Physics** — rigid bodies, collision shapes (GJK), constraints, raycasting (single + all)
+- **Animation** — skeletal animation, blend trees, state machines, IK, root motion, events, morph targets/facial animation
+- **Physics** — rigid bodies, collision shapes (GJK), constraints, raycasting, vehicle physics, soft body simulation, fluid dynamics (SPH), compound shapes, trigger volumes
 - **Terrain** — heightmaps, 8 brush types, noise generation, layer painting, import/export
 - **Particles, VFX, Water, Weather** — GPU particles, atmospheric fog, day/night cycle, presets
 - **AI** — NavMesh pathfinding, behavior trees, steering behaviors
@@ -33,7 +33,7 @@
 - **Networking** — WebRTC P2P, WebSocket, rooms, RPC, entity sync, state sync, chat
 - **Visual scripting** — node graph with code generation, math/logic/variable/event nodes
 - **Character systems** — controller (11-state FSM), inventory, equipment, dialogue trees, quests, achievements, character customization, clothing physics, save/load
-- **Optimization** — instanced rendering (10K-1M instances), occlusion culling, LOD
+- **Optimization** — instanced rendering (10K-1M instances), occlusion culling, LOD, texture streaming
 - **Geometry** — sculpting, mesh decimation, retopology, texture painting (6 brushes), UV mapping
 - **Procedural** — vegetation scattering, terrain noise generation
 - **Tools** — debug tools, profiler, version control, export (web/PWA/Electron/mobile), marketplace
@@ -58,7 +58,7 @@
 | Scene save/load | ✅ EditorScene.toJSON/fromJSON | ✅ File menu wired (localStorage + file) |
 
 ### 📋 Next priority
-**Full WebGL viewport rendering** — Wire the WebGL Renderer into the editor's main loop for true 3D viewport rendering. Build collaboration UI (chat, presence indicators). Deeper panel↔backend integration (e.g. AnimationPanel → AnimationSystem, ParticlePanel → GPU particle rendering).
+**Phase 10: Launch** — Beta testing, marketing, community building. Wire the WebGL Renderer into the editor's main loop for true 3D viewport rendering. Build collaboration UI (chat, presence indicators). Deeper panel↔backend integration (e.g. AnimationPanel → AnimationSystem, ParticlePanel → GPU particle rendering).
 
 ---
 
@@ -89,7 +89,7 @@ npm run build
 | `npm run dev` | Start development server with hot reload |
 | `npm run build` | Build for production (TypeScript + Vite) |
 | `npm run compile` | TypeScript compile only |
-| `npm test` | Run all tests (476 tests) |
+| `npm test` | Run all tests (579 tests) |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run lint` | Type-check without emit |
 
@@ -290,8 +290,8 @@ webforge/
 │   ├── core/           # Engine core (Events, Input, Time, Resources, GameStateManager)
 │   ├── math/           # Math library (Vector2/3/4, Matrix4, Quaternion, Transform)
 │   ├── scene/          # Scene graph (GameObject, Scene, WorldStreaming, PlayerCamera)
-│   ├── rendering/      # WebGL renderer, PBR, shaders, lighting, shadows, Sprite2D
-│   ├── physics/        # Physics engine (rigid body, collision, GJK, raycasting)
+│   ├── rendering/      # WebGL renderer, PBR, shaders, lighting, shadows, Sprite2D, texture streaming
+│   ├── physics/        # Physics engine (rigid body, collision, GJK, raycasting, fluid simulation)
 │   ├── animation/      # Animation (skeletal, state machine, IK, blend trees, events)
 │   ├── audio/          # Audio system (3D spatial, effects, adaptive music)
 │   ├── editor/         # Visual editor (panels, gizmos, commands, app orchestration)
@@ -317,7 +317,7 @@ webforge/
 │   ├── versioncontrol/ # Version control system
 │   └── utils/          # Utilities (pooling, profiling)
 ├── docs/               # Complete documentation
-├── tests/              # Comprehensive test suite (476 tests)
+├── tests/              # Comprehensive test suite (579 tests)
 ├── editor.html         # Full visual editor UI
 ├── index.html          # Landing page
 └── examples/           # Example games & demos
@@ -340,7 +340,7 @@ webforge/
 
 ## 🗺️ Development Roadmap
 
-### 📍 Current Status: Phase 6 — Game Runtime & Advanced Features
+### 📍 Current Status: Phase 10 — Launch Preparation
 
 | Phase | Timeline | Status | Focus |
 |-------|----------|--------|-------|
@@ -352,7 +352,7 @@ webforge/
 | **Phase 6** | Months 11-12 | ✅ Complete | Game Runtime (Character, Inventory, Quests, Dialogue) |
 | **Phase 7** | Months 13-15 | ✅ Complete | Advanced Features (Terrain, Particles, 2D Sprites, WorldStreaming) |
 | **Phase 8** | Months 16-18 | ✅ Complete | Multiplayer (Networking, State Sync, Rooms, RPC) |
-| **Phase 9** | Months 19-21 | 🟡 In Progress | Polish (Optimization, WebGL Viewport, Documentation) |
+| **Phase 9** | Months 19-21 | ✅ Complete | Polish (Optimization, WebGL Viewport, Documentation) |
 | **Phase 10** | Months 22-24 | ⚪ Planned | Launch (Beta Testing, Marketing, Release) |
 
 ### 🎯 Phase 1: Foundation (Complete ✅)

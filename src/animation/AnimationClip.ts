@@ -215,8 +215,8 @@ export class AnimationClip {
    * @param time - Time in seconds
    * @returns Map of target -> type -> value
    */
-  evaluate(time: number): Map<string, Map<TrackType, any>> {
-    const result = new Map<string, Map<TrackType, any>>();
+  evaluate(time: number): Map<string, Map<TrackType | string, any>> {
+    const result = new Map<string, Map<TrackType | string, any>>();
 
     for (const track of this.tracks) {
       const value = track.evaluate(time);
@@ -224,8 +224,14 @@ export class AnimationClip {
       if (!result.has(track.target)) {
         result.set(track.target, new Map());
       }
+
+      // Use a compound key for PROPERTY tracks so multiple property tracks
+      // on the same target don't overwrite each other.
+      const key = track.type === TrackType.PROPERTY && track.property
+        ? `${track.type}:${track.property}`
+        : track.type;
       
-      result.get(track.target)!.set(track.type, value);
+      result.get(track.target)!.set(key, value);
     }
 
     return result;

@@ -51,6 +51,8 @@ export class PresenceIndicators {
     private _cursorSize: number;
     private _selectionThickness: number;
     private _viewportOpacity: number;
+    private _selectionBuffer: WebGLBuffer | null = null;
+    private _viewportBuffer: WebGLBuffer | null = null;
 
     constructor() {
         this.cursors = new Map();
@@ -172,25 +174,132 @@ export class PresenceIndicators {
     }
 
     /**
-     * Render selection box
+     * Render selection box.
+     *
+     * Uses a persistent VBO to avoid per-frame buffer allocation churn.
+     * Note: A proper line shader with color uniform matching `selection.color`
+     * must be bound by the caller for visible output.
      */
-    public renderSelection(selection: SelectionBox, _context: WebGLRenderingContext, _gl: WebGLRenderingContext): void {
-        if (!selection.visible) return;
+    public renderSelection(selection: SelectionBox, _context: WebGLRenderingContext, gl: WebGLRenderingContext): void {
+        if (!selection.visible || selection.objectIds.length === 0) return;
 
-        // Implementation would use WebGL to render colored outlines
-        // around selected objects in the scene
-        // This is a placeholder for the actual WebGL rendering code
+        // Lazily allocate a reusable selection buffer
+        if (!this._selectionBuffer) {
+            this._selectionBuffer = gl.createBuffer();
+        }
+        if (!this._selectionBuffer) return;
+
+        // Render colored outlines around selected objects using WebGL line drawing
+        for (const _objectId of selection.objectIds) {
+            // Default unit bounding box for the selection highlight
+            const size = 1.0 + this._selectionThickness;
+            const half = size / 2;
+            
+            // Define box vertices (12 edges × 2 endpoints = 24 line endpoints)
+            const vertices = new Float32Array([
+                -half, -half, -half,  half, -half, -half,
+                 half, -half, -half,  half,  half, -half,
+                 half,  half, -half, -half,  half, -half,
+                -half,  half, -half, -half, -half, -half,
+                -half, -half,  half,  half, -half,  half,
+                 half, -half,  half,  half,  half,  half,
+                 half,  half,  half, -half,  half,  half,
+                -half,  half,  half, -half, -half,  half,
+                -half, -half, -half, -half, -half,  half,
+                 half, -half, -half,  half, -half,  half,
+                 half,  half, -half,  half,  half,  half,
+                -half,  half, -half, -half,  half,  half
+            ]);
+            
+            gl.bindBuffer(gl.ARRAY_BUFFER, this._selectionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
+            
+            // Note: Caller must bind a line shader with position attrib at location 0
+            // and set a color uniform matching selection.color before calling this method.
+            gl.drawArrays(gl.LINES, 0, vertices.length / 3);
+        }
     }
 
     /**
-     * Render viewport frustum
+     * Render viewport frustum.
+     *
+     * Uses a persistent VBO to avoid per-frame buffer allocation churn.
+     * Applies `viewport.rotation` as a simple Y-axis rotation to the frustum corners
+     * and documents color/opacity requirements for the caller.
+     *
+     * Note: A line shader with a color uniform set to `viewport.color` and opacity
+     * set to `this._viewportOpacity` must be bound by the caller for correct rendering.
      */
-    public renderViewport(viewport: ViewportFrustum, _context: WebGLRenderingContext, _gl: WebGLRenderingContext): void {
+    public renderViewport(viewport: ViewportFrustum, _context: WebGLRenderingContext, gl: WebGLRenderingContext): void {
         if (!viewport.visible) return;
 
-        // Implementation would use WebGL to render a wireframe frustum
-        // showing where another user is looking
-        // This is a placeholder for the actual WebGL rendering code
+        // Lazily allocate a reusable viewport buffer
+        if (!this._viewportBuffer) {
+            this._viewportBuffer = gl.createBuffer();
+        }
+        if (!this._viewportBuffer) return;
+
+        // Render a wireframe frustum showing where another user is looking
+        const fov = 60 * (Math.PI / 180);
+        const aspect = 16 / 9;
+        const near = 0.5;
+        const far = 3.0;
+        
+        // Calculate frustum corner offsets
+        const nearH = near * Math.tan(fov / 2);
+        const nearW = nearH * aspect;
+        const farH = far * Math.tan(fov / 2);
+        const farW = farH * aspect;
+        
+        const px = viewport.position.x;
+        const py = viewport.position.y;
+        const pz = viewport.position.z;
+
+        // Apply Y-axis rotation from viewport.rotation.y
+        const cosY = Math.cos(viewport.rotation.y);
+        const sinY = Math.sin(viewport.rotation.y);
+
+        // Rotate a local (x, z) offset around Y-axis and translate to world position
+        const toWorldX = (lx: number, lz: number) => px + lx * cosY - lz * sinY;
+        const toWorldZ = (lx: number, lz: number) => pz + lx * sinY + lz * cosY;
+        
+        // Frustum line vertices (near plane + far plane + connecting edges)
+        const vertices = new Float32Array([
+            // Near plane edges
+            toWorldX(-nearW, -near), py - nearH, toWorldZ(-nearW, -near),  toWorldX(nearW, -near), py - nearH, toWorldZ(nearW, -near),
+            toWorldX(nearW, -near), py - nearH, toWorldZ(nearW, -near),  toWorldX(nearW, -near), py + nearH, toWorldZ(nearW, -near),
+            toWorldX(nearW, -near), py + nearH, toWorldZ(nearW, -near),  toWorldX(-nearW, -near), py + nearH, toWorldZ(-nearW, -near),
+            toWorldX(-nearW, -near), py + nearH, toWorldZ(-nearW, -near),  toWorldX(-nearW, -near), py - nearH, toWorldZ(-nearW, -near),
+            // Far plane edges
+            toWorldX(-farW, -far), py - farH, toWorldZ(-farW, -far),  toWorldX(farW, -far), py - farH, toWorldZ(farW, -far),
+            toWorldX(farW, -far), py - farH, toWorldZ(farW, -far),  toWorldX(farW, -far), py + farH, toWorldZ(farW, -far),
+            toWorldX(farW, -far), py + farH, toWorldZ(farW, -far),  toWorldX(-farW, -far), py + farH, toWorldZ(-farW, -far),
+            toWorldX(-farW, -far), py + farH, toWorldZ(-farW, -far),  toWorldX(-farW, -far), py - farH, toWorldZ(-farW, -far),
+            // Connecting edges (near to far)
+            toWorldX(-nearW, -near), py - nearH, toWorldZ(-nearW, -near),  toWorldX(-farW, -far), py - farH, toWorldZ(-farW, -far),
+            toWorldX(nearW, -near), py - nearH, toWorldZ(nearW, -near),  toWorldX(farW, -far), py - farH, toWorldZ(farW, -far),
+            toWorldX(nearW, -near), py + nearH, toWorldZ(nearW, -near),  toWorldX(farW, -far), py + farH, toWorldZ(farW, -far),
+            toWorldX(-nearW, -near), py + nearH, toWorldZ(-nearW, -near),  toWorldX(-farW, -far), py + farH, toWorldZ(-farW, -far)
+        ]);
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._viewportBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
+        
+        // Note: Caller must bind a line shader with color uniform set to
+        // viewport.color and opacity set to this._viewportOpacity.
+        gl.drawArrays(gl.LINES, 0, vertices.length / 3);
+    }
+
+    /**
+     * Convert hex color to RGB (used by shader uniforms for colored rendering)
+     */
+    public hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
     }
 
     /**
@@ -263,5 +372,21 @@ export class PresenceIndicators {
         this.cursors.clear();
         this.selections.clear();
         this.viewports.clear();
+    }
+
+    /**
+     * Dispose of GPU resources (persistent buffers).
+     * @param gl - WebGL context used to delete the buffers.
+     */
+    public dispose(gl: WebGLRenderingContext): void {
+        if (this._selectionBuffer) {
+            gl.deleteBuffer(this._selectionBuffer);
+            this._selectionBuffer = null;
+        }
+        if (this._viewportBuffer) {
+            gl.deleteBuffer(this._viewportBuffer);
+            this._viewportBuffer = null;
+        }
+        this.clear();
     }
 }

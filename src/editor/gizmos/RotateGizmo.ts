@@ -182,9 +182,16 @@ export class RotateGizmo extends Gizmo {
                     rotationAxis = new Vector3(0, 0, -1);
                 }
                 break;
-            case GizmoAxis.XYZ:
-                // Free rotation - not implemented yet
-                return;
+            case GizmoAxis.XYZ: {
+                // Arcball-style free rotation using screen-space drag
+                // Map drag delta to a rotation axis perpendicular to the drag direction
+                const len = Math.sqrt(dragDelta.x ** 2 + dragDelta.y ** 2);
+                if (len < 0.001) return;
+                // Rotation axis is perpendicular to drag direction in screen space
+                // mapped to world X/Y axes
+                rotationAxis = new Vector3(-dragDelta.y / len, dragDelta.x / len, 0);
+                break;
+            }
         }
         
         // Create rotation quaternion

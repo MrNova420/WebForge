@@ -39,10 +39,85 @@ export interface RenderStats {
  */
 export type CameraView = 'top' | 'front' | 'right' | 'left' | 'back' | 'bottom' | 'perspective';
 
+// ─── Editor Renderer Constants ───────────────────────────────────────────────
+/** Initial orbital distance from camera target (units) */
+const DEFAULT_CAMERA_DISTANCE = 10;
+/** Default camera orbit angle (radians) */
+const DEFAULT_CAMERA_THETA = Math.PI / 4;
+/** Default camera elevation angle (radians) */
+const DEFAULT_CAMERA_PHI = Math.PI / 4;
+/** Target camera elevation at start-up */
+const DEFAULT_TARGET_PHI = Math.PI / 3;
+/** Initial world extent in each direction (units) */
+const INITIAL_WORLD_EXTENT = 100000;
+/** Far plane multiplier relative to world extent */
+const FAR_PLANE_MULTIPLIER = 10;
+/** World expansion step (units added each time limits are reached) */
+const WORLD_EXPANSION_SIZE = 100000;
+/** Threshold (fraction of bounds) at which world auto-expands */
+const WORLD_EXPANSION_THRESHOLD = 0.95;
+/** Default background clear colour (RGBA) */
+const DEFAULT_BACKGROUND_COLOR: [number, number, number, number] = [0.1, 0.1, 0.12, 1.0];
+/** Camera smoothing factor – lower = smoother transitions */
+const CAMERA_SMOOTHNESS = 0.15;
+/** Default camera field-of-view (radians, ~60°) */
+const DEFAULT_FOV = 60 * Math.PI / 180;
+/** Near clipping plane distance */
+const NEAR_PLANE = 0.1;
+/** Initial camera position (units) */
+const INITIAL_CAMERA_POS = 5;
+/** Ray direction zero-check epsilon */
+const RAY_EPSILON = 0.0001;
+/** Camera orbit speed (radians per pixel) */
+const ORBIT_SPEED = 0.008;
+/** Camera pan speed multiplier (scaled by distance) */
+const PAN_SPEED_FACTOR = 0.003;
+/** Mouse-drag detection threshold (pixels) */
+const DRAG_THRESHOLD = 2;
+/** Maximum click duration for selection (ms) */
+const CLICK_DURATION_MAX = 150;
+/** Gizmo handle size relative to camera distance */
+const GIZMO_SIZE_FACTOR = 0.15;
+/** Gizmo handle hit radius (pixels) */
+const GIZMO_HIT_RADIUS = 25;
+/** Move speed when dragging along gizmo axis */
+const TRANSLATE_SPEED_FACTOR = 0.005;
+/** Rotation speed when dragging gizmo (radians per pixel) */
+const ROTATE_SPEED = 0.01;
+/** Scale speed when dragging gizmo (scale units per pixel) */
+const SCALE_SPEED = 0.01;
+/** Minimum allowed scale on any axis */
+const MIN_SCALE = 0.01;
+/** Zoom speed per wheel tick */
+const ZOOM_SPEED = 0.1;
+/** Zoom speed dampening factor */
+const ZOOM_DAMPENING = 0.01;
+/** Minimum camera orbit distance */
+const MIN_CAMERA_DISTANCE = 0.5;
+/** Maximum camera orbit distance */
+const MAX_CAMERA_DISTANCE = 50000;
+/** Minimum screen-space hit-box size for picking (pixels) */
+const MIN_PICKABLE_SIZE = 20;
+/** Extra padding added around screen-space hit boxes (pixels) */
+const PICK_PADDING = 3;
+/** Minimum bounding-box half-height for flat objects */
+const MIN_HALF_HEIGHT = 0.1;
+/** Minimum AABB half-height for raycast */
+const MIN_RAYCAST_HALF_HEIGHT = 0.05;
+/** Depth tolerance when comparing pick candidates */
+const PICK_DEPTH_TOLERANCE = 0.5;
+/** Screen-size tolerance when comparing pick candidates */
+const PICK_SIZE_TOLERANCE = 100;
+/** Phi clamp bounds for camera orbit (prevents gimbal flip) */
+const PHI_MIN = 0.1;
+/** Maximum phi (prevents going past nadir) */
+const PHI_MAX = Math.PI - 0.1;
+
 /**
  * Editor Renderer
  * 
  * Handles all WebGL rendering for the editor viewport.
+ * Magic numbers extracted to named constants above for maintainability.
  */
 export class EditorRenderer {
     private glContext: WebGLContext;
@@ -52,13 +127,13 @@ export class EditorRenderer {
     // Camera
     private camera: Camera;
     private cameraTarget: Vector3 = new Vector3(0, 0, 0);
-    private cameraDistance: number = 10;
-    private cameraRotation: { theta: number; phi: number } = { theta: Math.PI / 4, phi: Math.PI / 4 };
+    private cameraDistance: number = DEFAULT_CAMERA_DISTANCE;
+    private cameraRotation: { theta: number; phi: number } = { theta: DEFAULT_CAMERA_THETA, phi: DEFAULT_CAMERA_PHI };
     
     // Dynamic world bounds - starts at 100k, extends 100k more when reached
-    private worldBounds = { min: -100000, max: 100000 };
-    private currentFarPlane: number = 1000000; // 10x the initial bounds
-    private readonly EXPANSION_SIZE = 100000; // Add 100k each time
+    private worldBounds = { min: -INITIAL_WORLD_EXTENT, max: INITIAL_WORLD_EXTENT };
+    private currentFarPlane: number = INITIAL_WORLD_EXTENT * FAR_PLANE_MULTIPLIER;
+    private readonly EXPANSION_SIZE = WORLD_EXPANSION_SIZE;
     
     // WebGL resources
     private gridShader: WebGLProgram | null = null;
@@ -85,12 +160,12 @@ export class EditorRenderer {
     // Settings
     private wireframe: boolean = false;
     private showGrid: boolean = true;
-    private backgroundColor: [number, number, number, number] = [0.1, 0.1, 0.12, 1.0];
+    private backgroundColor: [number, number, number, number] = DEFAULT_BACKGROUND_COLOR;
     
     // Camera smoothing
-    private cameraSmoothness: number = 0.15; // Lower = smoother
-    private targetCameraRotation = { theta: Math.PI / 4, phi: Math.PI / 3 };
-    private targetCameraDistance: number = 10;
+    private cameraSmoothness: number = CAMERA_SMOOTHNESS;
+    private targetCameraRotation = { theta: DEFAULT_CAMERA_THETA, phi: DEFAULT_TARGET_PHI };
+    private targetCameraDistance: number = DEFAULT_CAMERA_DISTANCE;
     
     // Statistics
     private stats: RenderStats = { drawCalls: 0, triangles: 0, vertices: 0 };
@@ -129,8 +204,8 @@ export class EditorRenderer {
         // Create camera with large far plane (10x world bounds)
         const aspect = glContext.getWidth() / glContext.getHeight();
         this.camera = new Camera();
-        this.camera.setPerspective(60 * Math.PI / 180, aspect, 0.1, this.currentFarPlane);
-        this.camera.setPosition(new Vector3(5, 5, 5));
+        this.camera.setPerspective(DEFAULT_FOV, aspect, NEAR_PLANE, this.currentFarPlane);
+        this.camera.setPosition(new Vector3(INITIAL_CAMERA_POS, INITIAL_CAMERA_POS, INITIAL_CAMERA_POS));
         this.camera.lookAt(this.cameraTarget);
         
         // Initialize smoothing targets
@@ -788,144 +863,168 @@ export class EditorRenderer {
         
         // Always track what's under the cursor for hover detection (when not dragging)
         if (!this.isDragging && !this.gizmoDragging && !this.objectDragging) {
-            const prevHovered = this.hoveredObject;
-            this.hoveredObject = this.pickObject(mouseX, mouseY);
-            
-            // Update cursor when hovering over objects
-            if (this.hoveredObject !== prevHovered) {
-                canvas.style.cursor = this.hoveredObject ? 'pointer' : 'default';
-            }
+            this.handleHoverDetection(canvas, mouseX, mouseY);
         }
         
         // Handle direct object dragging (Alt+drag) - FREE MOVEMENT like Unreal/Unity
         if (this.objectDragging) {
-            const selected = this.context.getSelection();
-            if (selected.length > 0) {
-                const obj = selected[0];
-                
-                // Cast ray from mouse position
-                const ray = this.screenToRay(mouseX, mouseY);
-                if (!ray) return;
-                
-                // Create a plane perpendicular to camera view, passing through object
-                // This allows free movement in screen space
-                const objPos = obj.transform.position;
-                
-                // Use camera's forward direction as plane normal
-                const cameraForward = this.camera.getTransform().forward();
-                const planeNormal = cameraForward.clone().negate();
-                
-                // Plane equation: dot(planeNormal, point - objPos) = 0
-                // Ray equation: point = rayOrigin + t * rayDirection
-                // Solve for t: dot(planeNormal, rayOrigin + t * rayDirection - objPos) = 0
-                const denom = planeNormal.dot(ray.direction);
-                
-                if (Math.abs(denom) > 0.0001) {
-                    const p0 = objPos.clone().subtract(ray.origin);
-                    const t = planeNormal.dot(p0) / denom;
-                    
-                    if (t >= 0) {
-                        // Calculate new world position - free movement!
-                        const newPos = ray.origin.clone().add(ray.direction.clone().multiplyScalar(t));
-                        obj.transform.position.copy(newPos);
-                        obj.transform.markLocalDirty();
-                        
-                        // Update inspector
-                        this.context.setSelection(selected);
-                    }
-                }
-                
-                this.lastMouseX = mouseX;
-                this.lastMouseY = mouseY;
-            }
+            this.handleObjectDragging(mouseX, mouseY);
             return;
         }
         
         // Handle gizmo dragging
         if (this.gizmoDragging && this.gizmoAxis) {
-            const selected = this.context.getSelection();
-            const transformMode = this.context.getTransformMode();
-            
-            if (selected.length > 0) {
-                const obj = selected[0];
-                const dx = mouseX - this.lastMouseX;
-                const dy = mouseY - this.lastMouseY;
-                
-                // Get axis direction
-                let axisDir = new Vector3();
-                switch (this.gizmoAxis) {
-                    case 'x': axisDir.set(1, 0, 0); break;
-                    case 'y': axisDir.set(0, 1, 0); break;
-                    case 'z': axisDir.set(0, 0, 1); break;
-                }
-                
-                if (transformMode === TransformMode.TRANSLATE) {
-                    // Translate: move along axis
-                    const objPos = obj.transform.position;
-                    const screenStart = this.worldToScreen(objPos);
-                    const axisEnd = objPos.clone().add(axisDir);
-                    const screenEnd = this.worldToScreen(axisEnd);
-                    
-                    const screenAxisX = screenEnd.x - screenStart.x;
-                    const screenAxisY = screenEnd.y - screenStart.y;
-                    const screenAxisLen = Math.sqrt(screenAxisX * screenAxisX + screenAxisY * screenAxisY);
-                    
-                    if (screenAxisLen > 0.001) {
-                        const dot = (dx * screenAxisX + dy * screenAxisY) / screenAxisLen;
-                        const moveSpeed = this.cameraDistance * 0.005;
-                        const worldDelta = dot * moveSpeed / screenAxisLen;
-                        const movement = axisDir.clone().multiplyScalar(worldDelta);
-                        obj.transform.translate(movement);
-                        
-                        // Apply grid snapping if enabled
-                        const snapSettings = this.context.getSnappingSettings();
-                        if (snapSettings.gridSnapping) {
-                            const gridSize = snapSettings.gridSize || 1.0;
-                            obj.transform.position.x = Math.round(obj.transform.position.x / gridSize) * gridSize;
-                            obj.transform.position.y = Math.round(obj.transform.position.y / gridSize) * gridSize;
-                            obj.transform.position.z = Math.round(obj.transform.position.z / gridSize) * gridSize;
-                            obj.transform.markLocalDirty();
-                        }
-                    }
-                } else if (transformMode === TransformMode.ROTATE) {
-                    // Rotate: rotate around axis based on mouse drag
-                    const rotateSpeed = 0.01;
-                    const angle = (dx + dy) * rotateSpeed;
-                    const rotQuat = Quaternion.fromAxisAngle(axisDir, angle);
-                    obj.transform.rotation = obj.transform.rotation.multiply(rotQuat);
-                    obj.transform.markLocalDirty();
-                } else if (transformMode === TransformMode.SCALE) {
-                    // Scale: scale along axis
-                    const scaleSpeed = 0.01;
-                    const scaleDelta = (dx + dy) * scaleSpeed;
-                    
-                    const currentScale = obj.transform.scale;
-                    switch (this.gizmoAxis) {
-                        case 'x': currentScale.x = Math.max(0.01, currentScale.x + scaleDelta); break;
-                        case 'y': currentScale.y = Math.max(0.01, currentScale.y + scaleDelta); break;
-                        case 'z': currentScale.z = Math.max(0.01, currentScale.z + scaleDelta); break;
-                    }
-                    obj.transform.markLocalDirty();
-                }
-                
-                // Re-emit selection to update inspector
-                this.context.setSelection(selected);
-                
-                this.lastMouseX = mouseX;
-                this.lastMouseY = mouseY;
-            }
+            this.handleGizmoDragging(mouseX, mouseY);
             return;
         }
         
         // Handle camera dragging
+        this.handleCameraDragging(e);
+    };
+
+    /**
+     * Updates hover state when cursor moves over objects
+     */
+    private handleHoverDetection(canvas: HTMLCanvasElement, mouseX: number, mouseY: number): void {
+        const prevHovered = this.hoveredObject;
+        this.hoveredObject = this.pickObject(mouseX, mouseY);
+        
+        if (this.hoveredObject !== prevHovered) {
+            canvas.style.cursor = this.hoveredObject ? 'pointer' : 'default';
+        }
+    }
+
+    /**
+     * Handles free-form object dragging (Alt+drag) on a camera-perpendicular plane
+     */
+    private handleObjectDragging(mouseX: number, mouseY: number): void {
+        const selected = this.context.getSelection();
+        if (selected.length === 0) return;
+        
+        const obj = selected[0];
+        const ray = this.screenToRay(mouseX, mouseY);
+        if (!ray) return;
+        
+        const objPos = obj.transform.position;
+        const cameraForward = this.camera.getTransform().forward();
+        const planeNormal = cameraForward.clone().negate();
+        const denom = planeNormal.dot(ray.direction);
+        
+        if (Math.abs(denom) > RAY_EPSILON) {
+            const p0 = objPos.clone().subtract(ray.origin);
+            const t = planeNormal.dot(p0) / denom;
+            
+            if (t >= 0) {
+                const newPos = ray.origin.clone().add(ray.direction.clone().multiplyScalar(t));
+                obj.transform.position.copy(newPos);
+                obj.transform.markLocalDirty();
+                this.context.setSelection(selected);
+            }
+        }
+        
+        this.lastMouseX = mouseX;
+        this.lastMouseY = mouseY;
+    }
+
+    /**
+     * Handles gizmo-axis-constrained dragging for translate/rotate/scale
+     */
+    private handleGizmoDragging(mouseX: number, mouseY: number): void {
+        const selected = this.context.getSelection();
+        const transformMode = this.context.getTransformMode();
+        
+        if (selected.length === 0) return;
+        
+        const obj = selected[0];
+        const dx = mouseX - this.lastMouseX;
+        const dy = mouseY - this.lastMouseY;
+        
+        let axisDir = new Vector3();
+        switch (this.gizmoAxis) {
+            case 'x': axisDir.set(1, 0, 0); break;
+            case 'y': axisDir.set(0, 1, 0); break;
+            case 'z': axisDir.set(0, 0, 1); break;
+        }
+        
+        if (transformMode === TransformMode.TRANSLATE) {
+            this.applyGizmoTranslate(obj, axisDir, dx, dy);
+        } else if (transformMode === TransformMode.ROTATE) {
+            this.applyGizmoRotate(obj, axisDir, dx, dy);
+        } else if (transformMode === TransformMode.SCALE) {
+            this.applyGizmoScale(obj, dx, dy);
+        }
+        
+        this.context.setSelection(selected);
+        this.lastMouseX = mouseX;
+        this.lastMouseY = mouseY;
+    }
+
+    /**
+     * Applies translation along a gizmo axis based on screen-space drag
+     */
+    private applyGizmoTranslate(obj: GameObject, axisDir: Vector3, dx: number, dy: number): void {
+        const objPos = obj.transform.position;
+        const screenStart = this.worldToScreen(objPos);
+        const axisEnd = objPos.clone().add(axisDir);
+        const screenEnd = this.worldToScreen(axisEnd);
+        
+        const screenAxisX = screenEnd.x - screenStart.x;
+        const screenAxisY = screenEnd.y - screenStart.y;
+        const screenAxisLen = Math.sqrt(screenAxisX * screenAxisX + screenAxisY * screenAxisY);
+        
+        if (screenAxisLen > 0.001) {
+            const dot = (dx * screenAxisX + dy * screenAxisY) / screenAxisLen;
+            const moveSpeed = this.cameraDistance * TRANSLATE_SPEED_FACTOR;
+            const worldDelta = dot * moveSpeed / screenAxisLen;
+            const movement = axisDir.clone().multiplyScalar(worldDelta);
+            obj.transform.translate(movement);
+            
+            const snapSettings = this.context.getSnappingSettings();
+            if (snapSettings.gridSnapping) {
+                const gridSize = snapSettings.gridSize || 1.0;
+                obj.transform.position.x = Math.round(obj.transform.position.x / gridSize) * gridSize;
+                obj.transform.position.y = Math.round(obj.transform.position.y / gridSize) * gridSize;
+                obj.transform.position.z = Math.round(obj.transform.position.z / gridSize) * gridSize;
+                obj.transform.markLocalDirty();
+            }
+        }
+    }
+
+    /**
+     * Applies rotation around a gizmo axis based on screen-space drag
+     */
+    private applyGizmoRotate(obj: GameObject, axisDir: Vector3, dx: number, dy: number): void {
+        const angle = (dx + dy) * ROTATE_SPEED;
+        const rotQuat = Quaternion.fromAxisAngle(axisDir, angle);
+        obj.transform.rotation = obj.transform.rotation.multiply(rotQuat);
+        obj.transform.markLocalDirty();
+    }
+
+    /**
+     * Applies scale along the active gizmo axis
+     */
+    private applyGizmoScale(obj: GameObject, dx: number, dy: number): void {
+        const scaleDelta = (dx + dy) * SCALE_SPEED;
+        const currentScale = obj.transform.scale;
+        switch (this.gizmoAxis) {
+            case 'x': currentScale.x = Math.max(MIN_SCALE, currentScale.x + scaleDelta); break;
+            case 'y': currentScale.y = Math.max(MIN_SCALE, currentScale.y + scaleDelta); break;
+            case 'z': currentScale.z = Math.max(MIN_SCALE, currentScale.z + scaleDelta); break;
+        }
+        obj.transform.markLocalDirty();
+    }
+
+    /**
+     * Handles camera orbit and pan via mouse dragging
+     */
+    private handleCameraDragging(e: MouseEvent): void {
         if (!this.isDragging) return;
         
         const dx = e.clientX - this.lastMouseX;
         const dy = e.clientY - this.lastMouseY;
         
-        // If any movement, mark as dragged with threshold
         const totalMovement = Math.abs(dx) + Math.abs(dy);
-        if (totalMovement > 2) {
+        if (totalMovement > DRAG_THRESHOLD) {
             this.hasDragged = true;
             console.log('[EditorRenderer] Camera drag detected:', { dx, dy, totalMovement });
         }
@@ -933,11 +1032,10 @@ export class EditorRenderer {
         this.lastMouseX = e.clientX;
         this.lastMouseY = e.clientY;
         
-        const orbitSpeed = 0.008;
-        const panSpeed = this.cameraDistance * 0.003;
+        const orbitSpeed = ORBIT_SPEED;
+        const panSpeed = this.cameraDistance * PAN_SPEED_FACTOR;
         
         if (this.dragButton === 1 || (this.dragButton === 0 && e.shiftKey)) {
-            // Middle click OR Shift+Left click: Pan (move camera target)
             const right = this.camera.getTransform().right();
             const up = this.camera.getTransform().up();
             
@@ -945,11 +1043,10 @@ export class EditorRenderer {
             this.cameraTarget.y -= right.y * dx * panSpeed + up.y * dy * panSpeed;
             this.cameraTarget.z -= right.z * dx * panSpeed + up.z * dy * panSpeed;
         } else if (this.dragButton === 0 || this.dragButton === 2) {
-            // Left click or Right click: Orbit around target
             this.targetCameraRotation.theta -= dx * orbitSpeed;
-            this.targetCameraRotation.phi = Math.max(0.1, Math.min(Math.PI - 0.1, this.targetCameraRotation.phi - dy * orbitSpeed));
+            this.targetCameraRotation.phi = Math.max(PHI_MIN, Math.min(PHI_MAX, this.targetCameraRotation.phi - dy * orbitSpeed));
         }
-    };
+    }
 
     private onMouseUp = (e: MouseEvent): void => {
         const clickDuration = Date.now() - this.dragStartTime;
@@ -961,7 +1058,7 @@ export class EditorRenderer {
         // 1. Left click (button 0)
         // 2. Never moved mouse during this click session (wasDragged is false)
         // 3. Quick click (< 150ms)
-        const canSelect = e.button === 0 && !wasDragging && clickDuration < 150;
+        const canSelect = e.button === 0 && !wasDragging && clickDuration < CLICK_DURATION_MAX;
         
         console.log('[EditorRenderer] MouseUp:', {
             button: e.button,
@@ -982,15 +1079,32 @@ export class EditorRenderer {
             const clickedObject = this.raycastPick(mouseX, mouseY);
             console.log('[EditorRenderer] Selection:', clickedObject?.name || 'none');
             if (clickedObject) {
-                this.context.setSelection([clickedObject]);
+                // Multi-select: Ctrl+Click toggles object in selection set
+                if (e.ctrlKey || e.metaKey) {
+                    const current = this.context.getSelection();
+                    const idx = current.indexOf(clickedObject);
+                    if (idx >= 0) {
+                        // Remove from selection
+                        const updated = current.filter(o => o !== clickedObject);
+                        this.context.setSelection(updated);
+                    } else {
+                        // Add to selection
+                        this.context.setSelection([...current, clickedObject]);
+                    }
+                } else {
+                    // Single-select: replace selection
+                    this.context.setSelection([clickedObject]);
+                }
                 // Auto-switch to translate mode
                 const transformMode = this.context.getTransformMode();
                 if (transformMode === TransformMode.SELECT) {
                     this.context.setTransformMode(TransformMode.TRANSLATE);
                 }
             } else {
-                // Clicked empty space - clear selection
-                this.context.setSelection([]);
+                // Clicked empty space - clear selection (unless Ctrl held)
+                if (!(e.ctrlKey || e.metaKey)) {
+                    this.context.setSelection([]);
+                }
             }
         }
         
@@ -1005,10 +1119,10 @@ export class EditorRenderer {
 
     private onWheel = (e: WheelEvent): void => {
         e.preventDefault();
-        const zoomSpeed = 0.1;
-        this.targetCameraDistance *= 1 + e.deltaY * zoomSpeed * 0.01;
+        const zoomSpeed = ZOOM_SPEED;
+        this.targetCameraDistance *= 1 + e.deltaY * zoomSpeed * ZOOM_DAMPENING;
         // Prevent going too close or too far (prevent grid breaking)
-        this.targetCameraDistance = Math.max(0.5, Math.min(50000, this.targetCameraDistance));
+        this.targetCameraDistance = Math.max(MIN_CAMERA_DISTANCE, Math.min(MAX_CAMERA_DISTANCE, this.targetCameraDistance));
     };
 
     /**
@@ -1061,15 +1175,15 @@ export class EditorRenderer {
         );
         
         // If we're approaching 95% of current bounds, expand by 100k more
-        if (maxDist > this.worldBounds.max * 0.95) {
+        if (maxDist > this.worldBounds.max * WORLD_EXPANSION_THRESHOLD) {
             // Expand bounds by adding 100k evenly
             this.worldBounds.max += this.EXPANSION_SIZE;
             this.worldBounds.min -= this.EXPANSION_SIZE;
             
             // Update far plane to 10x the new world bounds
-            this.currentFarPlane = this.worldBounds.max * 10;
+            this.currentFarPlane = this.worldBounds.max * FAR_PLANE_MULTIPLIER;
             const aspect = this.glContext.getWidth() / this.glContext.getHeight();
-            this.camera.setPerspective(60 * Math.PI / 180, aspect, 0.1, this.currentFarPlane);
+            this.camera.setPerspective(DEFAULT_FOV, aspect, NEAR_PLANE, this.currentFarPlane);
             
             console.log(`[EditorRenderer] World bounds expanded to ±${this.worldBounds.max.toLocaleString()} units (far plane: ${this.currentFarPlane.toLocaleString()})`);
             this.logger.info(`World bounds expanded to ±${this.worldBounds.max.toLocaleString()} units`);
@@ -1086,10 +1200,10 @@ export class EditorRenderer {
         
         const transformMode = this.context.getTransformMode();
         const center = this.getSelectionCenter(selected);
-        const gizmoSize = this.cameraDistance * 0.15;
+        const gizmoSize = this.cameraDistance * GIZMO_SIZE_FACTOR;
         
         // Only check handle endpoints, not the lines - prevents blocking object selection
-        const handleHitRadius = 25; // Pixels for clickable handle area
+        const handleHitRadius = GIZMO_HIT_RADIUS;
         
         if (transformMode === TransformMode.ROTATE) {
             // For rotate mode, check spheres at cardinal points of each circle
@@ -1157,7 +1271,7 @@ export class EditorRenderer {
             
             // Get object's world-space bounding box corners based on scale
             const halfX = scale.x * 0.5;
-            const halfY = Math.max(scale.y * 0.5, 0.1); // Min height for flat objects
+            const halfY = Math.max(scale.y * 0.5, MIN_HALF_HEIGHT); // Min height for flat objects
             const halfZ = scale.z * 0.5;
             
             // 8 corners of the bounding box
@@ -1199,7 +1313,7 @@ export class EditorRenderer {
             const boxSize = boxWidth * boxHeight;
             
             // Enforce minimum clickable size (expand small objects)
-            const minSize = 20;
+            const minSize = MIN_PICKABLE_SIZE;
             if (boxWidth < minSize) {
                 const expand = (minSize - boxWidth) / 2;
                 minScreenX -= expand;
@@ -1212,7 +1326,7 @@ export class EditorRenderer {
             }
             
             // Add padding for easier clicking
-            const padding = 3;
+            const padding = PICK_PADDING;
             minScreenX -= padding;
             maxScreenX += padding;
             minScreenY -= padding;
@@ -1237,11 +1351,11 @@ export class EditorRenderer {
         candidates.sort((a, b) => {
             // First by depth (closer objects first)
             const zDiff = a.z - b.z;
-            if (Math.abs(zDiff) > 0.5) return zDiff;
+            if (Math.abs(zDiff) > PICK_DEPTH_TOLERANCE) return zDiff;
             
             // For similar depths, prefer smaller objects (more precise clicks)
             const sizeDiff = a.boxSize - b.boxSize;
-            if (Math.abs(sizeDiff) > 100) return sizeDiff;
+            if (Math.abs(sizeDiff) > PICK_SIZE_TOLERANCE) return sizeDiff;
             
             // Finally, prefer clicks closer to object center
             return a.distToCenter - b.distToCenter;
@@ -1271,7 +1385,7 @@ export class EditorRenderer {
             
             // Create axis-aligned bounding box in world space
             const halfX = scale.x * 0.5;
-            const halfY = Math.max(scale.y * 0.5, 0.05); // Min height for flat objects
+            const halfY = Math.max(scale.y * 0.5, MIN_RAYCAST_HALF_HEIGHT); // Min height for flat objects
             const halfZ = scale.z * 0.5;
             
             const boxMin = new Vector3(pos.x - halfX, pos.y - halfY, pos.z - halfZ);
@@ -1348,7 +1462,7 @@ export class EditorRenderer {
         let tmax = Infinity;
         
         // Check X axis
-        if (Math.abs(direction.x) > 0.0001) {
+        if (Math.abs(direction.x) > RAY_EPSILON) {
             const t1 = (boxMin.x - origin.x) / direction.x;
             const t2 = (boxMax.x - origin.x) / direction.x;
             tmin = Math.max(tmin, Math.min(t1, t2));
@@ -1358,7 +1472,7 @@ export class EditorRenderer {
         }
         
         // Check Y axis
-        if (Math.abs(direction.y) > 0.0001) {
+        if (Math.abs(direction.y) > RAY_EPSILON) {
             const t1 = (boxMin.y - origin.y) / direction.y;
             const t2 = (boxMax.y - origin.y) / direction.y;
             tmin = Math.max(tmin, Math.min(t1, t2));
@@ -1368,7 +1482,7 @@ export class EditorRenderer {
         }
         
         // Check Z axis
-        if (Math.abs(direction.z) > 0.0001) {
+        if (Math.abs(direction.z) > RAY_EPSILON) {
             const t1 = (boxMin.z - origin.z) / direction.z;
             const t2 = (boxMax.z - origin.z) / direction.z;
             tmin = Math.max(tmin, Math.min(t1, t2));

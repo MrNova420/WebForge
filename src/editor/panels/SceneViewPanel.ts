@@ -603,8 +603,94 @@ export class SceneViewPanel extends Panel {
      * Renders the grid
      */
     private renderGrid(): void {
-        // Grid rendering would be done through the renderer's debug capabilities
-        // This is a placeholder for the actual implementation
+        if (!this.renderer || !this.camera || !this.canvas) return;
+        
+        // Use canvas 2D overlay for grid rendering as a fallback
+        const ctx = this.canvas.getContext('2d');
+        if (!ctx) return;
+        
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        
+        // Grid parameters
+        const gridSize = 100;
+        const gridDivisions = 20;
+        const cellSize = gridSize / gridDivisions;
+        
+        // Get camera position and projection for grid mapping
+        const camPos = this.camera.getTransform().position;
+        const distance = Math.sqrt(camPos.x ** 2 + camPos.y ** 2 + camPos.z ** 2);
+        const scale = Math.max(0.1, 10 / Math.max(distance, 0.001));
+        
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const pixelSize = cellSize * scale * 20;
+        
+        // Calculate offset based on camera position
+        const offsetX = (camPos.x * scale * 20) % pixelSize;
+        const offsetZ = (camPos.z * scale * 20) % pixelSize;
+        
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        
+        // Draw minor grid lines
+        ctx.strokeStyle = '#444444';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        
+        const halfW = width / 2 + pixelSize;
+        const halfH = height / 2 + pixelSize;
+        
+        for (let x = -halfW; x <= halfW; x += pixelSize) {
+            const px = centerX + x - offsetX;
+            ctx.moveTo(px, 0);
+            ctx.lineTo(px, height);
+        }
+        for (let z = -halfH; z <= halfH; z += pixelSize) {
+            const py = centerY + z - offsetZ;
+            ctx.moveTo(0, py);
+            ctx.lineTo(width, py);
+        }
+        ctx.stroke();
+        
+        // Draw major grid lines (every 5 cells)
+        ctx.strokeStyle = '#666666';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        const majorSize = pixelSize * 5;
+        const majorOffsetX = (camPos.x * scale * 20) % majorSize;
+        const majorOffsetZ = (camPos.z * scale * 20) % majorSize;
+        
+        for (let x = -halfW; x <= halfW; x += majorSize) {
+            const px = centerX + x - majorOffsetX;
+            ctx.moveTo(px, 0);
+            ctx.lineTo(px, height);
+        }
+        for (let z = -halfH; z <= halfH; z += majorSize) {
+            const py = centerY + z - majorOffsetZ;
+            ctx.moveTo(0, py);
+            ctx.lineTo(width, py);
+        }
+        ctx.stroke();
+        
+        // Draw axis lines
+        // X axis (red)
+        ctx.strokeStyle = '#ff4444';
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(0, centerY - offsetZ);
+        ctx.lineTo(width, centerY - offsetZ);
+        ctx.stroke();
+        
+        // Z axis (blue)
+        ctx.strokeStyle = '#4444ff';
+        ctx.beginPath();
+        ctx.moveTo(centerX - offsetX, 0);
+        ctx.lineTo(centerX - offsetX, height);
+        ctx.stroke();
+        
+        ctx.restore();
     }
     
     /**

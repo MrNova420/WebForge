@@ -263,9 +263,28 @@ export class AnimationPlayer {
             }
             break;
 
-          case TrackType.PROPERTY:
-            // Note: For property tracks, use a dedicated property path field
-            // This is a placeholder - property animation needs track.property field
+          default:
+            // PROPERTY tracks use compound keys "property:<path>".
+            // Only handle keys that start with the PROPERTY type prefix.
+            if (typeof trackType === 'string' && trackType.startsWith(TrackType.PROPERTY + ':')) {
+              const propertyPath = trackType.substring(TrackType.PROPERTY.length + 1);
+              const parts = propertyPath.split('.');
+              let obj: any = target;
+              for (let i = 0; i < parts.length - 1; i++) {
+                if (obj && typeof obj === 'object' && parts[i] in obj) {
+                  obj = obj[parts[i]];
+                } else {
+                  obj = null;
+                  break;
+                }
+              }
+              if (obj && typeof obj === 'object') {
+                const lastPart = parts[parts.length - 1];
+                if (lastPart in obj) {
+                  obj[lastPart] = value;
+                }
+              }
+            }
             break;
         }
       }

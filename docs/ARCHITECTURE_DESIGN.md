@@ -398,6 +398,50 @@ class GJKNarrowphase implements Narrowphase {
 
 ---
 
+### **Fluid Simulation (SPH)** — `src/physics/FluidSimulation.ts`
+
+```typescript
+// SPH-based fluid simulation with spatial hashing
+class FluidSimulation {
+  // SPH Kernels
+  private kernelPoly6(r: number, h: number): number;      // Density estimation
+  private kernelSpikyGrad(r: Vector3, h: number): Vector3; // Pressure forces
+  private kernelViscosityLap(r: number, h: number): number; // Viscosity forces
+  
+  // Spatial acceleration structure
+  private grid: SpatialHashGrid;  // O(1) neighbor lookup
+  
+  // Core SPH loop
+  step(dt: number): void {
+    // 1. Hash particles into spatial grid
+    this.grid.rebuild(this.particles);
+    
+    // 2. Compute density & pressure at each particle
+    for (const p of this.particles) {
+      p.density = this.computeDensity(p);
+      p.pressure = this.stiffness * (p.density - this.restDensity);
+    }
+    
+    // 3. Compute pressure + viscosity forces
+    for (const p of this.particles) {
+      p.force = this.computePressureForce(p)
+              .add(this.computeViscosityForce(p))
+              .add(this.gravity.scale(p.density));
+    }
+    
+    // 4. Symplectic Euler integration
+    for (const p of this.particles) {
+      p.velocity.addScaled(p.force, dt / p.density);
+      p.position.addScaled(p.velocity, dt);
+    }
+  }
+}
+```
+
+**Presets:** Dam-break (column collapse), droplet (spherical splash)
+
+---
+
 ## 🎬 Animation System Architecture
 
 ### **Animation State Machine**
@@ -877,6 +921,6 @@ class NetworkManager {
 
 ---
 
-**Last Updated:** 2026-01-06  
+**Last Updated:** 2026-03-01  
 **Version:** 1.0  
 **Status:** Complete architecture specification
