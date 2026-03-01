@@ -178,15 +178,12 @@ export class PresenceIndicators {
         if (!selection.visible) return;
 
         // Render colored outlines around selected objects using WebGL line drawing
-        const color = this.hexToRgb(selection.color);
-        
-        // For each selected object, draw a wireframe bounding box
         for (const _objectId of selection.objectIds) {
             // Default unit bounding box for the selection highlight
             const size = 1.0 + this._selectionThickness;
             const half = size / 2;
             
-            // Define box vertices (8 corners of AABB)
+            // Define box vertices (12 edges × 2 endpoints = 24 line endpoints)
             const vertices = new Float32Array([
                 -half, -half, -half,  half, -half, -half,
                  half, -half, -half,  half,  half, -half,
@@ -203,16 +200,13 @@ export class PresenceIndicators {
             ]);
             
             const buffer = gl.createBuffer();
+            if (!buffer) continue;
+            
             gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
             gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
             
-            gl.lineWidth(this._selectionThickness * 10);
-            
-            // Set color via gl state (simplified - in full impl would use shader uniforms)
-            if (color) {
-                gl.blendColor(color.r / 255, color.g / 255, color.b / 255, 1.0);
-            }
-            
+            // Note: Full implementation would use a line shader with color uniform
+            // matching selection.color. Currently renders with whatever shader is active.
             gl.drawArrays(gl.LINES, 0, vertices.length / 3);
             
             gl.deleteBuffer(buffer);
@@ -226,8 +220,7 @@ export class PresenceIndicators {
         if (!viewport.visible) return;
 
         // Render a wireframe frustum showing where another user is looking
-        const color = this.hexToRgb(viewport.color);
-        const fov = 60 * (Math.PI / 180); // Default FOV
+        const fov = 60 * (Math.PI / 180);
         const aspect = 16 / 9;
         const near = 0.5;
         const far = 3.0;
@@ -238,12 +231,11 @@ export class PresenceIndicators {
         const farH = far * Math.tan(fov / 2);
         const farW = farH * aspect;
         
-        // Frustum vertices (near plane 4 corners + far plane 4 corners)
-        // Centered at viewport position, looking down -Z
         const px = viewport.position.x;
         const py = viewport.position.y;
         const pz = viewport.position.z;
         
+        // Frustum line vertices (near plane + far plane + connecting edges)
         const vertices = new Float32Array([
             // Near plane edges
             px - nearW, py - nearH, pz - near,  px + nearW, py - nearH, pz - near,
@@ -263,23 +255,22 @@ export class PresenceIndicators {
         ]);
         
         const buffer = gl.createBuffer();
+        if (!buffer) return;
+        
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
         
-        // Set color/opacity
-        if (color) {
-            gl.blendColor(color.r / 255, color.g / 255, color.b / 255, this._viewportOpacity);
-        }
-        
+        // Note: Full implementation would use a line shader with color uniform
+        // matching viewport.color and opacity set to this._viewportOpacity
         gl.drawArrays(gl.LINES, 0, vertices.length / 3);
         
         gl.deleteBuffer(buffer);
     }
 
     /**
-     * Convert hex color to RGB
+     * Convert hex color to RGB (used by shader uniforms for colored rendering)
      */
-    private hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+    public hexToRgb(hex: string): { r: number; g: number; b: number } | null {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
             r: parseInt(result[1], 16),

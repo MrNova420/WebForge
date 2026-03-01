@@ -1,4 +1,4 @@
-import { ScriptNode, NodeType, PortType } from './ScriptNode';
+import { ScriptNode, NodeType, PortType, type NodePort } from './ScriptNode';
 
 /**
  * Connection between two nodes
@@ -258,21 +258,21 @@ export class ScriptGraph {
             for (const nodeData of data.nodes) {
                 const node = new ScriptNode(nodeData.name, nodeData.type as NodeType);
                 // Preserve original ID for connection restoration
-                (node as any).id = nodeData.id;
+                node.id = nodeData.id;
                 node.x = nodeData.x || 0;
                 node.y = nodeData.y || 0;
                 
                 // Restore input ports
                 if (nodeData.inputs) {
                     for (const [portName, portDef] of nodeData.inputs) {
-                        node.inputs.set(portName, portDef as any);
+                        node.inputs.set(portName, portDef as NodePort);
                     }
                 }
                 
                 // Restore output ports
                 if (nodeData.outputs) {
                     for (const [portName, portDef] of nodeData.outputs) {
-                        node.outputs.set(portName, portDef as any);
+                        node.outputs.set(portName, portDef as NodePort);
                     }
                 }
                 
