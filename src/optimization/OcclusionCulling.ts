@@ -279,7 +279,7 @@ export class OcclusionCullingSystem {
     // Draw
     gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
     
-    // Cleanup state
+    // Disable vertex attribute
     gl.disableVertexAttribArray(0);
   }
 

@@ -279,7 +279,7 @@ export class SSAOEffect extends BasePostEffect {
     }
     
     input.bind(0); // Use scene color as position approximation
-    // Bind scene color to unit 1 as a normal approximation fallback
+    // Bind scene color to unit 1 as normal texture fallback (real G-buffer normal would be bound here)
     input.bind(1);
     if (this._noiseTexture) this._noiseTexture.bind(2);
     this.renderQuad();
@@ -297,7 +297,8 @@ export class SSAOEffect extends BasePostEffect {
       this.renderQuad();
     }
     
-    // Step 3: Composite blurred SSAO result into output
+    // Step 3: Copy blurred SSAO result to output using the blur shader as a passthrough
+    // (blurring with 5×5 kernel on an already-blurred texture acts as a mild secondary smoothing)
     if (output) {
       output.bind();
     } else {
@@ -306,7 +307,6 @@ export class SSAOEffect extends BasePostEffect {
     this.gl.viewport(0, 0, this.width, this.height);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     
-    // Use blur shader to blit the blurred SSAO texture to output
     const blurredTex = this.blurBuffer.getColorTexture();
     if (blurredTex) {
       this.blurShader.use();

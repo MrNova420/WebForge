@@ -2023,6 +2023,7 @@ export class EditorRenderer {
 
         // Ensure the scene framebuffer matches the new dimensions when post-processing is enabled
         if (this.sceneFramebuffer) {
+            this.sceneFramebuffer.destroy();
             const gl = this.glContext.getGL() as WebGL2RenderingContext;
             this.sceneFramebuffer = new Framebuffer(gl, {
                 width,
