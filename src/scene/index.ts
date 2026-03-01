@@ -4,3 +4,4 @@
 
 export * from './GameObject';
 export * from './Scene';
+export * from './PlayerCamera';
