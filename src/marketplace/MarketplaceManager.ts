@@ -280,10 +280,12 @@ export class MarketplaceManager {
             timestamp: Date.now()
         };
 
-        if (!this.reviews.has(assetId)) {
-            this.reviews.set(assetId, []);
+        let reviews = this.reviews.get(assetId);
+        if (!reviews) {
+            reviews = [];
+            this.reviews.set(assetId, reviews);
         }
-        this.reviews.get(assetId)!.push(review);
+        reviews.push(review);
 
         // Update asset rating
         this.updateAssetRating(assetId);

@@ -111,19 +111,20 @@ export class AnimationBlender {
       const values = layer.clip.evaluate(layer.time);
 
       for (const [targetName, trackValues] of values) {
-        if (!allValues.has(targetName)) {
-          allValues.set(targetName, new Map());
+        let targetMap = allValues.get(targetName);
+        if (!targetMap) {
+          targetMap = new Map();
+          allValues.set(targetName, targetMap);
         }
-
-        const targetMap = allValues.get(targetName)!;
 
         for (const [trackType, value] of trackValues) {
           const key = trackType.toString();
-          if (!targetMap.has(key)) {
-            targetMap.set(key, []);
+          let entries = targetMap.get(key);
+          if (!entries) {
+            entries = [];
+            targetMap.set(key, entries);
           }
-
-          targetMap.get(key)!.push({ value, weight: layer.weight });
+          entries.push({ value, weight: layer.weight });
         }
       }
     }
