@@ -14,7 +14,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    open: '/editor.html',
+    open: '/',
   },
   esbuild: {
     // Use esbuild for faster transforms
