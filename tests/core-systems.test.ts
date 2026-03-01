@@ -1206,3 +1206,288 @@ describe('GameStateManager', () => {
     expect(flow.transitionTo('Pause')).toBe(false);
   });
 });
+
+// ============================================================
+// InputActionMap Tests
+// ============================================================
+import { InputActionMap, InputBindingType, type InputBinding } from '../src/core/InputActionMap';
+import { Input } from '../src/core/Input';
+
+describe('InputActionMap', () => {
+  let input: Input;
+  let actionMap: InputActionMap;
+
+  beforeEach(() => {
+    input = new Input();
+    actionMap = new InputActionMap(input);
+  });
+
+  // -- Creation ---------------------------------------------------------------
+
+  it('should start with zero registered actions', () => {
+    expect(actionMap.getActionCount()).toBe(0);
+    expect(actionMap.getAllActions()).toEqual([]);
+  });
+
+  // -- Register / Remove actions ----------------------------------------------
+
+  it('should register a button action', () => {
+    actionMap.registerAction('Jump', 'button', [
+      { type: InputBindingType.Keyboard, key: 'Space' }
+    ]);
+    expect(actionMap.getActionCount()).toBe(1);
+    expect(actionMap.getAllActions()).toEqual(['Jump']);
+  });
+
+  it('should register an axis action', () => {
+    actionMap.registerAction('LookX', 'axis', [
+      { type: InputBindingType.MouseAxis, mouseAxis: 'x', scale: 1 }
+    ]);
+    expect(actionMap.getActionCount()).toBe(1);
+    expect(actionMap.getAllActions()).toContain('LookX');
+  });
+
+  it('should throw when registering a duplicate action name', () => {
+    actionMap.registerAction('Jump', 'button', [
+      { type: InputBindingType.Keyboard, key: 'Space' }
+    ]);
+    expect(() => {
+      actionMap.registerAction('Jump', 'button', [
+        { type: InputBindingType.Keyboard, key: 'Space' }
+      ]);
+    }).toThrow('Action "Jump" is already registered.');
+  });
+
+  it('should remove a registered action', () => {
+    actionMap.registerAction('Jump', 'button', [
+      { type: InputBindingType.Keyboard, key: 'Space' }
+    ]);
+    actionMap.removeAction('Jump');
+    expect(actionMap.getActionCount()).toBe(0);
+    expect(actionMap.getAllActions()).toEqual([]);
+  });
+
+  it('should silently ignore removing a non-existent action', () => {
+    expect(() => actionMap.removeAction('Nonexistent')).not.toThrow();
+  });
+
+  it('should clear all actions', () => {
+    actionMap.registerAction('Jump', 'button', [{ type: InputBindingType.Keyboard, key: 'Space' }]);
+    actionMap.registerAction('Fire', 'button', [{ type: InputBindingType.MouseButton, mouseButton: 0 }]);
+    actionMap.clear();
+    expect(actionMap.getActionCount()).toBe(0);
+    expect(actionMap.getAllActions()).toEqual([]);
+  });
+
+  // -- Get bindings -----------------------------------------------------------
+
+  it('should return a copy of bindings for a registered action', () => {
+    const bindings: InputBinding[] = [
+      { type: InputBindingType.Keyboard, key: 'Space' },
+      { type: InputBindingType.GamepadButton, gamepadButton: 0 }
+    ];
+    actionMap.registerAction('Jump', 'button', bindings);
+
+    const result = actionMap.getBindings('Jump');
+    expect(result).toHaveLength(2);
+    expect(result[0].type).toBe(InputBindingType.Keyboard);
+    expect(result[0].key).toBe('Space');
+    expect(result[1].type).toBe(InputBindingType.GamepadButton);
+    expect(result[1].gamepadButton).toBe(0);
+  });
+
+  it('should return empty array for bindings of unknown action', () => {
+    expect(actionMap.getBindings('Unknown')).toEqual([]);
+  });
+
+  it('should return a defensive copy (mutating result does not affect original)', () => {
+    actionMap.registerAction('Jump', 'button', [
+      { type: InputBindingType.Keyboard, key: 'Space' }
+    ]);
+    const copy = actionMap.getBindings('Jump');
+    copy[0].key = 'KeyX';
+    expect(copy[0].key).toBe('KeyX');
+    expect(actionMap.getBindings('Jump')[0].key).toBe('Space');
+  });
+
+  // -- Rebinding --------------------------------------------------------------
+
+  it('should rebind a specific binding index', () => {
+    actionMap.registerAction('Jump', 'button', [
+      { type: InputBindingType.Keyboard, key: 'Space' },
+      { type: InputBindingType.GamepadButton, gamepadButton: 0 }
+    ]);
+    actionMap.rebindAction('Jump', 0, { type: InputBindingType.Keyboard, key: 'KeyJ' });
+    const bindings = actionMap.getBindings('Jump');
+    expect(bindings[0].key).toBe('KeyJ');
+    expect(bindings[1].gamepadButton).toBe(0); // unchanged
+  });
+
+  it('should throw when rebinding a non-existent action', () => {
+    expect(() => {
+      actionMap.rebindAction('Nonexistent', 0, { type: InputBindingType.Keyboard, key: 'KeyX' });
+    }).toThrow('Action "Nonexistent" not found.');
+  });
+
+  it('should throw when rebinding with out-of-range index', () => {
+    actionMap.registerAction('Jump', 'button', [
+      { type: InputBindingType.Keyboard, key: 'Space' }
+    ]);
+    expect(() => {
+      actionMap.rebindAction('Jump', 5, { type: InputBindingType.Keyboard, key: 'KeyX' });
+    }).toThrow(/out of range/);
+    expect(() => {
+      actionMap.rebindAction('Jump', -1, { type: InputBindingType.Keyboard, key: 'KeyX' });
+    }).toThrow(/out of range/);
+  });
+
+  // -- Query state for unknown actions ----------------------------------------
+
+  it('should return 0 / false for unknown action queries', () => {
+    expect(actionMap.getActionValue('Nope')).toBe(0);
+    expect(actionMap.isActionPressed('Nope')).toBe(false);
+    expect(actionMap.isActionDown('Nope')).toBe(false);
+    expect(actionMap.isActionReleased('Nope')).toBe(false);
+  });
+
+  // -- Serialization / Deserialization ----------------------------------------
+
+  it('should export and import bindings via JSON round-trip', () => {
+    actionMap.registerAction('Jump', 'button', [
+      { type: InputBindingType.Keyboard, key: 'Space' }
+    ]);
+    actionMap.registerAction('LookX', 'axis', [
+      { type: InputBindingType.MouseAxis, mouseAxis: 'x', scale: 1 }
+    ]);
+
+    const json = actionMap.exportBindings();
+    const parsed = JSON.parse(json);
+    expect(parsed).toHaveLength(2);
+
+    // Import into a fresh map
+    const newMap = new InputActionMap(input);
+    newMap.importBindings(json);
+    expect(newMap.getActionCount()).toBe(2);
+    expect(newMap.getAllActions()).toContain('Jump');
+    expect(newMap.getAllActions()).toContain('LookX');
+    expect(newMap.getBindings('Jump')[0].key).toBe('Space');
+    expect(newMap.getBindings('LookX')[0].mouseAxis).toBe('x');
+  });
+
+  it('should replace existing actions on import', () => {
+    actionMap.registerAction('OldAction', 'button', [
+      { type: InputBindingType.Keyboard, key: 'KeyO' }
+    ]);
+    const json = new InputActionMap(input).exportBindings(); // empty
+    actionMap.importBindings(json);
+    expect(actionMap.getActionCount()).toBe(0);
+  });
+
+  it('should throw on importing invalid JSON', () => {
+    expect(() => actionMap.importBindings('not-json')).toThrow();
+  });
+
+  it('should throw on importing non-array JSON', () => {
+    expect(() => actionMap.importBindings('{"a":1}')).toThrow('expected an array');
+  });
+
+  it('should throw on importing entries with missing fields', () => {
+    expect(() => actionMap.importBindings('[{"name":"X"}]')).toThrow('Invalid action entry');
+  });
+
+  // -- Default FPS actions ----------------------------------------------------
+
+  it('should create default FPS actions', () => {
+    actionMap.createDefaultFPSActions();
+    const actions = actionMap.getAllActions();
+    expect(actions).toContain('MoveForward');
+    expect(actions).toContain('MoveBackward');
+    expect(actions).toContain('StrafeLeft');
+    expect(actions).toContain('StrafeRight');
+    expect(actions).toContain('Jump');
+    expect(actions).toContain('Sprint');
+    expect(actions).toContain('Crouch');
+    expect(actions).toContain('Fire');
+    expect(actions).toContain('AltFire');
+    expect(actions).toContain('Reload');
+    expect(actions).toContain('Interact');
+    expect(actions).toContain('LookX');
+    expect(actions).toContain('LookY');
+    expect(actionMap.getActionCount()).toBe(13);
+  });
+
+  // -- Default third-person actions -------------------------------------------
+
+  it('should create default third-person actions', () => {
+    actionMap.createDefaultThirdPersonActions();
+    const actions = actionMap.getAllActions();
+    expect(actions).toContain('CameraOrbitX');
+    expect(actions).toContain('CameraOrbitY');
+    expect(actions).toContain('CameraZoom');
+    expect(actions).toContain('LockOn');
+    expect(actionMap.getActionCount()).toBe(4);
+  });
+
+  // -- Input delegation (mocked) ---------------------------------------------
+
+  it('should delegate isActionPressed to underlying Input', () => {
+    vi.spyOn(input, 'isKeyPressed').mockReturnValue(true);
+    actionMap.registerAction('Jump', 'button', [
+      { type: InputBindingType.Keyboard, key: 'Space' }
+    ]);
+    expect(actionMap.isActionPressed('Jump')).toBe(true);
+    expect(input.isKeyPressed).toHaveBeenCalledWith('Space');
+  });
+
+  it('should delegate isActionDown to underlying Input', () => {
+    vi.spyOn(input, 'isKeyDown').mockReturnValue(true);
+    actionMap.registerAction('Jump', 'button', [
+      { type: InputBindingType.Keyboard, key: 'Space' }
+    ]);
+    expect(actionMap.isActionDown('Jump')).toBe(true);
+    expect(input.isKeyDown).toHaveBeenCalledWith('Space');
+  });
+
+  it('should delegate isActionReleased to underlying Input', () => {
+    vi.spyOn(input, 'isKeyReleased').mockReturnValue(true);
+    actionMap.registerAction('Jump', 'button', [
+      { type: InputBindingType.Keyboard, key: 'Space' }
+    ]);
+    expect(actionMap.isActionReleased('Jump')).toBe(true);
+    expect(input.isKeyReleased).toHaveBeenCalledWith('Space');
+  });
+
+  it('should return 1 for getActionValue on button action when key is down', () => {
+    vi.spyOn(input, 'isKeyDown').mockReturnValue(true);
+    actionMap.registerAction('Jump', 'button', [
+      { type: InputBindingType.Keyboard, key: 'Space' }
+    ]);
+    expect(actionMap.getActionValue('Jump')).toBe(1);
+  });
+
+  it('should return 0 for getActionValue on button action when key is up', () => {
+    vi.spyOn(input, 'isKeyDown').mockReturnValue(false);
+    actionMap.registerAction('Jump', 'button', [
+      { type: InputBindingType.Keyboard, key: 'Space' }
+    ]);
+    expect(actionMap.getActionValue('Jump')).toBe(0);
+  });
+
+  it('should delegate mouse button bindings to Input', () => {
+    vi.spyOn(input, 'isMouseButtonPressed').mockReturnValue(true);
+    actionMap.registerAction('Fire', 'button', [
+      { type: InputBindingType.MouseButton, mouseButton: 0 }
+    ]);
+    expect(actionMap.isActionPressed('Fire')).toBe(true);
+    expect(input.isMouseButtonPressed).toHaveBeenCalledWith(0);
+  });
+
+  it('should delegate gamepad button bindings to Input', () => {
+    vi.spyOn(input, 'isGamepadButtonDown').mockReturnValue(true);
+    actionMap.registerAction('Jump', 'button', [
+      { type: InputBindingType.GamepadButton, gamepadButton: 0 }
+    ]);
+    expect(actionMap.isActionDown('Jump')).toBe(true);
+    expect(input.isGamepadButtonDown).toHaveBeenCalledWith(0, 0);
+  });
+});
