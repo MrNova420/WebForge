@@ -72,8 +72,8 @@
         }
 
         .menu-dropdown {
-            position: absolute;
-            top: 100%;
+            position: fixed;
+            top: 0;
             left: 0;
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
@@ -81,7 +81,7 @@
             min-width: 200px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             display: none;
-            z-index: 1000;
+            z-index: 10000;
         }
 
         .menu-dropdown.show {
@@ -799,17 +799,73 @@
         <div class="menu-item" data-menu="help">Help</div>
     </div>
 
-    <!-- Help Menu Dropdown -->
-    <div id="help-menu" class="menu-dropdown" style="display: none; position: absolute; top: 30px; right: 10px; background: #2a2a2a; border: 1px solid #444; border-radius: 4px; min-width: 200px; z-index: 10000; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
-        <div style="padding: 8px 12px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'" onclick="document.querySelector('.console-tab[data-tab=keybinds]').click()">
-            ⌨️ Keyboard Shortcuts
-        </div>
-        <div style="padding: 8px 12px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'" onclick="window.open('https://github.com/webforge/webforge', '_blank')">
-            📖 Documentation
-        </div>
-        <div style="padding: 8px 12px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'" onclick="alert('WebForge v1.0.0\\nBrowser-based game development platform\\n\\nBuilt with TypeScript, WebGL, and modern web technologies')">
-            ℹ️ About WebForge
-        </div>
+    <!-- Menu Dropdowns -->
+    <div id="menu-dropdown-file" class="menu-dropdown">
+        <div class="menu-dropdown-item" data-action="new-scene">New Scene <span class="shortcut">Ctrl+N</span></div>
+        <div class="menu-dropdown-item" data-action="open-scene">Open Scene <span class="shortcut">Ctrl+O</span></div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="save-scene">Save Scene <span class="shortcut">Ctrl+S</span></div>
+        <div class="menu-dropdown-item" data-action="save-scene-as">Save Scene As... <span class="shortcut">Ctrl+Shift+S</span></div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="export-scene">Export Scene</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="home">Home Page</div>
+    </div>
+    <div id="menu-dropdown-edit" class="menu-dropdown">
+        <div class="menu-dropdown-item" data-action="undo">Undo <span class="shortcut">Ctrl+Z</span></div>
+        <div class="menu-dropdown-item" data-action="redo">Redo <span class="shortcut">Ctrl+Y</span></div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="duplicate">Duplicate <span class="shortcut">Ctrl+D</span></div>
+        <div class="menu-dropdown-item" data-action="delete">Delete <span class="shortcut">Delete</span></div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="select-all">Select All <span class="shortcut">Ctrl+A</span></div>
+        <div class="menu-dropdown-item" data-action="deselect-all">Deselect All</div>
+    </div>
+    <div id="menu-dropdown-view" class="menu-dropdown">
+        <div class="menu-dropdown-item" data-action="view-perspective">Perspective</div>
+        <div class="menu-dropdown-item" data-action="view-top">Top</div>
+        <div class="menu-dropdown-item" data-action="view-front">Front</div>
+        <div class="menu-dropdown-item" data-action="view-right">Right</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="toggle-grid">Toggle Grid <span class="shortcut">G</span></div>
+        <div class="menu-dropdown-item" data-action="toggle-stats">Toggle Stats</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="frame-selected">Frame Selected <span class="shortcut">F</span></div>
+    </div>
+    <div id="menu-dropdown-gameobject" class="menu-dropdown">
+        <div class="menu-dropdown-item" data-action="create-empty">Create Empty</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="create-cube">Cube</div>
+        <div class="menu-dropdown-item" data-action="create-sphere">Sphere</div>
+        <div class="menu-dropdown-item" data-action="create-plane">Plane</div>
+        <div class="menu-dropdown-item" data-action="create-cylinder">Cylinder</div>
+        <div class="menu-dropdown-item" data-action="create-cone">Cone</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="create-point-light">Point Light</div>
+        <div class="menu-dropdown-item" data-action="create-directional-light">Directional Light</div>
+        <div class="menu-dropdown-item" data-action="create-spot-light">Spot Light</div>
+    </div>
+    <div id="menu-dropdown-component" class="menu-dropdown">
+        <div class="menu-dropdown-item" data-action="add-rigidbody">Rigid Body</div>
+        <div class="menu-dropdown-item" data-action="add-collider">Box Collider</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="add-audio">Audio Source</div>
+        <div class="menu-dropdown-item" data-action="add-particle">Particle System</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="add-script">Script</div>
+    </div>
+    <div id="menu-dropdown-window" class="menu-dropdown">
+        <div class="menu-dropdown-item" data-action="show-console">Console</div>
+        <div class="menu-dropdown-item" data-action="show-profiler">Profiler</div>
+        <div class="menu-dropdown-item" data-action="show-debug">Debug</div>
+        <div class="menu-dropdown-item" data-action="show-network">Network</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="show-keybinds">Keyboard Shortcuts</div>
+    </div>
+    <div id="menu-dropdown-help" class="menu-dropdown">
+        <div class="menu-dropdown-item" data-action="show-keybinds">⌨️ Keyboard Shortcuts</div>
+        <div class="menu-dropdown-item" data-action="open-docs">📖 Documentation</div>
+        <div class="menu-dropdown-item" data-action="about">ℹ️ About WebForge</div>
     </div>
 
     <!-- Toolbar -->
@@ -1224,24 +1280,146 @@
             }
         });
         
-        // Help menu toggle
-        document.querySelector('.menu-item[data-menu="help"]').onclick = function(e) {
-            e.stopPropagation();
-            const helpMenu = document.getElementById('help-menu');
-            const isVisible = helpMenu.style.display !== 'none';
-            helpMenu.style.display = isVisible ? 'none' : 'block';
-            
-            // Position below the help button
-            const rect = this.getBoundingClientRect();
-            helpMenu.style.top = rect.bottom + 'px';
-            helpMenu.style.left = rect.left + 'px';
-            helpMenu.style.right = 'auto';
-        };
-        
-        // Close help menu when clicking outside
-        document.addEventListener('click', function() {
-            document.getElementById('help-menu').style.display = 'none';
-        });
+        // =============== MENU BAR SYSTEM ===============
+        (function setupMenuBar() {
+            let activeMenu = null;
+            let menuBarActive = false;
+
+            function closeAllMenus() {
+                document.querySelectorAll('.menu-dropdown').forEach(d => d.classList.remove('show'));
+                document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+                activeMenu = null;
+                menuBarActive = false;
+            }
+
+            function openMenu(menuName, trigger) {
+                closeAllMenus();
+                const dropdown = document.getElementById('menu-dropdown-' + menuName);
+                if (!dropdown) return;
+                const rect = trigger.getBoundingClientRect();
+                dropdown.style.left = rect.left + 'px';
+                dropdown.style.top = rect.bottom + 'px';
+                dropdown.classList.add('show');
+                trigger.classList.add('active');
+                activeMenu = menuName;
+                menuBarActive = true;
+            }
+
+            document.querySelectorAll('.menu-item[data-menu]').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const name = this.dataset.menu;
+                    if (activeMenu === name) {
+                        closeAllMenus();
+                    } else {
+                        openMenu(name, this);
+                    }
+                });
+                item.addEventListener('mouseenter', function() {
+                    if (menuBarActive) {
+                        openMenu(this.dataset.menu, this);
+                    }
+                });
+            });
+
+            // Prevent clicks inside dropdowns from closing them immediately
+            document.querySelectorAll('.menu-dropdown').forEach(d => {
+                d.addEventListener('click', function(e) { e.stopPropagation(); });
+            });
+
+            // Close menus on outside click
+            document.addEventListener('click', closeAllMenus);
+
+            // Handle menu-dropdown-item actions
+            document.querySelectorAll('.menu-dropdown-item[data-action]').forEach(item => {
+                item.addEventListener('click', function() {
+                    const action = this.dataset.action;
+                    closeAllMenus();
+                    handleMenuAction(action);
+                });
+            });
+
+            function handleMenuAction(action) {
+                const ui = window.editorUI;
+                if (!ui || !ui.editor) {
+                    console.warn('[Menu] Editor not yet initialized');
+                    return;
+                }
+                const editor = ui.editor;
+                switch (action) {
+                    // File
+                    case 'new-scene':
+                    case 'open-scene':
+                    case 'save-scene':
+                    case 'save-scene-as':
+                    case 'export-scene':
+                        ui.log('Scene file operations are not yet implemented in this build.', 'warn');
+                        break;
+                    case 'home': window.location.href = 'index.html'; break;
+                    // Edit
+                    case 'undo': editor?.undo(); break;
+                    case 'redo': editor?.redo(); break;
+                    case 'duplicate': editor?.duplicateSelected(); break;
+                    case 'delete': editor?.deleteSelected(); break;
+                    case 'select-all': editor?.selectAll(); break;
+                    case 'deselect-all': editor?.deselectAll(); break;
+                    // View
+                    case 'view-perspective': editor?.setView('perspective'); break;
+                    case 'view-top': editor?.setView('top'); break;
+                    case 'view-front': editor?.setView('front'); break;
+                    case 'view-right': editor?.setView('right'); break;
+                    case 'toggle-grid':
+                        editor?.toggleGrid();
+                        document.getElementById('toggle-grid')?.classList.toggle('active');
+                        break;
+                    case 'toggle-stats':
+                        document.getElementById('scene-stats')?.classList.toggle('hidden');
+                        break;
+                    case 'frame-selected': editor?.frameSelected(); break;
+                    // GameObject
+                    case 'create-empty': editor?.createGameObject(); break;
+                    case 'create-cube': editor?.createPrimitive('cube'); break;
+                    case 'create-sphere': editor?.createPrimitive('sphere'); break;
+                    case 'create-plane': editor?.createPrimitive('plane'); break;
+                    case 'create-cylinder': editor?.createPrimitive('cylinder'); break;
+                    case 'create-cone': editor?.createPrimitive('cone'); break;
+                    case 'create-point-light': editor?.createLight('point'); break;
+                    case 'create-directional-light': editor?.createLight('directional'); break;
+                    case 'create-spot-light': editor?.createLight('spot'); break;
+                    // Component (log info for now — requires selected object)
+                    case 'add-rigidbody':
+                    case 'add-collider':
+                    case 'add-audio':
+                    case 'add-particle':
+                    case 'add-script':
+                        ui.log(`Component: ${action.replace('add-', '')} — select an object first`, 'info');
+                        break;
+                    // Window
+                    case 'show-console':
+                        document.querySelector('.console-tab[data-tab="console"]')?.click();
+                        break;
+                    case 'show-profiler':
+                        document.querySelector('.console-tab[data-tab="profiler"]')?.click();
+                        break;
+                    case 'show-debug':
+                        document.querySelector('.console-tab[data-tab="debug"]')?.click();
+                        break;
+                    case 'show-network':
+                        document.querySelector('.console-tab[data-tab="network"]')?.click();
+                        break;
+                    case 'show-keybinds':
+                        document.querySelector('.console-tab[data-tab="keybinds"]')?.click();
+                        break;
+                    // Help
+                    case 'open-docs':
+                        window.open('https://github.com/MrNova420/WebForge', '_blank');
+                        break;
+                    case 'about':
+                        alert('WebForge v1.0.0\nBrowser-based game development platform\n\nBuilt with TypeScript, WebGL, and modern web technologies');
+                        break;
+                }
+            }
+        })();
 
         // =============== EDITOR UI CLASS ===============
         class EditorUI {
