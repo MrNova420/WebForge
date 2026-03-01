@@ -12,6 +12,27 @@ import { Constraint } from './Constraint';
 import { CollisionShape } from './CollisionShape';
 
 /**
+ * Interface for physics bodies managed by PhysicsWorld.
+ * Any object added to the world must satisfy this contract.
+ */
+export interface IPhysicsBody {
+  /** Collision shape (optional) */
+  shape?: CollisionShape;
+  /** Returns true if the body is dynamic (affected by forces) */
+  isDynamic(): boolean;
+  /** Returns true if the body is static (infinite mass, doesn't move) */
+  isStatic(): boolean;
+  /** Returns the mass of the body */
+  getMass(): number;
+  /** Applies a force to the body */
+  applyForce(force: Vector3): void;
+  /** Returns the body's position */
+  getPosition(): Vector3;
+  /** Integrates the body forward in time */
+  integrate(dt: number): void;
+}
+
+/**
  * Physics world configuration
  */
 export interface PhysicsWorldConfig {
@@ -34,7 +55,7 @@ export class PhysicsWorld {
   private maxSubsteps: number;
   private _enableCCD: boolean;
   
-  private bodies: Set<any> = new Set(); // Will be RigidBody when implemented
+  private bodies: Set<IPhysicsBody> = new Set();
   private accumulator: number = 0;
   
   private broadphase: Broadphase;
@@ -91,11 +112,9 @@ export class PhysicsWorld {
     
     // 1. Apply gravity to dynamic bodies
     for (const body of bodiesArray) {
-      if (body.isDynamic && body.isDynamic()) {
-        const gravityForce = this.gravity.clone().multiplyScalar(body.getMass ? body.getMass() : 1);
-        if (body.applyForce) {
-          body.applyForce(gravityForce);
-        }
+      if (body.isDynamic()) {
+        const gravityForce = this.gravity.clone().multiplyScalar(body.getMass());
+        body.applyForce(gravityForce);
       }
     }
     
@@ -128,9 +147,7 @@ export class PhysicsWorld {
     
     // 5. Integration (apply forces, update velocities and positions)
     for (const body of bodiesArray) {
-      if (body.integrate) {
-        body.integrate(dt);
-      }
+      body.integrate(dt);
     }
   }
 
@@ -138,7 +155,7 @@ export class PhysicsWorld {
    * Adds a rigid body to the world
    * @param body - Rigid body to add
    */
-  addBody(body: any): void {
+  addBody(body: IPhysicsBody): void {
     this.bodies.add(body);
   }
 
@@ -146,7 +163,7 @@ export class PhysicsWorld {
    * Removes a rigid body from the world
    * @param body - Rigid body to remove
    */
-  removeBody(body: any): void {
+  removeBody(body: IPhysicsBody): void {
     this.bodies.delete(body);
   }
 
@@ -154,7 +171,7 @@ export class PhysicsWorld {
    * Gets all bodies in the world
    * @returns Array of rigid bodies
    */
-  getBodies(): any[] {
+  getBodies(): IPhysicsBody[] {
     return Array.from(this.bodies);
   }
 
@@ -540,7 +557,7 @@ export class PhysicsWorld {
  */
 export interface RaycastResult {
   /** Hit body */
-  body: any;
+  body: IPhysicsBody;
   /** Hit point in world space */
   point: Vector3;
   /** Hit normal */
