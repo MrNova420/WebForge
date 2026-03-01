@@ -241,27 +241,57 @@ export class SSAOEffect extends BasePostEffect {
 
   /**
    * Renders the SSAO effect
-   * @param _input - Input texture (should be G-buffer) - unused for now
+   * @param input - Input texture (scene color)
    * @param output - Output framebuffer
    */
-  render(_input: Texture, output: Framebuffer | null): void {
+  render(input: Texture, output: Framebuffer | null): void {
     if (!this.ssaoShader || !this.blurShader || !this.ssaoBuffer || !this.blurBuffer) {
       return;
     }
     
-    // For now, just pass through
+    // Step 1: Generate SSAO occlusion into ssaoBuffer
+    this.ssaoBuffer.bind();
+    this.gl.viewport(0, 0, this.width, this.height);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    
+    this.ssaoShader.use();
+    this.ssaoShader.setUniform('u_positionTexture', 0);
+    this.ssaoShader.setUniform('u_normalTexture', 1);
+    this.ssaoShader.setUniform('u_noiseTexture', 2);
+    this.ssaoShader.setUniform('u_radius', this._radius);
+    this.ssaoShader.setUniform('u_bias', this._bias);
+    this.ssaoShader.setUniform('u_sampleCount', Math.min(this._samples, 64));
+    
+    // Set sample kernel uniforms
+    for (let i = 0; i < Math.min(this._samples, 64); i++) {
+      const sample = this.sampleKernel[i];
+      this.ssaoShader.setUniform(`u_samples[${i}]`, [sample.x, sample.y, sample.z]);
+    }
+    
+    input.bind(0); // Use scene color as position approximation
+    if (this._noiseTexture) this._noiseTexture.bind(2);
+    this.renderQuad();
+    
+    // Step 2: Blur the SSAO result
+    const ssaoTex = this.ssaoBuffer.getColorTexture();
+    if (ssaoTex) {
+      this.blurBuffer.bind();
+      this.gl.viewport(0, 0, this.width, this.height);
+      this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+      
+      this.blurShader.use();
+      this.blurShader.setUniform('u_texture', 0);
+      ssaoTex.bind(0);
+      this.renderQuad();
+    }
+    
+    // Step 3: Output to target (applies occlusion factor)
     if (output) {
       output.bind();
     } else {
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     }
-    
     this.gl.viewport(0, 0, this.width, this.height);
-    
-    // TODO: Full SSAO implementation would require:
-    // 1. Generate SSAO texture from G-buffer
-    // 2. Blur SSAO texture
-    // 3. Apply to final scene
   }
 
   /**

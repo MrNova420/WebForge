@@ -188,28 +188,60 @@ export class DepthOfFieldEffect extends BasePostEffect {
 
   /**
    * Renders the DOF effect
-   * @param _input - Input texture (unused for now)
+   * @param input - Input color texture
    * @param output - Output framebuffer
    */
-  render(_input: Texture, output: Framebuffer | null): void {
+  render(input: Texture, output: Framebuffer | null): void {
     if (!this.dofShader || !this.blurShader || !this.cocBuffer || !this.blurBuffer) {
       return;
     }
     
-    // For now, just pass through (full implementation requires depth buffer)
+    // Step 1: Calculate Circle of Confusion into cocBuffer
+    this.cocBuffer.bind();
+    this.gl.viewport(0, 0, this.width, this.height);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    
+    this.dofShader.use();
+    this.dofShader.setUniform('u_depthTexture', 0);
+    this.dofShader.setUniform('u_focusDistance', this._focusDistance);
+    this.dofShader.setUniform('u_focusRange', this._focusRange);
+    this.dofShader.setUniform('u_maxBlur', this._maxBlur);
+    input.bind(0); // Use color as depth approximation
+    this.renderQuad();
+    
+    // Step 2: Horizontal bokeh blur
+    const cocTex = this.cocBuffer.getColorTexture();
+    this.blurBuffer.bind();
+    this.gl.viewport(0, 0, this.width, this.height);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    
+    this.blurShader.use();
+    this.blurShader.setUniform('u_colorTexture', 0);
+    this.blurShader.setUniform('u_cocTexture', 1);
+    this.blurShader.setUniform('u_direction', [1.0, 0.0]);
+    this.blurShader.setUniform('u_bokehSize', this._bokehSize);
+    input.bind(0);
+    if (cocTex) cocTex.bind(1);
+    this.renderQuad();
+    
+    // Step 3: Vertical bokeh blur to output
+    const hblurTex = this.blurBuffer.getColorTexture();
     if (output) {
       output.bind();
     } else {
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     }
-    
     this.gl.viewport(0, 0, this.width, this.height);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     
-    // TODO: Full DOF implementation:
-    // 1. Calculate Circle of Confusion from depth buffer
-    // 2. Horizontal bokeh blur pass
-    // 3. Vertical bokeh blur pass
-    // 4. Composite with original based on CoC
+    this.blurShader.use();
+    this.blurShader.setUniform('u_colorTexture', 0);
+    this.blurShader.setUniform('u_cocTexture', 1);
+    this.blurShader.setUniform('u_direction', [0.0, 1.0]);
+    this.blurShader.setUniform('u_bokehSize', this._bokehSize);
+    if (hblurTex) hblurTex.bind(0);
+    if (cocTex) cocTex.bind(1);
+    this.renderQuad();
   }
 
   /**

@@ -285,6 +285,7 @@ export class EditorApplication {
         this.context.on('selectionChanged', (objects: GameObject[]) => {
             this.events.emit('selectionChanged', objects);
             this.updateInspector();
+            this.watchSelectedTransforms(objects);
             
             // Auto-switch to Translate mode when selecting an object (if in Select mode)
             if (objects.length > 0 && this.context.getTransformMode() === TransformMode.SELECT) {
@@ -295,6 +296,25 @@ export class EditorApplication {
         this.context.on('transformModeChanged', (mode: TransformMode) => {
             this.events.emit('transformModeChanged', mode);
         });
+    }
+
+    /**
+     * Watch selected objects' transforms for live inspector updates
+     */
+    private transformWatchCallbacks: Array<() => void> = [];
+    private watchSelectedTransforms(objects: GameObject[]): void {
+        // Remove old watchers
+        this.transformWatchCallbacks = [];
+        
+        // Add change callbacks to selected objects
+        for (const obj of objects) {
+            const callback = () => {
+                this.events.emit('inspectorUpdated', this.context.getSelection());
+                this.events.emit('propertyChanged', { object: obj, property: 'transform' });
+            };
+            obj.transform.onChange(callback);
+            this.transformWatchCallbacks.push(callback);
+        }
     }
 
     /**
@@ -690,7 +710,7 @@ export class EditorApplication {
         this.scene?.saveState();
         this.scene?.initPhysics();
         this.events.emit('playStarted');
-        this.log('Play mode started (physics active)', 'success');
+        this.log('Play mode started (physics + animation active)', 'success');
     }
 
     /**
@@ -713,6 +733,7 @@ export class EditorApplication {
         this.isPlaying = false;
         this.isPaused = false;
         this.scene?.disposePhysics();
+        this.scene?.clearAnimationPlayers();
         this.scene?.restoreState();
         this.events.emit('playStopped');
         this.log('Play mode stopped', 'info');
@@ -887,7 +908,7 @@ export class EditorApplication {
         if (!this.scene) return null;
         const terrain = this.scene.createGameObject('Terrain');
         const obj = terrain as any;
-        obj.primitiveType = 'plane';
+        obj.primitiveType = 'terrain';
         obj.editorColor = [0.35, 0.55, 0.25];
         obj.isTerrain = true;
         obj.terrainWidth = width;
@@ -897,7 +918,7 @@ export class EditorApplication {
         obj.terrainHeightData = new Float32Array(resolution * resolution);
         terrain.transform.scale.set(width, 1, depth);
         this.updateHierarchy();
-        this.log(`Terrain created (${width}×${depth})`, 'success');
+        this.log(`Terrain created (${width}×${depth}, ${resolution}² resolution)`, 'success');
         return terrain;
     }
 

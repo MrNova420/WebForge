@@ -140,21 +140,19 @@ export class MotionBlurEffect extends BasePostEffect {
     }
     
     this.gl.viewport(0, 0, this.width, this.height);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     
-    // For now, just pass through (full implementation requires velocity buffer)
     // Use shader
     this.motionBlurShader.use();
     this.motionBlurShader.setUniform('u_colorTexture', 0);
     this.motionBlurShader.setUniform('u_samples', this._samples);
     this.motionBlurShader.setUniform('u_strength', this._strength);
     
-    // Bind input texture
+    // Bind input texture as both color and velocity (simplified — real impl uses separate velocity buffer)
     input.bind(0);
     
-    // TODO: Bind depth and velocity textures when available
-    
-    // Render (would render quad in full implementation)
-    // this.renderQuad();
+    // Render full-screen quad
+    this.renderQuad();
   }
 
   /**

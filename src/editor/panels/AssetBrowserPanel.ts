@@ -91,9 +91,57 @@ export class AssetBrowserPanel extends Panel {
         `;
         this.content.appendChild(this.gridContainer);
         
+        // Setup drag-and-drop for file import
+        this.setupDragAndDrop();
+        
         this.refreshView();
         
         return this.content;
+    }
+
+    /**
+     * Setup drag-and-drop file import on the asset browser
+     */
+    private setupDragAndDrop(): void {
+        if (!this.content) return;
+        
+        this.content.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (this.gridContainer) {
+                this.gridContainer.style.border = '2px dashed #4a9eff';
+                this.gridContainer.style.background = 'rgba(74, 158, 255, 0.05)';
+            }
+        });
+        
+        this.content.addEventListener('dragleave', () => {
+            if (this.gridContainer) {
+                this.gridContainer.style.border = '';
+                this.gridContainer.style.background = '';
+            }
+        });
+        
+        this.content.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (this.gridContainer) {
+                this.gridContainer.style.border = '';
+                this.gridContainer.style.background = '';
+            }
+            
+            if (e.dataTransfer?.files) {
+                for (const file of Array.from(e.dataTransfer.files)) {
+                    const assetType = this.detectAssetType(file.name);
+                    this.assets.push({
+                        name: file.name,
+                        type: assetType,
+                        path: this.currentPath + '/' + file.name,
+                        size: file.size
+                    });
+                }
+                this.refreshView();
+            }
+        });
     }
     
     /**
@@ -514,18 +562,58 @@ export class AssetBrowserPanel extends Panel {
     }
     
     /**
-     * Imports an asset
+     * Imports an asset via file picker
      */
     private importAsset(): void {
-        // This would open a file picker dialog
-        console.log('Import asset');
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.accept = '.gltf,.glb,.obj,.fbx,.png,.jpg,.jpeg,.webp,.hdr,.wav,.mp3,.ogg,.json,.js,.ts';
+        
+        input.onchange = () => {
+            if (input.files) {
+                for (const file of Array.from(input.files)) {
+                    const assetType = this.detectAssetType(file.name);
+                    this.assets.push({
+                        name: file.name,
+                        type: assetType,
+                        path: this.currentPath + '/' + file.name,
+                        size: file.size
+                    });
+                }
+                this.refreshView();
+            }
+        };
+        
+        input.click();
+    }
+
+    /**
+     * Detect asset type from file extension
+     */
+    private detectAssetType(filename: string): AssetType {
+        const ext = filename.split('.').pop()?.toLowerCase() || '';
+        const typeMap: Record<string, AssetType> = {
+            'gltf': AssetType.MODEL, 'glb': AssetType.MODEL, 'obj': AssetType.MODEL, 'fbx': AssetType.MODEL,
+            'png': AssetType.TEXTURE, 'jpg': AssetType.TEXTURE, 'jpeg': AssetType.TEXTURE,
+            'webp': AssetType.TEXTURE, 'hdr': AssetType.TEXTURE, 'tga': AssetType.TEXTURE,
+            'wav': AssetType.AUDIO, 'mp3': AssetType.AUDIO, 'ogg': AssetType.AUDIO,
+            'json': AssetType.SCENE, 'js': AssetType.SCRIPT, 'ts': AssetType.SCRIPT,
+        };
+        return typeMap[ext] || AssetType.UNKNOWN;
     }
     
     /**
      * Opens an asset
      */
     private openAsset(asset: AssetItem): void {
-        console.log('Open asset:', asset.name);
-        // This would open the asset in the appropriate editor
+        console.log('Open asset:', asset.name, 'Type:', asset.type);
+        // Emit event for editor to handle
+        if (this.content) {
+            this.content.dispatchEvent(new CustomEvent('asset-open', {
+                bubbles: true,
+                detail: { name: asset.name, type: asset.type, path: asset.path }
+            }));
+        }
     }
 }

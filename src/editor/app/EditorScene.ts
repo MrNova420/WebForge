@@ -18,6 +18,7 @@ import { EditorContext } from '../EditorContext';
 import { Logger } from '../../core/Logger';
 import { EventSystem } from '../../core/EventSystem';
 import { PhysicsWorld } from '../../physics/PhysicsWorld';
+import { AnimationPlayer } from '../../animation/AnimationPlayer';
 
 /**
  * Primitive types
@@ -75,6 +76,9 @@ export class EditorScene {
 
     // Physics world for play mode
     private physics: PhysicsWorld | null = null;
+
+    // Animation players for play mode
+    private animationPlayers: Map<string, AnimationPlayer> = new Map();
 
     constructor(context: EditorContext) {
         this.scene = new Scene('EditorScene');
@@ -265,6 +269,12 @@ export class EditorScene {
         if (this.physics) {
             this.physics.step(deltaTime);
         }
+        
+        // Update all animation players
+        for (const player of this.animationPlayers.values()) {
+            player.update(deltaTime);
+        }
+        
         this.scene.update(deltaTime);
     }
 
@@ -290,6 +300,47 @@ export class EditorScene {
      */
     getPhysics(): PhysicsWorld | null {
         return this.physics;
+    }
+
+    // ========== Animation ==========
+
+    /**
+     * Register an animation player for a game object
+     */
+    addAnimationPlayer(objectName: string, player: AnimationPlayer): void {
+        this.animationPlayers.set(objectName, player);
+        this.logger.info(`Animation player added for ${objectName}`);
+    }
+
+    /**
+     * Get animation player for an object
+     */
+    getAnimationPlayer(objectName: string): AnimationPlayer | null {
+        return this.animationPlayers.get(objectName) || null;
+    }
+
+    /**
+     * Remove animation player
+     */
+    removeAnimationPlayer(objectName: string): void {
+        this.animationPlayers.delete(objectName);
+    }
+
+    /**
+     * Get all animation players
+     */
+    getAnimationPlayers(): Map<string, AnimationPlayer> {
+        return this.animationPlayers;
+    }
+
+    /**
+     * Clear all animation players (e.g., when stopping play mode)
+     */
+    clearAnimationPlayers(): void {
+        for (const player of this.animationPlayers.values()) {
+            player.stop();
+        }
+        this.animationPlayers.clear();
     }
 
     /**
