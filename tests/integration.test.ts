@@ -2097,3 +2097,244 @@ describe('Advanced VFX System', () => {
         expect(vfx.getAtmosphericSettings().enabled).toBe(true);
     });
 });
+
+// ========== Vegetation Scattering Tests ==========
+import { VegetationScattering, VegetationType, ScatterConfig, VegetationInstance } from '../src/procedural/VegetationScattering';
+
+describe('Vegetation Scattering System', () => {
+    function createScatterConfig(overrides: Partial<ScatterConfig> = {}): ScatterConfig {
+        return {
+            seed: 42,
+            densityMultiplier: 1.0,
+            bounds: { minX: -50, minZ: -50, maxX: 50, maxZ: 50 },
+            poissonSampling: false,
+            maxInstances: 1000,
+            ...overrides
+        };
+    }
+
+    it('should create vegetation scattering system', () => {
+        const scatter = new VegetationScattering();
+        expect(scatter).toBeDefined();
+    });
+
+    it('should add vegetation types', () => {
+        const scatter = new VegetationScattering();
+        const idx = scatter.addVegetationType({
+            name: 'Tree',
+            density: 0.01,
+            minHeight: 0, maxHeight: 100,
+            maxSlopeAngle: 0.5,
+            minScale: 0.8, maxScale: 1.2,
+            minSpacing: 5,
+            randomRotation: true,
+            alignToNormal: false,
+            lodDistances: [50, 100, 200, 400]
+        });
+        expect(idx).toBe(0);
+        expect(scatter.getVegetationTypes().length).toBe(1);
+    });
+
+    it('should remove vegetation types', () => {
+        const scatter = new VegetationScattering();
+        scatter.addVegetationType({
+            name: 'Tree', density: 0.01,
+            minHeight: 0, maxHeight: 100, maxSlopeAngle: 0.5,
+            minScale: 0.8, maxScale: 1.2, minSpacing: 5,
+            randomRotation: true, alignToNormal: false, lodDistances: [50]
+        });
+        expect(scatter.getVegetationTypes().length).toBe(1);
+        scatter.removeVegetationType(0);
+        expect(scatter.getVegetationTypes().length).toBe(0);
+    });
+
+    it('should scatter vegetation on terrain (uniform)', () => {
+        const terrain = new Terrain(32, 32, 100, 100);
+        // Set some height so instances pass height filter
+        for (let z = 0; z < 32; z++) {
+            for (let x = 0; x < 32; x++) {
+                terrain.setHeight(x, z, 10);
+            }
+        }
+
+        const scatter = new VegetationScattering(42);
+        scatter.addVegetationType({
+            name: 'Bush', density: 0.05,
+            minHeight: 0, maxHeight: 50, maxSlopeAngle: 1.5,
+            minScale: 0.5, maxScale: 1.0, minSpacing: 1,
+            randomRotation: true, alignToNormal: false, lodDistances: [20]
+        });
+
+        const instances = scatter.scatter(terrain, createScatterConfig());
+        expect(instances.length).toBeGreaterThan(0);
+        expect(instances[0].position).toBeDefined();
+        expect(instances[0].scale).toBeDefined();
+        expect(instances[0].typeIndex).toBe(0);
+    });
+
+    it('should scatter vegetation on terrain (Poisson)', () => {
+        const terrain = new Terrain(32, 32, 100, 100);
+        for (let z = 0; z < 32; z++) {
+            for (let x = 0; x < 32; x++) {
+                terrain.setHeight(x, z, 10);
+            }
+        }
+
+        const scatter = new VegetationScattering(42);
+        scatter.addVegetationType({
+            name: 'Tree', density: 0.01,
+            minHeight: 0, maxHeight: 50, maxSlopeAngle: 1.5,
+            minScale: 0.8, maxScale: 1.2, minSpacing: 5,
+            randomRotation: true, alignToNormal: false, lodDistances: [50, 100]
+        });
+
+        const instances = scatter.scatter(terrain, createScatterConfig({ poissonSampling: true }));
+        expect(instances.length).toBeGreaterThan(0);
+    });
+
+    it('should filter by height', () => {
+        const terrain = new Terrain(32, 32, 100, 100);
+        // Set terrain very low
+        for (let z = 0; z < 32; z++) {
+            for (let x = 0; x < 32; x++) {
+                terrain.setHeight(x, z, 1);
+            }
+        }
+
+        const scatter = new VegetationScattering(42);
+        scatter.addVegetationType({
+            name: 'Alpine Tree', density: 0.05,
+            minHeight: 50, maxHeight: 100, // Only at high altitudes
+            maxSlopeAngle: 1.5,
+            minScale: 0.8, maxScale: 1.2, minSpacing: 2,
+            randomRotation: true, alignToNormal: false, lodDistances: [50]
+        });
+
+        const instances = scatter.scatter(terrain, createScatterConfig());
+        expect(instances.length).toBe(0); // Nothing should be placed (terrain is at height 1)
+    });
+
+    it('should respect max instances limit', () => {
+        const terrain = new Terrain(32, 32, 100, 100);
+        for (let z = 0; z < 32; z++) {
+            for (let x = 0; x < 32; x++) {
+                terrain.setHeight(x, z, 10);
+            }
+        }
+
+        const scatter = new VegetationScattering(42);
+        scatter.addVegetationType({
+            name: 'Grass', density: 1.0, // Very high density
+            minHeight: 0, maxHeight: 100, maxSlopeAngle: 1.5,
+            minScale: 0.5, maxScale: 1.0, minSpacing: 0.1,
+            randomRotation: true, alignToNormal: false, lodDistances: [10]
+        });
+
+        const instances = scatter.scatter(terrain, createScatterConfig({ maxInstances: 50 }));
+        expect(instances.length).toBeLessThanOrEqual(50);
+    });
+
+    it('should update LOD levels', () => {
+        const scatter = new VegetationScattering();
+        scatter.addVegetationType({
+            name: 'Tree', density: 0.01,
+            minHeight: 0, maxHeight: 100, maxSlopeAngle: 1.0,
+            minScale: 1, maxScale: 1, minSpacing: 1,
+            randomRotation: false, alignToNormal: false,
+            lodDistances: [10, 20, 40, 80]
+        });
+
+        const instances: VegetationInstance[] = [
+            { position: new Vector3(0, 0, 0), rotation: 0, scale: new Vector3(1, 1, 1), typeIndex: 0, lodLevel: 0 },
+            { position: new Vector3(15, 0, 0), rotation: 0, scale: new Vector3(1, 1, 1), typeIndex: 0, lodLevel: 0 },
+            { position: new Vector3(50, 0, 0), rotation: 0, scale: new Vector3(1, 1, 1), typeIndex: 0, lodLevel: 0 }
+        ];
+
+        scatter.updateLODs(instances, new Vector3(0, 0, 0));
+        expect(instances[0].lodLevel).toBe(0); // Very close (dist=0)
+        expect(instances[1].lodLevel).toBe(1); // Medium (dist=15, >10 but <20)
+        expect(instances[2].lodLevel).toBe(3); // Far (dist=50, >40 but <80)
+    });
+
+    it('should get visible instances within distance', () => {
+        const scatter = new VegetationScattering();
+        const instances: VegetationInstance[] = [
+            { position: new Vector3(5, 0, 0), rotation: 0, scale: new Vector3(1, 1, 1), typeIndex: 0, lodLevel: 0 },
+            { position: new Vector3(50, 0, 0), rotation: 0, scale: new Vector3(1, 1, 1), typeIndex: 0, lodLevel: 0 },
+            { position: new Vector3(200, 0, 0), rotation: 0, scale: new Vector3(1, 1, 1), typeIndex: 0, lodLevel: 0 }
+        ];
+
+        const visible = scatter.getVisibleInstances(instances, new Vector3(0, 0, 0), 100);
+        expect(visible.length).toBe(2); // Only first two within 100 units
+    });
+
+    it('should get statistics', () => {
+        const scatter = new VegetationScattering();
+        const instances: VegetationInstance[] = [
+            { position: new Vector3(0, 0, 0), rotation: 0, scale: new Vector3(1, 1, 1), typeIndex: 0, lodLevel: 0 },
+            { position: new Vector3(1, 0, 0), rotation: 0, scale: new Vector3(1, 1, 1), typeIndex: 0, lodLevel: 1 },
+            { position: new Vector3(2, 0, 0), rotation: 0, scale: new Vector3(1, 1, 1), typeIndex: 1, lodLevel: 0 }
+        ];
+
+        const stats = scatter.getStatistics(instances);
+        expect(stats.total).toBe(3);
+        expect(stats.perType.get(0)).toBe(2);
+        expect(stats.perType.get(1)).toBe(1);
+        expect(stats.perLOD.get(0)).toBe(2);
+        expect(stats.perLOD.get(1)).toBe(1);
+    });
+
+    it('should create forest preset', () => {
+        const scatter = VegetationScattering.createForestPreset();
+        const types = scatter.getVegetationTypes();
+        expect(types.length).toBe(4);
+        expect(types[0].name).toBe('Oak Tree');
+        expect(types[1].name).toBe('Pine Tree');
+        expect(types[2].name).toBe('Bush');
+        expect(types[3].name).toBe('Grass Clump');
+    });
+
+    it('should create desert preset', () => {
+        const scatter = VegetationScattering.createDesertPreset();
+        const types = scatter.getVegetationTypes();
+        expect(types.length).toBe(3);
+        expect(types[0].name).toBe('Cactus');
+        expect(types[1].name).toBe('Desert Shrub');
+        expect(types[2].name).toBe('Rock');
+    });
+
+    it('should handle empty scatter (no vegetation types)', () => {
+        const terrain = new Terrain(16, 16, 50, 50);
+        const scatter = new VegetationScattering();
+        const instances = scatter.scatter(terrain, createScatterConfig());
+        expect(instances.length).toBe(0);
+    });
+
+    it('should produce reproducible results with same seed', () => {
+        const terrain = new Terrain(32, 32, 100, 100);
+        for (let z = 0; z < 32; z++) {
+            for (let x = 0; x < 32; x++) {
+                terrain.setHeight(x, z, 10);
+            }
+        }
+
+        const scatter1 = new VegetationScattering(42);
+        const scatter2 = new VegetationScattering(42);
+        
+        const type: VegetationType = {
+            name: 'Tree', density: 0.02,
+            minHeight: 0, maxHeight: 50, maxSlopeAngle: 1.5,
+            minScale: 0.8, maxScale: 1.2, minSpacing: 3,
+            randomRotation: true, alignToNormal: false, lodDistances: [50]
+        };
+        
+        scatter1.addVegetationType(type);
+        scatter2.addVegetationType(type);
+        
+        const config = createScatterConfig();
+        const inst1 = scatter1.scatter(terrain, config);
+        const inst2 = scatter2.scatter(terrain, config);
+        
+        expect(inst1.length).toBe(inst2.length);
+    });
+});

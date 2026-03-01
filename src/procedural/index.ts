@@ -5,3 +5,4 @@
 export * from './EnhancedProceduralGenerator';
 export * from './NoiseGenerator';
 export * from './ProceduralMeshGenerator';
+export * from './VegetationScattering';
