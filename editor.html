@@ -1348,11 +1348,13 @@
                 const editor = ui.editor;
                 switch (action) {
                     // File
-                    case 'new-scene': editor?.newScene(); break;
-                    case 'open-scene': editor?.openScene(); break;
-                    case 'save-scene': editor?.saveScene(); break;
-                    case 'save-scene-as': editor?.saveSceneAs(); break;
-                    case 'export-scene': editor?.exportScene(); break;
+                    case 'new-scene':
+                    case 'open-scene':
+                    case 'save-scene':
+                    case 'save-scene-as':
+                    case 'export-scene':
+                        ui.log('Scene file operations are not yet implemented in this build.', 'warn');
+                        break;
                     case 'home': window.location.href = 'index.html'; break;
                     // Edit
                     case 'undo': editor?.undo(); break;
