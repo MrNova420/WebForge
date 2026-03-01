@@ -307,6 +307,8 @@ export class TexturePaintingSystem {
         // Read pixels from the area
         const imageData = ctx.getImageData(sx, sy, sw, sh);
         const data = imageData.data;
+        // Blur kernel radius: ranges from 1 (hard brush) to 4 (soft brush)
+        // based on inverse of hardness setting
         const blurRadius = Math.max(1, Math.floor(3 * (1 - this.settings.hardness) + 1));
         
         // Create output buffer
@@ -673,7 +675,9 @@ export class TexturePaintingSystem {
         }
         
         // Inside face
-        const denom = 1.0 / (va + vb + vc);
+        const denominator = va + vb + vc;
+        if (Math.abs(denominator) < 1e-10) return { u: 1/3, v: 1/3, w: 1/3 }; // Degenerate triangle
+        const denom = 1.0 / denominator;
         const v = vb * denom;
         const w = vc * denom;
         return { u: 1 - v - w, v: v, w: w };

@@ -354,7 +354,8 @@ export class MeshQualityEnhancer {
      * Simplify mesh using edge collapse with quadric error metrics
      */
     private static simplifyMesh(mesh: MeshData, settings: LODSettings): MeshData {
-        const targetFaceCount = Math.max(4, Math.floor(mesh.getFaceCount() * settings.targetReduction));
+        const MIN_MESH_FACES = 4;
+        const targetFaceCount = Math.max(MIN_MESH_FACES, Math.floor(mesh.getFaceCount() * settings.targetReduction));
         const currentFaceCount = mesh.getFaceCount();
         
         if (currentFaceCount <= targetFaceCount) {

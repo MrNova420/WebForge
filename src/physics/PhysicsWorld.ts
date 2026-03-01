@@ -9,6 +9,7 @@ import { Broadphase, SweepAndPruneBroadphase } from './BroadphaseCollision';
 import { Narrowphase, ContactManifold } from './NarrowphaseCollision';
 import { ConstraintSolver } from './ConstraintSolver';
 import { Constraint } from './Constraint';
+import { CollisionShape } from './CollisionShape';
 
 /**
  * Physics world configuration
@@ -269,26 +270,32 @@ export class PhysicsWorld {
   private raycastShape(
     origin: Vector3, 
     direction: Vector3, 
-    shape: any, 
+    shape: CollisionShape, 
     position: Vector3,
     maxDistance: number
   ): { point: Vector3; normal: Vector3; distance: number } | null {
     switch (shape.type) {
-      case 'sphere':
-        return this.raySphereIntersect(origin, direction, position, shape.radius, maxDistance);
-      case 'box':
-        return this.rayBoxIntersect(origin, direction, position, shape.halfExtents, maxDistance);
-      case 'plane':
-        return this.rayPlaneIntersect(origin, direction, shape.normal, shape.distance, maxDistance);
-      case 'capsule':
-        return this.rayCapsuleIntersect(origin, direction, position, shape.radius, shape.height, maxDistance);
-      default:
+      case 'sphere': {
+        const s = shape as import('./CollisionShape').SphereShape;
+        return this.raySphereIntersect(origin, direction, position, s.radius, maxDistance);
+      }
+      case 'box': {
+        const b = shape as import('./CollisionShape').BoxShape;
+        return this.rayBoxIntersect(origin, direction, position, b.halfExtents, maxDistance);
+      }
+      case 'plane': {
+        const p = shape as import('./CollisionShape').PlaneShape;
+        return this.rayPlaneIntersect(origin, direction, p.normal, p.distance, maxDistance);
+      }
+      case 'capsule': {
+        const c = shape as import('./CollisionShape').CapsuleShape;
+        return this.rayCapsuleIntersect(origin, direction, position, c.radius, c.height, maxDistance);
+      }
+      default: {
         // Fallback: test against bounding sphere
-        if (shape.getBoundingSphere) {
-          const bs = shape.getBoundingSphere();
-          return this.raySphereIntersect(origin, direction, position, bs.radius, maxDistance);
-        }
-        return null;
+        const bs = shape.getBoundingSphere();
+        return this.raySphereIntersect(origin, direction, position, bs.radius, maxDistance);
+      }
     }
   }
 
