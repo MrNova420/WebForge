@@ -734,6 +734,230 @@ export class EditorApplication {
         return this.isPaused;
     }
 
+    // ========== Panel Data Operations ==========
+
+    /**
+     * Get material data for the currently selected object
+     */
+    getSelectedMaterial(): { color: [number, number, number]; metallic: number; roughness: number; emission: [number, number, number]; opacity: number; shader: string } | null {
+        const sel = this.context.getSelection();
+        if (sel.length === 0) return null;
+        const obj = sel[0] as any;
+        return {
+            color: obj.editorColor || [0.5, 0.5, 0.5],
+            metallic: obj.materialMetallic ?? 0,
+            roughness: obj.materialRoughness ?? 0.5,
+            emission: obj.materialEmission || [0, 0, 0],
+            opacity: obj.materialOpacity ?? 1,
+            shader: obj.materialShader || 'Standard PBR'
+        };
+    }
+
+    /**
+     * Set material property on selected object
+     */
+    setMaterialProperty(property: string, value: any): void {
+        const sel = this.context.getSelection();
+        if (sel.length === 0) return;
+        const obj = sel[0] as any;
+        switch (property) {
+            case 'color': obj.editorColor = value; break;
+            case 'metallic': obj.materialMetallic = value; break;
+            case 'roughness': obj.materialRoughness = value; break;
+            case 'emission': obj.materialEmission = value; break;
+            case 'opacity': obj.materialOpacity = value; break;
+            case 'shader': obj.materialShader = value; break;
+        }
+        this.events.emit('materialChanged', { object: obj, property, value });
+    }
+
+    /**
+     * Create a terrain object in the scene
+     */
+    createTerrain(width: number = 100, depth: number = 100, resolution: number = 64): any {
+        if (!this.scene) return null;
+        const terrain = this.scene.createGameObject('Terrain');
+        const obj = terrain as any;
+        obj.primitiveType = 'plane';
+        obj.editorColor = [0.35, 0.55, 0.25];
+        obj.isTerrain = true;
+        obj.terrainWidth = width;
+        obj.terrainDepth = depth;
+        obj.terrainResolution = resolution;
+        obj.terrainLayers = [];
+        obj.terrainHeightData = new Float32Array(resolution * resolution);
+        terrain.transform.scale.set(width, 1, depth);
+        this.updateHierarchy();
+        this.log(`Terrain created (${width}×${depth})`, 'success');
+        return terrain;
+    }
+
+    /**
+     * Add an audio source component to the selected object
+     */
+    addAudioSource(): boolean {
+        const sel = this.context.getSelection();
+        if (sel.length === 0) return false;
+        const obj = sel[0] as any;
+        if (!obj._components) obj._components = [];
+        obj._components.push({
+            type: 'audio',
+            enabled: true,
+            volume: 1,
+            spatial: true,
+            loop: false,
+            minDistance: 1,
+            maxDistance: 50,
+            clip: null
+        });
+        this.events.emit('selectionChanged', sel);
+        this.log('Audio source added', 'success');
+        return true;
+    }
+
+    /**
+     * Add a particle system component to the selected object
+     */
+    addParticleSystem(preset?: string): boolean {
+        const sel = this.context.getSelection();
+        if (sel.length === 0) return false;
+        const obj = sel[0] as any;
+        if (!obj._components) obj._components = [];
+
+        const presets: Record<string, any> = {
+            fire: { shape: 'cone', rate: 100, lifetime: 1.5, speed: 3, size: 0.3, color: [1, 0.4, 0], gravity: -0.5 },
+            smoke: { shape: 'sphere', rate: 30, lifetime: 4, speed: 1, size: 1.0, color: [0.5, 0.5, 0.5], gravity: -0.2 },
+            sparks: { shape: 'point', rate: 200, lifetime: 0.5, speed: 8, size: 0.05, color: [1, 0.8, 0.2], gravity: 2 },
+            rain: { shape: 'box', rate: 500, lifetime: 2, speed: 15, size: 0.02, color: [0.7, 0.8, 1], gravity: 9.8 },
+            snow: { shape: 'box', rate: 100, lifetime: 5, speed: 1, size: 0.1, color: [1, 1, 1], gravity: 0.5 }
+        };
+
+        const config = preset && presets[preset] ? presets[preset] : presets.fire;
+        obj._components.push({
+            type: 'particle',
+            enabled: true,
+            ...config
+        });
+        this.events.emit('selectionChanged', sel);
+        this.log(`Particle system added${preset ? ` (${preset})` : ''}`, 'success');
+        return true;
+    }
+
+    /**
+     * Get animation data for the selected object
+     */
+    getSelectedAnimation(): { clips: any[]; currentClip: string | null; isPlaying: boolean; currentTime: number } | null {
+        const sel = this.context.getSelection();
+        if (sel.length === 0) return null;
+        const obj = sel[0] as any;
+        return {
+            clips: obj.animationClips || [],
+            currentClip: obj.currentAnimClip || null,
+            isPlaying: obj.animPlaying || false,
+            currentTime: obj.animTime || 0
+        };
+    }
+
+    /**
+     * Add an animation clip to the selected object
+     */
+    addAnimationClip(name: string, duration: number = 1.0): boolean {
+        const sel = this.context.getSelection();
+        if (sel.length === 0) return false;
+        const obj = sel[0] as any;
+        if (!obj.animationClips) obj.animationClips = [];
+        obj.animationClips.push({
+            name,
+            duration,
+            frameRate: 30,
+            tracks: [],
+            loop: true
+        });
+        this.events.emit('selectionChanged', sel);
+        this.log(`Animation clip "${name}" added`, 'success');
+        return true;
+    }
+
+    /**
+     * Remove an animation clip from the selected object
+     */
+    removeAnimationClip(index: number): boolean {
+        const sel = this.context.getSelection();
+        if (sel.length === 0) return false;
+        const obj = sel[0] as any;
+        if (!obj.animationClips || index >= obj.animationClips.length) return false;
+        const removed = obj.animationClips.splice(index, 1);
+        this.events.emit('selectionChanged', sel);
+        this.log(`Animation clip "${removed[0]?.name}" removed`, 'info');
+        return true;
+    }
+
+    /**
+     * Get visual scripting graph for the selected object
+     */
+    getScriptGraph(): { nodes: any[]; connections: any[]; variables: any[] } | null {
+        const sel = this.context.getSelection();
+        if (sel.length === 0) return null;
+        const obj = sel[0] as any;
+        return {
+            nodes: obj.scriptNodes || [],
+            connections: obj.scriptConnections || [],
+            variables: obj.scriptVariables || []
+        };
+    }
+
+    /**
+     * Add a script node to the selected object's graph
+     */
+    addScriptNode(type: string, x: number = 100, y: number = 100): any {
+        const sel = this.context.getSelection();
+        if (sel.length === 0) return null;
+        const obj = sel[0] as any;
+        if (!obj.scriptNodes) obj.scriptNodes = [];
+
+        const nodeId = `node_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+        const node = { id: nodeId, type, x, y, properties: {} };
+        obj.scriptNodes.push(node);
+        this.events.emit('scriptGraphChanged', { object: obj });
+        this.log(`Script node "${type}" added`, 'info');
+        return node;
+    }
+
+    /**
+     * Remove a script node from the selected object's graph
+     */
+    removeScriptNode(nodeId: string): boolean {
+        const sel = this.context.getSelection();
+        if (sel.length === 0) return false;
+        const obj = sel[0] as any;
+        if (!obj.scriptNodes) return false;
+        const idx = obj.scriptNodes.findIndex((n: any) => n.id === nodeId);
+        if (idx === -1) return false;
+        obj.scriptNodes.splice(idx, 1);
+        // Also remove related connections
+        if (obj.scriptConnections) {
+            obj.scriptConnections = obj.scriptConnections.filter(
+                (c: any) => c.fromNode !== nodeId && c.toNode !== nodeId
+            );
+        }
+        this.events.emit('scriptGraphChanged', { object: obj });
+        return true;
+    }
+
+    /**
+     * Add a script variable to the selected object's graph
+     */
+    addScriptVariable(name: string, type: string = 'float', value: any = 0): boolean {
+        const sel = this.context.getSelection();
+        if (sel.length === 0) return false;
+        const obj = sel[0] as any;
+        if (!obj.scriptVariables) obj.scriptVariables = [];
+        obj.scriptVariables.push({ name, type, value });
+        this.events.emit('scriptGraphChanged', { object: obj });
+        this.log(`Script variable "${name}" added`, 'info');
+        return true;
+    }
+
     // ========== Cleanup ==========
 
     /**

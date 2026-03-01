@@ -1216,169 +1216,562 @@
                 </div>
                 <div class="panel-content" id="animation-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
                     <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">🎬 Animation Timeline</div>
+                    <!-- Playback Controls -->
+                    <div style="background: #333; border-radius: 4px; padding: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <button class="toolbar-btn" id="anim-btn-prev" title="Previous Frame" style="font-size: 12px; padding: 3px 6px;">⏮</button>
+                        <button class="toolbar-btn" id="anim-btn-play" title="Play/Pause" style="font-size: 14px; padding: 3px 8px; color: #4CAF50;">▶</button>
+                        <button class="toolbar-btn" id="anim-btn-stop" title="Stop" style="font-size: 12px; padding: 3px 6px;">⏹</button>
+                        <button class="toolbar-btn" id="anim-btn-next" title="Next Frame" style="font-size: 12px; padding: 3px 6px;">⏭</button>
+                        <div style="flex: 1; display: flex; align-items: center; gap: 6px; margin-left: 8px;">
+                            <span style="font-size: 10px; color: #888;">Frame:</span>
+                            <input type="number" id="anim-frame" value="0" min="0" max="100" style="width: 45px; padding: 2px 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px; text-align: center;">
+                            <span style="font-size: 10px; color: #666;">/</span>
+                            <span id="anim-total-frames" style="font-size: 10px; color: #888;">30</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span style="font-size: 10px; color: #888;">FPS:</span>
+                            <select id="anim-fps" style="padding: 2px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 10px;">
+                                <option value="24">24</option>
+                                <option value="30" selected>30</option>
+                                <option value="60">60</option>
+                            </select>
+                        </div>
+                        <label style="display: flex; align-items: center; gap: 3px; font-size: 10px; color: #888; cursor: pointer;">
+                            <input type="checkbox" id="anim-loop" checked> Loop
+                        </label>
+                    </div>
+                    <!-- Clips -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span style="font-size: 12px; color: #aaa;">Clips</span>
-                            <button class="panel-btn" title="Add Clip">+</button>
+                            <button class="panel-btn" id="anim-btn-add-clip" title="Add Clip">+</button>
                         </div>
-                        <div id="anim-clip-list" style="font-size: 12px; color: #888; font-style: italic;">No animation clips</div>
+                        <div id="anim-clip-list" style="font-size: 12px; color: #888; font-style: italic;">Select an object to manage clips</div>
                     </div>
+                    <!-- State Machine -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
-                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">State Machine</div>
-                        <div style="font-size: 12px; color: #888; font-style: italic;">No states defined</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; color: #aaa;">State Machine</span>
+                            <button class="panel-btn" id="anim-btn-add-state" title="Add State" style="font-size: 10px;">+ State</button>
+                        </div>
+                        <div id="anim-state-list" style="font-size: 12px; color: #888; font-style: italic;">No states defined</div>
                     </div>
+                    <!-- Timeline -->
                     <div style="background: #333; border-radius: 4px; padding: 10px;">
-                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Timeline</div>
-                        <div style="height: 60px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center;">
-                            <span style="font-size: 11px; color: #666;">Select an object with animation</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; color: #aaa;">Timeline</span>
+                            <div style="display: flex; gap: 4px;">
+                                <button class="panel-btn" id="anim-btn-add-keyframe" title="Add Keyframe" style="font-size: 10px;">◆+</button>
+                                <button class="panel-btn" id="anim-btn-del-keyframe" title="Delete Keyframe" style="font-size: 10px;">◆−</button>
+                            </div>
+                        </div>
+                        <!-- Timeline scrubber -->
+                        <div style="position: relative; height: 24px; background: #1a1a1a; border-radius: 3px; margin-bottom: 6px; overflow: hidden; cursor: pointer;" id="anim-timeline-scrubber">
+                            <div id="anim-scrubber-head" style="position: absolute; left: 0; top: 0; width: 2px; height: 100%; background: #4a9eff; pointer-events: none;"></div>
+                            <!-- Tick marks -->
+                            <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 8px; display: flex;">
+                                <div style="flex: 1; border-right: 1px solid #333;"></div>
+                                <div style="flex: 1; border-right: 1px solid #333;"></div>
+                                <div style="flex: 1; border-right: 1px solid #333;"></div>
+                                <div style="flex: 1; border-right: 1px solid #333;"></div>
+                                <div style="flex: 1;"></div>
+                            </div>
+                        </div>
+                        <!-- Track rows -->
+                        <div id="anim-tracks" style="min-height: 40px;">
+                            <div style="display: flex; align-items: center; height: 20px; border-bottom: 1px solid #2a2a2a;">
+                                <span style="width: 70px; font-size: 10px; color: #888; padding-left: 4px;">Position</span>
+                                <div style="flex: 1; height: 100%; background: #1a1a1a; position: relative;" id="anim-track-pos"></div>
+                            </div>
+                            <div style="display: flex; align-items: center; height: 20px; border-bottom: 1px solid #2a2a2a;">
+                                <span style="width: 70px; font-size: 10px; color: #888; padding-left: 4px;">Rotation</span>
+                                <div style="flex: 1; height: 100%; background: #1a1a1a; position: relative;" id="anim-track-rot"></div>
+                            </div>
+                            <div style="display: flex; align-items: center; height: 20px;">
+                                <span style="width: 70px; font-size: 10px; color: #888; padding-left: 4px;">Scale</span>
+                                <div style="flex: 1; height: 100%; background: #1a1a1a; position: relative;" id="anim-track-scale"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="panel-content" id="material-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
                     <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">🎨 Material Editor</div>
+                    <!-- Shader selector -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
                         <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Shader</div>
-                        <select style="width: 100%; padding: 5px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 12px;">
+                        <select id="mat-shader" style="width: 100%; padding: 5px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 12px;">
                             <option>Standard PBR</option>
                             <option>Unlit</option>
                             <option>Toon</option>
                             <option>Custom</option>
                         </select>
                     </div>
+                    <!-- Material Preview -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Preview</div>
+                        <div id="mat-preview" style="width: 100%; height: 60px; background: radial-gradient(circle at 35% 35%, #8ab4f8, #3d6ea5 50%, #1a3a5c); border-radius: 6px; border: 1px solid #444;"></div>
+                    </div>
+                    <!-- Albedo -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
                         <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Albedo</div>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="color" value="#6699cc" style="width: 30px; height: 24px; border: none; background: none; cursor: pointer;">
-                            <span style="font-size: 11px; color: #888;">#6699cc</span>
+                            <input type="color" id="mat-albedo" value="#6699cc" style="width: 30px; height: 24px; border: none; background: none; cursor: pointer;">
+                            <span id="mat-albedo-hex" style="font-size: 11px; color: #888;">#6699cc</span>
                         </div>
                     </div>
+                    <!-- Metallic -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
-                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Metallic</div>
-                        <input type="range" min="0" max="100" value="0" style="width: 100%;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Metallic</span>
+                            <span id="mat-metallic-val" style="font-size: 11px; color: #888;">0%</span>
+                        </div>
+                        <input type="range" id="mat-metallic" min="0" max="100" value="0" style="width: 100%; margin-top: 4px;">
                     </div>
+                    <!-- Roughness -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
-                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Roughness</div>
-                        <input type="range" min="0" max="100" value="50" style="width: 100%;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Roughness</span>
+                            <span id="mat-roughness-val" style="font-size: 11px; color: #888;">50%</span>
+                        </div>
+                        <input type="range" id="mat-roughness" min="0" max="100" value="50" style="width: 100%; margin-top: 4px;">
                     </div>
-                    <div style="background: #333; border-radius: 4px; padding: 10px;">
+                    <!-- Emission -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Emission</div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="color" id="mat-emission" value="#000000" style="width: 30px; height: 24px; border: none; background: none; cursor: pointer;">
+                            <input type="range" id="mat-emission-strength" min="0" max="100" value="0" style="flex: 1;">
+                            <span id="mat-emission-val" style="font-size: 11px; color: #888;">0%</span>
+                        </div>
+                    </div>
+                    <!-- Opacity -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Opacity</span>
+                            <span id="mat-opacity-val" style="font-size: 11px; color: #888;">100%</span>
+                        </div>
+                        <input type="range" id="mat-opacity" min="0" max="100" value="100" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Options -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">Options</div>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ccc; cursor: pointer;">
+                                <input type="checkbox" id="mat-two-sided"> Two-Sided
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ccc; cursor: pointer;">
+                                <input type="checkbox" id="mat-wireframe"> Wireframe Overlay
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ccc; cursor: pointer;">
+                                <input type="checkbox" id="mat-receive-shadows" checked> Receive Shadows
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Texture Maps -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
                         <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Texture Maps</div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                            <div style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer;">Albedo</div>
-                            <div style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer;">Normal</div>
-                            <div style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer;">Metallic</div>
-                            <div style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer;">Roughness</div>
+                            <div class="mat-tex-slot" data-slot="albedo" style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; border: 1px dashed #444;">Albedo</div>
+                            <div class="mat-tex-slot" data-slot="normal" style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; border: 1px dashed #444;">Normal</div>
+                            <div class="mat-tex-slot" data-slot="metallic" style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; border: 1px dashed #444;">Metallic</div>
+                            <div class="mat-tex-slot" data-slot="roughness" style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; border: 1px dashed #444;">Roughness</div>
+                            <div class="mat-tex-slot" data-slot="ao" style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; border: 1px dashed #444;">AO</div>
+                            <div class="mat-tex-slot" data-slot="emission" style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; border: 1px dashed #444;">Emission</div>
+                        </div>
+                        <div style="font-size: 10px; color: #555; margin-top: 6px; text-align: center;">Normal Map Scale</div>
+                        <input type="range" id="mat-normal-scale" min="0" max="200" value="100" style="width: 100%; margin-top: 2px;">
+                    </div>
+                    <!-- Presets -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Material Presets</div>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button class="toolbar-btn mat-preset-btn" data-preset="metal" style="font-size: 10px; padding: 3px 6px;">🔩 Metal</button>
+                            <button class="toolbar-btn mat-preset-btn" data-preset="wood" style="font-size: 10px; padding: 3px 6px;">🪵 Wood</button>
+                            <button class="toolbar-btn mat-preset-btn" data-preset="plastic" style="font-size: 10px; padding: 3px 6px;">🧴 Plastic</button>
+                            <button class="toolbar-btn mat-preset-btn" data-preset="glass" style="font-size: 10px; padding: 3px 6px;">🪟 Glass</button>
+                            <button class="toolbar-btn mat-preset-btn" data-preset="stone" style="font-size: 10px; padding: 3px 6px;">🪨 Stone</button>
+                            <button class="toolbar-btn mat-preset-btn" data-preset="fabric" style="font-size: 10px; padding: 3px 6px;">🧵 Fabric</button>
                         </div>
                     </div>
                 </div>
                 <div class="panel-content" id="terrain-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
                     <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">🏔️ Terrain Tools</div>
+                    <!-- Create Terrain button -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
-                        <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">Brush Tool</div>
-                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                            <button class="toolbar-btn active" style="font-size: 11px; padding: 4px 8px;">Raise</button>
-                            <button class="toolbar-btn" style="font-size: 11px; padding: 4px 8px;">Lower</button>
-                            <button class="toolbar-btn" style="font-size: 11px; padding: 4px 8px;">Smooth</button>
-                            <button class="toolbar-btn" style="font-size: 11px; padding: 4px 8px;">Flatten</button>
-                            <button class="toolbar-btn" style="font-size: 11px; padding: 4px 8px;">Paint</button>
+                        <button id="terrain-btn-create" style="width: 100%; padding: 8px; background: #4a9eff; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">+ Create Terrain</button>
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Width</div>
+                                <input type="number" id="terrain-width" value="100" min="10" max="1000" step="10" style="width: 100%; padding: 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Depth</div>
+                                <input type="number" id="terrain-depth" value="100" min="10" max="1000" step="10" style="width: 100%; padding: 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Resolution</div>
+                                <select id="terrain-res" style="width: 100%; padding: 4px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 11px;">
+                                    <option value="32">32</option>
+                                    <option value="64" selected>64</option>
+                                    <option value="128">128</option>
+                                    <option value="256">256</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
+                    <!-- Brush Tool -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
-                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Brush Size</div>
-                        <input type="range" min="1" max="50" value="10" style="width: 100%;">
-                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px; margin-top: 8px;">Brush Strength</div>
-                        <input type="range" min="1" max="100" value="50" style="width: 100%;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">Brush Tool</div>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;" id="terrain-tools">
+                            <button class="toolbar-btn active terrain-tool-btn" data-tool="raise" style="font-size: 11px; padding: 4px 8px;">⬆ Raise</button>
+                            <button class="toolbar-btn terrain-tool-btn" data-tool="lower" style="font-size: 11px; padding: 4px 8px;">⬇ Lower</button>
+                            <button class="toolbar-btn terrain-tool-btn" data-tool="smooth" style="font-size: 11px; padding: 4px 8px;">〰 Smooth</button>
+                            <button class="toolbar-btn terrain-tool-btn" data-tool="flatten" style="font-size: 11px; padding: 4px 8px;">━ Flatten</button>
+                            <button class="toolbar-btn terrain-tool-btn" data-tool="paint" style="font-size: 11px; padding: 4px 8px;">🎨 Paint</button>
+                            <button class="toolbar-btn terrain-tool-btn" data-tool="erosion" style="font-size: 11px; padding: 4px 8px;">🌊 Erosion</button>
+                            <button class="toolbar-btn terrain-tool-btn" data-tool="scatter" style="font-size: 11px; padding: 4px 8px;">🌿 Scatter</button>
+                        </div>
                     </div>
+                    <!-- Brush Settings -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Brush Size</span>
+                            <span id="terrain-size-val" style="font-size: 11px; color: #888;">10</span>
+                        </div>
+                        <input type="range" id="terrain-brush-size" min="1" max="50" value="10" style="width: 100%; margin-top: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 12px; color: #aaa;">Brush Strength</span>
+                            <span id="terrain-strength-val" style="font-size: 11px; color: #888;">50%</span>
+                        </div>
+                        <input type="range" id="terrain-brush-strength" min="1" max="100" value="50" style="width: 100%; margin-top: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 12px; color: #aaa;">Falloff</span>
+                            <span id="terrain-falloff-val" style="font-size: 11px; color: #888;">80%</span>
+                        </div>
+                        <input type="range" id="terrain-falloff" min="0" max="100" value="80" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Terrain Layers -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; color: #aaa;">Terrain Layers</span>
+                            <button class="panel-btn" id="terrain-btn-add-layer" title="Add Layer">+</button>
+                        </div>
+                        <div id="terrain-layer-list">
+                            <div class="terrain-layer-item" style="display: flex; align-items: center; gap: 6px; padding: 4px; background: #2a2a2a; border-radius: 3px; margin-bottom: 4px; cursor: pointer; border: 1px solid #4a9eff;">
+                                <div style="width: 20px; height: 20px; background: #5a8a3a; border-radius: 2px;"></div>
+                                <span style="font-size: 11px; color: #ddd; flex: 1;">Grass</span>
+                            </div>
+                            <div class="terrain-layer-item" style="display: flex; align-items: center; gap: 6px; padding: 4px; background: #2a2a2a; border-radius: 3px; margin-bottom: 4px; cursor: pointer;">
+                                <div style="width: 20px; height: 20px; background: #8a7a5a; border-radius: 2px;"></div>
+                                <span style="font-size: 11px; color: #ddd; flex: 1;">Dirt</span>
+                            </div>
+                            <div class="terrain-layer-item" style="display: flex; align-items: center; gap: 6px; padding: 4px; background: #2a2a2a; border-radius: 3px; cursor: pointer;">
+                                <div style="width: 20px; height: 20px; background: #6a6a6a; border-radius: 2px;"></div>
+                                <span style="font-size: 11px; color: #ddd; flex: 1;">Rock</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Heightmap -->
                     <div style="background: #333; border-radius: 4px; padding: 10px;">
-                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Terrain Layers</div>
-                        <div style="font-size: 12px; color: #888; font-style: italic;">No terrain in scene</div>
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Heightmap</div>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="toolbar-btn" id="terrain-btn-import-hm" style="font-size: 10px; padding: 3px 6px; flex: 1;">📥 Import</button>
+                            <button class="toolbar-btn" id="terrain-btn-export-hm" style="font-size: 10px; padding: 3px 6px; flex: 1;">📤 Export</button>
+                            <button class="toolbar-btn" id="terrain-btn-flatten-all" style="font-size: 10px; padding: 3px 6px; flex: 1;">⏚ Reset</button>
+                        </div>
                     </div>
                 </div>
                 <div class="panel-content" id="audio-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
                     <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">🎵 Audio</div>
+                    <!-- Audio Source on selected -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
-                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Audio Sources</div>
-                        <div style="font-size: 12px; color: #888; font-style: italic;">No audio sources in scene</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; color: #aaa;">Audio Source</span>
+                            <button class="panel-btn" id="audio-btn-add-source" title="Add Audio Source to Selected">+</button>
+                        </div>
+                        <div id="audio-source-info" style="font-size: 12px; color: #888; font-style: italic;">Select an object to add audio</div>
                     </div>
+                    <!-- Clip -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
-                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Master Volume</div>
-                        <input type="range" min="0" max="100" value="100" style="width: 100%;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Audio Clip</div>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <div id="audio-clip-name" style="flex: 1; padding: 5px; background: #1a1a1a; border: 1px dashed #444; border-radius: 3px; font-size: 11px; color: #666; text-align: center; cursor: pointer;">Drop audio file here</div>
+                            <button class="toolbar-btn" id="audio-btn-preview" title="Preview" style="font-size: 14px; padding: 2px 6px;">▶</button>
+                        </div>
                     </div>
+                    <!-- Volume -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Volume</span>
+                            <span id="audio-volume-val" style="font-size: 11px; color: #888;">100%</span>
+                        </div>
+                        <input type="range" id="audio-volume" min="0" max="100" value="100" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Spatial Audio -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">Spatial Audio</div>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ccc; cursor: pointer; margin-bottom: 6px;">
+                            <input type="checkbox" id="audio-spatial" checked> Enable 3D Spatial
+                        </label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Min Distance</div>
+                                <input type="number" id="audio-min-dist" value="1" min="0" step="0.5" style="width: 100%; padding: 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Max Distance</div>
+                                <input type="number" id="audio-max-dist" value="50" min="1" step="1" style="width: 100%; padding: 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px;">
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 11px; color: #aaa;">Rolloff</span>
+                        </div>
+                        <select id="audio-rolloff" style="width: 100%; padding: 4px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 11px; margin-top: 4px;">
+                            <option>Linear</option>
+                            <option selected>Logarithmic</option>
+                            <option>Custom Curve</option>
+                        </select>
+                    </div>
+                    <!-- Playback Options -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">Playback</div>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ccc; cursor: pointer;">
+                                <input type="checkbox" id="audio-loop"> Loop
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ccc; cursor: pointer;">
+                                <input type="checkbox" id="audio-play-on-awake" checked> Play On Awake
+                            </label>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 11px; color: #aaa;">Pitch</span>
+                            <span id="audio-pitch-val" style="font-size: 11px; color: #888;">1.0</span>
+                        </div>
+                        <input type="range" id="audio-pitch" min="10" max="300" value="100" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Master Volume -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Master Volume</span>
+                            <span id="audio-master-val" style="font-size: 11px; color: #888;">100%</span>
+                        </div>
+                        <input type="range" id="audio-master" min="0" max="100" value="100" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Audio Buses -->
                     <div style="background: #333; border-radius: 4px; padding: 10px;">
                         <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Audio Buses</div>
-                        <div style="font-size: 11px; display: flex; flex-direction: column; gap: 4px;">
-                            <div style="display: flex; justify-content: space-between; color: #ccc;"><span>Master</span><span>100%</span></div>
-                            <div style="display: flex; justify-content: space-between; color: #ccc;"><span>Music</span><span>80%</span></div>
-                            <div style="display: flex; justify-content: space-between; color: #ccc;"><span>SFX</span><span>100%</span></div>
-                            <div style="display: flex; justify-content: space-between; color: #ccc;"><span>Ambient</span><span>60%</span></div>
+                        <div style="font-size: 11px; display: flex; flex-direction: column; gap: 6px;" id="audio-buses">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="width: 50px; color: #ccc;">Master</span>
+                                <input type="range" min="0" max="100" value="100" style="flex: 1;" class="audio-bus-slider" data-bus="master">
+                                <span style="width: 30px; text-align: right; color: #888; font-size: 10px;">100%</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="width: 50px; color: #ccc;">Music</span>
+                                <input type="range" min="0" max="100" value="80" style="flex: 1;" class="audio-bus-slider" data-bus="music">
+                                <span style="width: 30px; text-align: right; color: #888; font-size: 10px;">80%</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="width: 50px; color: #ccc;">SFX</span>
+                                <input type="range" min="0" max="100" value="100" style="flex: 1;" class="audio-bus-slider" data-bus="sfx">
+                                <span style="width: 30px; text-align: right; color: #888; font-size: 10px;">100%</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="width: 50px; color: #ccc;">Ambient</span>
+                                <input type="range" min="0" max="100" value="60" style="flex: 1;" class="audio-bus-slider" data-bus="ambient">
+                                <span style="width: 30px; text-align: right; color: #888; font-size: 10px;">60%</span>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="panel-content" id="particles-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
                     <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">✨ Particle System</div>
+                    <!-- Add to selected -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <button id="particle-btn-add" style="width: 100%; padding: 8px; background: #4a9eff; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">+ Add Particle System</button>
+                    </div>
+                    <!-- Emitter Shape -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
                         <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Emitter Shape</div>
-                        <select style="width: 100%; padding: 5px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 12px;">
-                            <option>Point</option>
-                            <option>Sphere</option>
-                            <option>Box</option>
-                            <option>Cone</option>
-                            <option>Circle</option>
+                        <select id="particle-shape" style="width: 100%; padding: 5px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 12px;">
+                            <option value="point">Point</option>
+                            <option value="sphere">Sphere</option>
+                            <option value="box">Box</option>
+                            <option value="cone" selected>Cone</option>
+                            <option value="circle">Circle</option>
+                            <option value="edge">Edge</option>
                         </select>
                     </div>
+                    <!-- Emission -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
-                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Emission Rate</div>
-                        <input type="range" min="1" max="500" value="50" style="width: 100%;">
-                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px; margin-top: 8px;">Lifetime</div>
-                        <input type="range" min="1" max="100" value="20" style="width: 100%;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Emission Rate</span>
+                            <span id="particle-rate-val" style="font-size: 11px; color: #888;">50/s</span>
+                        </div>
+                        <input type="range" id="particle-rate" min="1" max="500" value="50" style="width: 100%; margin-top: 4px;">
                     </div>
+                    <!-- Lifetime -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Lifetime</span>
+                            <span id="particle-lifetime-val" style="font-size: 11px; color: #888;">2.0s</span>
+                        </div>
+                        <input type="range" id="particle-lifetime" min="1" max="100" value="20" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Speed -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Start Speed</span>
+                            <span id="particle-speed-val" style="font-size: 11px; color: #888;">5.0</span>
+                        </div>
+                        <input type="range" id="particle-speed" min="0" max="200" value="50" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Size over lifetime -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Start Size</span>
+                            <span id="particle-size-val" style="font-size: 11px; color: #888;">0.30</span>
+                        </div>
+                        <input type="range" id="particle-size" min="1" max="100" value="30" style="width: 100%; margin-top: 4px;">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 10px; color: #888; cursor: pointer; margin-top: 6px;">
+                            <input type="checkbox" id="particle-size-over-life"> Size over lifetime
+                        </label>
+                    </div>
+                    <!-- Color -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Color Gradient</div>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <span style="font-size: 10px; color: #888;">Start:</span>
+                            <input type="color" id="particle-color-start" value="#ff6600" style="width: 24px; height: 20px; border: none; background: none; cursor: pointer;">
+                            <span style="font-size: 10px; color: #888;">End:</span>
+                            <input type="color" id="particle-color-end" value="#ff0000" style="width: 24px; height: 20px; border: none; background: none; cursor: pointer;">
+                        </div>
+                        <!-- Gradient preview -->
+                        <div id="particle-gradient-preview" style="height: 12px; margin-top: 6px; border-radius: 2px; background: linear-gradient(to right, #ff6600, #ff0000);"></div>
+                    </div>
+                    <!-- Physics -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">Physics</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 11px; color: #aaa;">Gravity</span>
+                            <span id="particle-gravity-val" style="font-size: 11px; color: #888;">0.0</span>
+                        </div>
+                        <input type="range" id="particle-gravity" min="-100" max="100" value="0" style="width: 100%; margin-top: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 11px; color: #aaa;">Turbulence</span>
+                            <span id="particle-turbulence-val" style="font-size: 11px; color: #888;">0.0</span>
+                        </div>
+                        <input type="range" id="particle-turbulence" min="0" max="100" value="0" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Burst -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; color: #aaa;">Bursts</span>
+                            <button class="panel-btn" id="particle-btn-add-burst" title="Add Burst">+</button>
+                        </div>
+                        <div id="particle-burst-list" style="font-size: 11px; color: #888; font-style: italic;">No bursts configured</div>
+                    </div>
+                    <!-- Rendering -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Rendering</div>
+                        <div style="display: flex; gap: 8px;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Blend Mode</div>
+                                <select id="particle-blend" style="width: 100%; padding: 4px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 11px;">
+                                    <option>Additive</option>
+                                    <option>Alpha Blend</option>
+                                    <option>Multiply</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Space</div>
+                                <select id="particle-space" style="width: 100%; padding: 4px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 11px;">
+                                    <option>World</option>
+                                    <option>Local</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 11px; color: #aaa;">Max Particles</span>
+                            <input type="number" id="particle-max" value="1000" min="1" max="100000" style="width: 70px; padding: 3px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px; text-align: center;">
+                        </div>
+                    </div>
+                    <!-- Presets -->
                     <div style="background: #333; border-radius: 4px; padding: 10px;">
                         <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Presets</div>
-                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                            <button class="toolbar-btn" style="font-size: 10px; padding: 3px 6px;">🔥 Fire</button>
-                            <button class="toolbar-btn" style="font-size: 10px; padding: 3px 6px;">💨 Smoke</button>
-                            <button class="toolbar-btn" style="font-size: 10px; padding: 3px 6px;">✨ Sparks</button>
-                            <button class="toolbar-btn" style="font-size: 10px; padding: 3px 6px;">🌧️ Rain</button>
-                            <button class="toolbar-btn" style="font-size: 10px; padding: 3px 6px;">❄️ Snow</button>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button class="toolbar-btn particle-preset-btn" data-preset="fire" style="font-size: 10px; padding: 3px 6px;">🔥 Fire</button>
+                            <button class="toolbar-btn particle-preset-btn" data-preset="smoke" style="font-size: 10px; padding: 3px 6px;">💨 Smoke</button>
+                            <button class="toolbar-btn particle-preset-btn" data-preset="sparks" style="font-size: 10px; padding: 3px 6px;">✨ Sparks</button>
+                            <button class="toolbar-btn particle-preset-btn" data-preset="rain" style="font-size: 10px; padding: 3px 6px;">🌧️ Rain</button>
+                            <button class="toolbar-btn particle-preset-btn" data-preset="snow" style="font-size: 10px; padding: 3px 6px;">❄️ Snow</button>
+                            <button class="toolbar-btn particle-preset-btn" data-preset="explosion" style="font-size: 10px; padding: 3px 6px;">💥 Explosion</button>
                         </div>
                     </div>
                 </div>
                 <div class="panel-content" id="scripting-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
                     <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">📜 Visual Scripting</div>
+                    <!-- Script management -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span style="font-size: 12px; color: #aaa;">Scripts</span>
-                            <button class="panel-btn" id="btn-new-script" title="New Script">+</button>
+                            <button class="panel-btn" id="script-btn-new" title="New Script">+</button>
                         </div>
-                        <div id="script-list" style="font-size: 12px; color: #888; font-style: italic;">No scripts attached</div>
+                        <div id="script-list" style="font-size: 12px; color: #888; font-style: italic;">Select an object to manage scripts</div>
                     </div>
+                    <!-- Node Categories -->
                     <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
                         <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Node Categories</div>
-                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                            <span style="padding: 3px 8px; background: #4a9eff33; border: 1px solid #4a9eff; border-radius: 3px; font-size: 10px; color: #4a9eff; cursor: pointer;">Events</span>
-                            <span style="padding: 3px 8px; background: #4CAF5033; border: 1px solid #4CAF50; border-radius: 3px; font-size: 10px; color: #4CAF50; cursor: pointer;">Flow</span>
-                            <span style="padding: 3px 8px; background: #FF980033; border: 1px solid #FF9800; border-radius: 3px; font-size: 10px; color: #FF9800; cursor: pointer;">Math</span>
-                            <span style="padding: 3px 8px; background: #E91E6333; border: 1px solid #E91E63; border-radius: 3px; font-size: 10px; color: #E91E63; cursor: pointer;">Physics</span>
-                            <span style="padding: 3px 8px; background: #9C27B033; border: 1px solid #9C27B0; border-radius: 3px; font-size: 10px; color: #9C27B0; cursor: pointer;">Input</span>
-                            <span style="padding: 3px 8px; background: #00BCD433; border: 1px solid #00BCD4; border-radius: 3px; font-size: 10px; color: #00BCD4; cursor: pointer;">Audio</span>
-                            <span style="padding: 3px 8px; background: #FFEB3B33; border: 1px solid #FFEB3B; border-radius: 3px; font-size: 10px; color: #FFEB3B; cursor: pointer;">Animation</span>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;" id="script-node-categories">
+                            <span class="script-category-btn" data-category="events" style="padding: 3px 8px; background: #4a9eff33; border: 1px solid #4a9eff; border-radius: 3px; font-size: 10px; color: #4a9eff; cursor: pointer;">Events</span>
+                            <span class="script-category-btn" data-category="flow" style="padding: 3px 8px; background: #4CAF5033; border: 1px solid #4CAF50; border-radius: 3px; font-size: 10px; color: #4CAF50; cursor: pointer;">Flow</span>
+                            <span class="script-category-btn" data-category="math" style="padding: 3px 8px; background: #FF980033; border: 1px solid #FF9800; border-radius: 3px; font-size: 10px; color: #FF9800; cursor: pointer;">Math</span>
+                            <span class="script-category-btn" data-category="physics" style="padding: 3px 8px; background: #E91E6333; border: 1px solid #E91E63; border-radius: 3px; font-size: 10px; color: #E91E63; cursor: pointer;">Physics</span>
+                            <span class="script-category-btn" data-category="input" style="padding: 3px 8px; background: #9C27B033; border: 1px solid #9C27B0; border-radius: 3px; font-size: 10px; color: #9C27B0; cursor: pointer;">Input</span>
+                            <span class="script-category-btn" data-category="audio" style="padding: 3px 8px; background: #00BCD433; border: 1px solid #00BCD4; border-radius: 3px; font-size: 10px; color: #00BCD4; cursor: pointer;">Audio</span>
+                            <span class="script-category-btn" data-category="animation" style="padding: 3px 8px; background: #FFEB3B33; border: 1px solid #FFEB3B; border-radius: 3px; font-size: 10px; color: #FFEB3B; cursor: pointer;">Animation</span>
+                            <span class="script-category-btn" data-category="transform" style="padding: 3px 8px; background: #8BC34A33; border: 1px solid #8BC34A; border-radius: 3px; font-size: 10px; color: #8BC34A; cursor: pointer;">Transform</span>
                         </div>
                     </div>
-                    <div style="background: #1a1a1a; border-radius: 4px; padding: 10px; min-height: 120px; position: relative; border: 1px dashed #444;">
-                        <div style="font-size: 11px; color: #555; text-align: center; margin-top: 40px;">
-                            Drag nodes here to create visual scripts<br>
-                            <span style="font-size: 10px; color: #444;">Right-click for node menu</span>
+                    <!-- Node Canvas -->
+                    <div style="background: #1a1a1a; border-radius: 4px; padding: 0; min-height: 180px; position: relative; border: 1px solid #444; overflow: hidden;" id="script-canvas">
+                        <!-- Toolbar overlay -->
+                        <div style="position: absolute; top: 4px; right: 4px; display: flex; gap: 3px; z-index: 2;">
+                            <button class="toolbar-btn" id="script-btn-compile" title="Compile" style="font-size: 10px; padding: 2px 6px; background: #4CAF50; color: white;">▶ Run</button>
+                            <button class="toolbar-btn" id="script-btn-zoom-in" title="Zoom In" style="font-size: 10px; padding: 2px 6px;">+</button>
+                            <button class="toolbar-btn" id="script-btn-zoom-out" title="Zoom Out" style="font-size: 10px; padding: 2px 6px;">−</button>
+                            <button class="toolbar-btn" id="script-btn-fit" title="Fit to View" style="font-size: 10px; padding: 2px 6px;">⊞</button>
+                        </div>
+                        <!-- Grid background -->
+                        <div style="width: 100%; height: 180px; background-image: radial-gradient(circle, #333 1px, transparent 1px); background-size: 20px 20px; position: relative;" id="script-graph-area">
+                            <div id="script-nodes-container" style="position: relative; width: 100%; height: 100%;"></div>
+                            <div id="script-canvas-placeholder" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #555; pointer-events: none;">
+                                Click a node below to add it to the graph
+                            </div>
                         </div>
                     </div>
-                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-top: 10px;">
+                    <!-- Variables -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-top: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; color: #aaa;">Variables</span>
+                            <button class="panel-btn" id="script-btn-add-var" title="Add Variable">+</button>
+                        </div>
+                        <div id="script-var-list" style="font-size: 11px; color: #888; font-style: italic;">No variables defined</div>
+                    </div>
+                    <!-- Quick Nodes -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px;">
                         <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Quick Nodes</div>
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <div style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4a9eff;">🔵 On Start</div>
-                            <div style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4a9eff;">🔵 On Update</div>
-                            <div style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4CAF50;">🟢 Branch (If/Else)</div>
-                            <div style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4CAF50;">🟢 For Loop</div>
-                            <div style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #FF9800;">🟠 Set Position</div>
-                            <div style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #E91E63;">🔴 Apply Force</div>
-                            <div style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #9C27B0;">🟣 Get Key Down</div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;" id="script-quick-nodes">
+                            <div class="script-quick-node" data-node="OnStart" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4a9eff;">🔵 On Start</div>
+                            <div class="script-quick-node" data-node="OnUpdate" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4a9eff;">🔵 On Update</div>
+                            <div class="script-quick-node" data-node="OnCollision" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4a9eff;">🔵 On Collision</div>
+                            <div class="script-quick-node" data-node="Branch" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4CAF50;">🟢 Branch (If/Else)</div>
+                            <div class="script-quick-node" data-node="ForLoop" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4CAF50;">🟢 For Loop</div>
+                            <div class="script-quick-node" data-node="SetPosition" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #FF9800;">🟠 Set Position</div>
+                            <div class="script-quick-node" data-node="ApplyForce" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #E91E63;">🔴 Apply Force</div>
+                            <div class="script-quick-node" data-node="GetKeyDown" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #9C27B0;">🟣 Get Key Down</div>
+                            <div class="script-quick-node" data-node="PlaySound" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #00BCD4;">🔵 Play Sound</div>
+                            <div class="script-quick-node" data-node="Print" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #8BC34A;">🟢 Print / Log</div>
                         </div>
                     </div>
                 </div>
@@ -1766,6 +2159,7 @@
                 this.setupEditorEvents();
                 this.setupToolbarEvents();
                 this.setupPanelEvents();
+                this.setupPanelInteractions();
                 this.setupContextMenu();
                 this.setupKeyboardShortcuts();
                 
@@ -2092,6 +2486,426 @@
                         this.currentDragType = null;
                     });
                 }
+            }
+
+            // =============== PANEL INTERACTIONS ===============
+            setupPanelInteractions() {
+                this.setupMaterialPanel();
+                this.setupTerrainPanel();
+                this.setupAudioPanel();
+                this.setupParticlePanel();
+                this.setupAnimationPanel();
+                this.setupScriptingPanel();
+            }
+
+            setupMaterialPanel() {
+                const albedo = document.getElementById('mat-albedo');
+                const metallic = document.getElementById('mat-metallic');
+                const roughness = document.getElementById('mat-roughness');
+                const emission = document.getElementById('mat-emission');
+                const emissionStrength = document.getElementById('mat-emission-strength');
+                const opacity = document.getElementById('mat-opacity');
+                const shader = document.getElementById('mat-shader');
+                const preview = document.getElementById('mat-preview');
+
+                const updatePreview = () => {
+                    const c = albedo?.value || '#6699cc';
+                    const m = (metallic?.value || 0) / 100;
+                    const r = (roughness?.value || 50) / 100;
+                    const highlight = m > 0.5 ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)';
+                    const spread = 30 + r * 40;
+                    preview.style.background = `radial-gradient(circle at 35% 35%, ${highlight}, ${c} ${spread}%, #111)`;
+                };
+
+                if (albedo) {
+                    albedo.oninput = () => {
+                        document.getElementById('mat-albedo-hex').textContent = albedo.value;
+                        this.editor.setMaterialProperty('color', this.hexToRgb(albedo.value));
+                        updatePreview();
+                    };
+                }
+                if (metallic) {
+                    metallic.oninput = () => {
+                        document.getElementById('mat-metallic-val').textContent = metallic.value + '%';
+                        this.editor.setMaterialProperty('metallic', metallic.value / 100);
+                        updatePreview();
+                    };
+                }
+                if (roughness) {
+                    roughness.oninput = () => {
+                        document.getElementById('mat-roughness-val').textContent = roughness.value + '%';
+                        this.editor.setMaterialProperty('roughness', roughness.value / 100);
+                        updatePreview();
+                    };
+                }
+                if (emission) {
+                    emission.oninput = () => { this.editor.setMaterialProperty('emission', this.hexToRgb(emission.value)); };
+                }
+                if (emissionStrength) {
+                    emissionStrength.oninput = () => {
+                        document.getElementById('mat-emission-val').textContent = emissionStrength.value + '%';
+                    };
+                }
+                if (opacity) {
+                    opacity.oninput = () => {
+                        document.getElementById('mat-opacity-val').textContent = opacity.value + '%';
+                        this.editor.setMaterialProperty('opacity', opacity.value / 100);
+                    };
+                }
+                if (shader) {
+                    shader.onchange = () => { this.editor.setMaterialProperty('shader', shader.value); };
+                }
+
+                // Presets
+                document.querySelectorAll('.mat-preset-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        const presets = {
+                            metal: { albedo: '#aaaaaa', metallic: 90, roughness: 20 },
+                            wood: { albedo: '#8B6914', metallic: 0, roughness: 80 },
+                            plastic: { albedo: '#cc3333', metallic: 0, roughness: 40 },
+                            glass: { albedo: '#aaddff', metallic: 10, roughness: 5, opacity: 30 },
+                            stone: { albedo: '#888888', metallic: 0, roughness: 90 },
+                            fabric: { albedo: '#445566', metallic: 0, roughness: 95 },
+                        };
+                        const p = presets[btn.dataset.preset];
+                        if (!p) return;
+                        if (albedo) { albedo.value = p.albedo; albedo.dispatchEvent(new Event('input')); }
+                        if (metallic) { metallic.value = p.metallic; metallic.dispatchEvent(new Event('input')); }
+                        if (roughness) { roughness.value = p.roughness; roughness.dispatchEvent(new Event('input')); }
+                        if (p.opacity !== undefined && opacity) { opacity.value = p.opacity; opacity.dispatchEvent(new Event('input')); }
+                        this.log(`Material preset: ${btn.dataset.preset}`, 'info');
+                    };
+                });
+            }
+
+            setupTerrainPanel() {
+                // Create terrain
+                document.getElementById('terrain-btn-create')?.addEventListener('click', () => {
+                    const w = parseInt(document.getElementById('terrain-width')?.value) || 100;
+                    const d = parseInt(document.getElementById('terrain-depth')?.value) || 100;
+                    const r = parseInt(document.getElementById('terrain-res')?.value) || 64;
+                    this.editor.createTerrain(w, d, r);
+                    this.updateHierarchy();
+                });
+
+                // Tool buttons
+                document.querySelectorAll('.terrain-tool-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        document.querySelectorAll('.terrain-tool-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.log(`Terrain tool: ${btn.dataset.tool}`, 'info');
+                    };
+                });
+
+                // Slider value displays
+                const brushSize = document.getElementById('terrain-brush-size');
+                const brushStrength = document.getElementById('terrain-brush-strength');
+                const falloff = document.getElementById('terrain-falloff');
+                if (brushSize) brushSize.oninput = () => { document.getElementById('terrain-size-val').textContent = brushSize.value; };
+                if (brushStrength) brushStrength.oninput = () => { document.getElementById('terrain-strength-val').textContent = brushStrength.value + '%'; };
+                if (falloff) falloff.oninput = () => { document.getElementById('terrain-falloff-val').textContent = falloff.value + '%'; };
+
+                // Heightmap buttons
+                document.getElementById('terrain-btn-flatten-all')?.addEventListener('click', () => {
+                    this.log('Terrain reset to flat', 'info');
+                });
+            }
+
+            setupAudioPanel() {
+                // Add audio source
+                document.getElementById('audio-btn-add-source')?.addEventListener('click', () => {
+                    this.editor.addAudioSource();
+                });
+
+                // Volume display
+                const vol = document.getElementById('audio-volume');
+                if (vol) vol.oninput = () => { document.getElementById('audio-volume-val').textContent = vol.value + '%'; };
+                
+                const master = document.getElementById('audio-master');
+                if (master) master.oninput = () => { document.getElementById('audio-master-val').textContent = master.value + '%'; };
+
+                const pitch = document.getElementById('audio-pitch');
+                if (pitch) pitch.oninput = () => { document.getElementById('audio-pitch-val').textContent = (pitch.value / 100).toFixed(1); };
+
+                // Bus sliders
+                document.querySelectorAll('.audio-bus-slider').forEach(slider => {
+                    slider.oninput = () => {
+                        const label = slider.parentElement.querySelector('span:last-child');
+                        if (label) label.textContent = slider.value + '%';
+                    };
+                });
+            }
+
+            setupParticlePanel() {
+                // Add particle system
+                document.getElementById('particle-btn-add')?.addEventListener('click', () => {
+                    this.editor.addParticleSystem();
+                });
+
+                // Slider displays
+                const rate = document.getElementById('particle-rate');
+                const lifetime = document.getElementById('particle-lifetime');
+                const speed = document.getElementById('particle-speed');
+                const size = document.getElementById('particle-size');
+                const gravity = document.getElementById('particle-gravity');
+                const turbulence = document.getElementById('particle-turbulence');
+
+                if (rate) rate.oninput = () => { document.getElementById('particle-rate-val').textContent = rate.value + '/s'; };
+                if (lifetime) lifetime.oninput = () => { document.getElementById('particle-lifetime-val').textContent = (lifetime.value / 10).toFixed(1) + 's'; };
+                if (speed) speed.oninput = () => { document.getElementById('particle-speed-val').textContent = (speed.value / 10).toFixed(1); };
+                if (size) size.oninput = () => { document.getElementById('particle-size-val').textContent = (size.value / 100).toFixed(2); };
+                if (gravity) gravity.oninput = () => { document.getElementById('particle-gravity-val').textContent = (gravity.value / 10).toFixed(1); };
+                if (turbulence) turbulence.oninput = () => { document.getElementById('particle-turbulence-val').textContent = (turbulence.value / 10).toFixed(1); };
+
+                // Color gradient preview
+                const startColor = document.getElementById('particle-color-start');
+                const endColor = document.getElementById('particle-color-end');
+                const gradPreview = document.getElementById('particle-gradient-preview');
+                const updateGradient = () => {
+                    if (gradPreview && startColor && endColor) {
+                        gradPreview.style.background = `linear-gradient(to right, ${startColor.value}, ${endColor.value})`;
+                    }
+                };
+                if (startColor) startColor.oninput = updateGradient;
+                if (endColor) endColor.oninput = updateGradient;
+
+                // Presets
+                document.querySelectorAll('.particle-preset-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        this.editor.addParticleSystem(btn.dataset.preset);
+                        const presetSettings = {
+                            fire: { rate: 100, lifetime: 15, speed: 30, gravity: -5, startColor: '#ff6600', endColor: '#ff0000' },
+                            smoke: { rate: 30, lifetime: 40, speed: 10, gravity: -2, startColor: '#888888', endColor: '#333333' },
+                            sparks: { rate: 200, lifetime: 5, speed: 80, gravity: 20, startColor: '#ffcc00', endColor: '#ff6600' },
+                            rain: { rate: 500, lifetime: 20, speed: 150, gravity: 98, startColor: '#aaccff', endColor: '#6699cc' },
+                            snow: { rate: 100, lifetime: 50, speed: 10, gravity: 5, startColor: '#ffffff', endColor: '#ccccff' },
+                            explosion: { rate: 300, lifetime: 8, speed: 100, gravity: 10, startColor: '#ffaa00', endColor: '#ff0000' },
+                        };
+                        const p = presetSettings[btn.dataset.preset];
+                        if (p) {
+                            if (rate) { rate.value = p.rate; rate.dispatchEvent(new Event('input')); }
+                            if (lifetime) { lifetime.value = p.lifetime; lifetime.dispatchEvent(new Event('input')); }
+                            if (speed) { speed.value = p.speed; speed.dispatchEvent(new Event('input')); }
+                            if (gravity) { gravity.value = p.gravity; gravity.dispatchEvent(new Event('input')); }
+                            if (startColor) { startColor.value = p.startColor; }
+                            if (endColor) { endColor.value = p.endColor; }
+                            updateGradient();
+                        }
+                    };
+                });
+            }
+
+            setupAnimationPanel() {
+                let animPlaying = false;
+                let animFrame = 0;
+                let animInterval = null;
+
+                const playBtn = document.getElementById('anim-btn-play');
+                const stopBtn = document.getElementById('anim-btn-stop');
+                const prevBtn = document.getElementById('anim-btn-prev');
+                const nextBtn = document.getElementById('anim-btn-next');
+                const frameInput = document.getElementById('anim-frame');
+                const fpsSelect = document.getElementById('anim-fps');
+                const scrubber = document.getElementById('anim-timeline-scrubber');
+                const scrubberHead = document.getElementById('anim-scrubber-head');
+                const totalFrames = document.getElementById('anim-total-frames');
+
+                const updateScrubber = () => {
+                    const max = parseInt(totalFrames?.textContent) || 30;
+                    const pct = (animFrame / max) * 100;
+                    if (scrubberHead) scrubberHead.style.left = pct + '%';
+                    if (frameInput) frameInput.value = animFrame;
+                };
+
+                if (playBtn) playBtn.onclick = () => {
+                    animPlaying = !animPlaying;
+                    playBtn.textContent = animPlaying ? '⏸' : '▶';
+                    playBtn.style.color = animPlaying ? '#ff9800' : '#4CAF50';
+                    if (animPlaying) {
+                        const fps = parseInt(fpsSelect?.value) || 30;
+                        animInterval = setInterval(() => {
+                            const max = parseInt(totalFrames?.textContent) || 30;
+                            animFrame = (animFrame + 1) % max;
+                            updateScrubber();
+                        }, 1000 / fps);
+                    } else {
+                        clearInterval(animInterval);
+                    }
+                };
+
+                if (stopBtn) stopBtn.onclick = () => {
+                    animPlaying = false;
+                    clearInterval(animInterval);
+                    animFrame = 0;
+                    if (playBtn) { playBtn.textContent = '▶'; playBtn.style.color = '#4CAF50'; }
+                    updateScrubber();
+                };
+
+                if (prevBtn) prevBtn.onclick = () => { if (animFrame > 0) { animFrame--; updateScrubber(); } };
+                if (nextBtn) nextBtn.onclick = () => {
+                    const max = parseInt(totalFrames?.textContent) || 30;
+                    if (animFrame < max - 1) { animFrame++; updateScrubber(); }
+                };
+
+                if (frameInput) frameInput.onchange = () => { animFrame = parseInt(frameInput.value) || 0; updateScrubber(); };
+
+                // Scrubber click
+                if (scrubber) scrubber.onclick = (e) => {
+                    const rect = scrubber.getBoundingClientRect();
+                    const pct = (e.clientX - rect.left) / rect.width;
+                    const max = parseInt(totalFrames?.textContent) || 30;
+                    animFrame = Math.round(pct * max);
+                    updateScrubber();
+                };
+
+                // Add clip
+                document.getElementById('anim-btn-add-clip')?.addEventListener('click', () => {
+                    const name = prompt('Animation clip name:', `Clip_${Date.now() % 1000}`);
+                    if (name) {
+                        this.editor.addAnimationClip(name);
+                        this.updateAnimClipList();
+                    }
+                });
+
+                if (fpsSelect) fpsSelect.onchange = () => {
+                    const max = parseInt(fpsSelect.value) || 30;
+                    if (totalFrames) totalFrames.textContent = max;
+                };
+            }
+
+            updateAnimClipList() {
+                const list = document.getElementById('anim-clip-list');
+                if (!list) return;
+                const data = this.editor.getSelectedAnimation();
+                if (!data || data.clips.length === 0) {
+                    list.innerHTML = '<div style="font-size:12px;color:#888;font-style:italic;">No animation clips</div>';
+                    return;
+                }
+                list.innerHTML = '';
+                data.clips.forEach((clip, idx) => {
+                    const item = document.createElement('div');
+                    item.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:4px 6px;background:#2a2a2a;border-radius:3px;margin-bottom:3px;cursor:pointer;';
+                    item.innerHTML = `
+                        <span style="font-size:11px;color:#ddd;">${clip.name}</span>
+                        <div style="display:flex;gap:4px;align-items:center;">
+                            <span style="font-size:10px;color:#888;">${clip.duration}s</span>
+                            <button class="panel-btn anim-remove-clip" data-idx="${idx}" title="Remove" style="color:#f44336;font-size:10px;">✗</button>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+                list.querySelectorAll('.anim-remove-clip').forEach(btn => {
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        this.editor.removeAnimationClip(parseInt(btn.dataset.idx));
+                        this.updateAnimClipList();
+                    };
+                });
+            }
+
+            setupScriptingPanel() {
+                let nodeCounter = 0;
+                const graphArea = document.getElementById('script-nodes-container');
+                const placeholder = document.getElementById('script-canvas-placeholder');
+
+                const nodeColors = {
+                    OnStart: '#4a9eff', OnUpdate: '#4a9eff', OnCollision: '#4a9eff',
+                    Branch: '#4CAF50', ForLoop: '#4CAF50',
+                    SetPosition: '#FF9800', ApplyForce: '#E91E63',
+                    GetKeyDown: '#9C27B0', PlaySound: '#00BCD4', Print: '#8BC34A'
+                };
+
+                const addNodeToCanvas = (type) => {
+                    if (!graphArea) return;
+                    if (placeholder) placeholder.style.display = 'none';
+
+                    // Also add to backend
+                    const x = 10 + (nodeCounter % 3) * 100;
+                    const y = 10 + Math.floor(nodeCounter / 3) * 40;
+                    this.editor.addScriptNode(type, x, y);
+
+                    const node = document.createElement('div');
+                    const color = nodeColors[type] || '#888';
+                    node.style.cssText = `position:absolute;left:${x}px;top:${y}px;background:#2d2d30;border:1px solid ${color};border-radius:4px;padding:4px 8px;font-size:10px;color:#ddd;cursor:grab;user-select:none;z-index:1;white-space:nowrap;`;
+                    node.textContent = type;
+                    node.title = `Node: ${type}`;
+                    
+                    // Make draggable within canvas
+                    let dragging = false, offsetX = 0, offsetY = 0;
+                    node.onmousedown = (e) => {
+                        dragging = true;
+                        offsetX = e.offsetX;
+                        offsetY = e.offsetY;
+                        node.style.zIndex = '10';
+                        e.stopPropagation();
+                    };
+                    document.addEventListener('mousemove', (e) => {
+                        if (!dragging) return;
+                        const rect = graphArea.getBoundingClientRect();
+                        node.style.left = (e.clientX - rect.left - offsetX) + 'px';
+                        node.style.top = (e.clientY - rect.top - offsetY) + 'px';
+                    });
+                    document.addEventListener('mouseup', () => {
+                        if (dragging) { dragging = false; node.style.zIndex = '1'; }
+                    });
+
+                    graphArea.appendChild(node);
+                    nodeCounter++;
+                    this.log(`Script node "${type}" added to graph`, 'info');
+                };
+
+                // Quick node click handlers
+                document.querySelectorAll('.script-quick-node').forEach(item => {
+                    item.onclick = () => { addNodeToCanvas(item.dataset.node); };
+                });
+
+                // Add variable
+                document.getElementById('script-btn-add-var')?.addEventListener('click', () => {
+                    const name = prompt('Variable name:', `var${Date.now() % 100}`);
+                    if (name) {
+                        this.editor.addScriptVariable(name, 'float', 0);
+                        this.updateScriptVarList();
+                    }
+                });
+
+                // Compile button
+                document.getElementById('script-btn-compile')?.addEventListener('click', () => {
+                    const graph = this.editor.getScriptGraph();
+                    if (graph && graph.nodes.length > 0) {
+                        this.log(`Script compiled: ${graph.nodes.length} nodes, ${graph.connections.length} connections`, 'success');
+                    } else {
+                        this.log('No script nodes to compile', 'warn');
+                    }
+                });
+            }
+
+            updateScriptVarList() {
+                const list = document.getElementById('script-var-list');
+                if (!list) return;
+                const graph = this.editor.getScriptGraph();
+                if (!graph || graph.variables.length === 0) {
+                    list.innerHTML = '<div style="font-size:11px;color:#888;font-style:italic;">No variables defined</div>';
+                    return;
+                }
+                list.innerHTML = '';
+                graph.variables.forEach(v => {
+                    const item = document.createElement('div');
+                    item.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 6px;background:#2a2a2a;border-radius:3px;margin-bottom:3px;';
+                    item.innerHTML = `
+                        <span style="font-size:10px;color:#4a9eff;font-weight:bold;">${v.type}</span>
+                        <span style="font-size:11px;color:#ddd;flex:1;">${v.name}</span>
+                        <span style="font-size:10px;color:#888;">= ${v.value}</span>
+                    `;
+                    list.appendChild(item);
+                });
+            }
+
+            // Helper: hex color to [r,g,b] in 0-1 range
+            hexToRgb(hex) {
+                const r = parseInt(hex.slice(1, 3), 16) / 255;
+                const g = parseInt(hex.slice(3, 5), 16) / 255;
+                const b = parseInt(hex.slice(5, 7), 16) / 255;
+                return [r, g, b];
             }
 
             // =============== HIERARCHY ===============
