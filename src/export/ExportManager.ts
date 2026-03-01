@@ -502,7 +502,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
     /**
      * Generate PWA manifest.json
      */
-    private generatePWAManifest(name: string, config: ExportConfig): string {
+    private generatePWAManifest(name: string, _config: ExportConfig): string {
         return JSON.stringify({
             name: name,
             short_name: name,

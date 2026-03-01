@@ -2906,3 +2906,328 @@ describe('Physics Constraints', () => {
         expect(slider).toBeDefined();
     });
 });
+
+
+// ── Massive Instancing System Tests ──
+import { InstanceBatch, InstancingSystem, InstanceData as InstData, InstanceBatchConfig as IBConfig } from '../src/optimization/InstancingSystem';
+
+describe('Massive Instancing System', () => {
+    it('should export InstanceBatch and InstancingSystem classes', () => {
+        expect(InstanceBatch).toBeDefined();
+        expect(InstancingSystem).toBeDefined();
+    });
+
+    it('should support bulk addInstances method', () => {
+        expect(typeof InstanceBatch.prototype.addInstances).toBe('function');
+    });
+
+    it('should support frustum culling per instance', () => {
+        expect(typeof InstanceBatch.prototype.cullInstances).toBe('function');
+    });
+
+    it('should support per-instance visibility', () => {
+        expect(typeof InstanceBatch.prototype.setVisible).toBe('function');
+    });
+
+    it('should support transform-only update (fast path)', () => {
+        expect(typeof InstanceBatch.prototype.updateTransform).toBe('function');
+    });
+
+    it('should track memory usage', () => {
+        expect(typeof InstanceBatch.prototype.getMemoryUsage).toBe('function');
+    });
+
+    it('should track visible count separately from total count', () => {
+        expect(typeof InstanceBatch.prototype.getVisibleCount).toBe('function');
+        expect(typeof InstanceBatch.prototype.getInstanceCount).toBe('function');
+    });
+
+    it('should support max instances getter', () => {
+        expect(typeof InstanceBatch.prototype.getMaxInstances).toBe('function');
+    });
+
+    it('should support allocated capacity getter', () => {
+        expect(typeof InstanceBatch.prototype.getAllocatedCapacity).toBe('function');
+    });
+
+    it('should have comprehensive statistics including memory and culling', () => {
+        expect(typeof InstancingSystem.prototype.getStatistics).toBe('function');
+    });
+
+    it('should support bulk addInstances at system level', () => {
+        expect(typeof InstancingSystem.prototype.addInstances).toBe('function');
+    });
+
+    it('should support frustum culling at system level', () => {
+        expect(typeof InstancingSystem.prototype.cullAll).toBe('function');
+    });
+
+    it('should support removeBatch at system level', () => {
+        expect(typeof InstancingSystem.prototype.removeBatch).toBe('function');
+    });
+
+    it('should use O(1) swap-and-pop removal', () => {
+        expect(typeof InstanceBatch.prototype.removeInstance).toBe('function');
+    });
+
+    it('should support getInstanceBuffer and getInstanceMatrixData', () => {
+        expect(typeof InstanceBatch.prototype.getInstanceBuffer).toBe('function');
+        expect(typeof InstanceBatch.prototype.getInstanceMatrixData).toBe('function');
+    });
+
+    it('should support instance color buffer', () => {
+        expect(typeof InstanceBatch.prototype.getInstanceColorBuffer).toBe('function');
+    });
+});
+
+// ── Export Manager Tests ──
+import { ExportManager, ExportPlatform } from '../src/export/ExportManager';
+
+describe('Export Manager Real Content Generation', () => {
+    it('should generate real HTML content for web export', async () => {
+        const mgr = new ExportManager();
+        const result = await mgr.export({
+            platform: ExportPlatform.WEB,
+            outputPath: '/tmp/test-export',
+            projectName: 'TestGame',
+            version: '1.0.0',
+            optimize: true,
+            minify: false,
+            sourceMaps: false
+        });
+        expect(result.success).toBe(true);
+        expect(result.artifacts.length).toBeGreaterThanOrEqual(3);
+        const paths = result.artifacts.map((a) => a.path);
+        expect(paths.some((p) => p.endsWith('index.html'))).toBe(true);
+        expect(paths.some((p) => p.endsWith('.js'))).toBe(true);
+        expect(paths.some((p) => p.endsWith('.css'))).toBe(true);
+    });
+
+    it('should generate PWA with manifest and service worker', async () => {
+        const mgr = new ExportManager();
+        const result = await mgr.export({
+            platform: ExportPlatform.PWA,
+            outputPath: '/tmp/test-pwa',
+            projectName: 'TestPWA',
+            version: '2.0.0',
+            optimize: true,
+            minify: false,
+            sourceMaps: false
+        });
+        expect(result.success).toBe(true);
+        const paths = result.artifacts.map((a) => a.path);
+        expect(paths.some((p) => p.includes('manifest.json'))).toBe(true);
+        expect(paths.some((p) => p.includes('sw.js'))).toBe(true);
+    });
+
+    it('should generate Electron project with main.js and package.json', async () => {
+        const mgr = new ExportManager();
+        const result = await mgr.export({
+            platform: ExportPlatform.ELECTRON_WINDOWS,
+            outputPath: '/tmp/test-electron',
+            projectName: 'TestDesktop',
+            version: '1.0.0',
+            optimize: true,
+            minify: false,
+            sourceMaps: false
+        });
+        expect(result.success).toBe(true);
+        const paths = result.artifacts.map((a) => a.path);
+        expect(paths.some((p) => p.includes('main.js'))).toBe(true);
+        expect(paths.some((p) => p.includes('package.json'))).toBe(true);
+        expect(paths.some((p) => p.endsWith('.exe'))).toBe(true);
+    });
+
+    it('should generate Capacitor config for mobile export', async () => {
+        const mgr = new ExportManager();
+        const result = await mgr.export({
+            platform: ExportPlatform.CAPACITOR_ANDROID,
+            outputPath: '/tmp/test-cap',
+            projectName: 'TestMobile',
+            version: '1.0.0',
+            optimize: true,
+            minify: false,
+            sourceMaps: false
+        });
+        expect(result.success).toBe(true);
+        const paths = result.artifacts.map((a) => a.path);
+        expect(paths.some((p) => p.includes('capacitor.config.json'))).toBe(true);
+        expect(paths.some((p) => p.endsWith('.apk'))).toBe(true);
+    });
+
+    it('should generate Cordova config.xml for mobile export', async () => {
+        const mgr = new ExportManager();
+        const result = await mgr.export({
+            platform: ExportPlatform.CORDOVA_IOS,
+            outputPath: '/tmp/test-cordova',
+            projectName: 'TestCordova',
+            version: '1.0.0',
+            optimize: true,
+            minify: false,
+            sourceMaps: false
+        });
+        expect(result.success).toBe(true);
+        const paths = result.artifacts.map((a) => a.path);
+        expect(paths.some((p) => p.includes('config.xml'))).toBe(true);
+        expect(paths.some((p) => p.endsWith('.ipa'))).toBe(true);
+    });
+
+    it('should track export history', async () => {
+        const mgr = new ExportManager();
+        await mgr.export({
+            platform: ExportPlatform.WEB,
+            outputPath: '/tmp/h1',
+            projectName: 'H1',
+            version: '1.0.0',
+            optimize: false,
+            minify: false,
+            sourceMaps: false
+        });
+        await mgr.export({
+            platform: ExportPlatform.PWA,
+            outputPath: '/tmp/h2',
+            projectName: 'H2',
+            version: '1.0.0',
+            optimize: false,
+            minify: false,
+            sourceMaps: false
+        });
+        const history = mgr.getExportHistory();
+        expect(history.length).toBe(2);
+        expect(mgr.getLastExport()!.platform).toBe(ExportPlatform.PWA);
+    });
+
+    it('should emit export events', async () => {
+        const mgr = new ExportManager();
+        let started = false;
+        let completed = false;
+        mgr.on('export_started', () => { started = true; });
+        mgr.on('export_completed', () => { completed = true; });
+        await mgr.export({
+            platform: ExportPlatform.WEB,
+            outputPath: '/tmp/events',
+            projectName: 'EventTest',
+            version: '1.0.0',
+            optimize: false,
+            minify: false,
+            sourceMaps: false
+        });
+        expect(started).toBe(true);
+        expect(completed).toBe(true);
+    });
+
+    it('should handle unsupported platform gracefully', async () => {
+        const mgr = new ExportManager();
+        const result = await mgr.export({
+            platform: 'unknown-platform' as any,
+            outputPath: '/tmp/unknown',
+            projectName: 'Unknown',
+            version: '1.0.0',
+            optimize: false,
+            minify: false,
+            sourceMaps: false
+        });
+        expect(result.success).toBe(false);
+        expect(result.errors.length).toBeGreaterThan(0);
+    });
+});
+
+// ── Engine Lifecycle Tests ──
+import { Engine, EngineState } from '../src/core/Engine';
+
+describe('Engine Lifecycle', () => {
+    it('should create Engine with default config', () => {
+        const engine = new Engine();
+        expect(engine.getState()).toBe(EngineState.STOPPED);
+        expect(engine.isRunning()).toBe(false);
+        expect(engine.isPaused()).toBe(false);
+        expect(engine.width).toBe(800);
+        expect(engine.height).toBe(600);
+    });
+
+    it('should create Engine with custom config', () => {
+        const engine = new Engine({
+            width: 1920,
+            height: 1080,
+            targetFPS: 120,
+            fixedTimestep: 1/120
+        });
+        expect(engine.width).toBe(1920);
+        expect(engine.height).toBe(1080);
+    });
+
+    it('should have time, input, and resources systems', () => {
+        const engine = new Engine();
+        expect(engine.time).toBeDefined();
+        expect(engine.input).toBeDefined();
+        expect(engine.resources).toBeDefined();
+    });
+
+    it('should manage scenes', () => {
+        const engine = new Engine();
+        expect(engine.getScene()).toBeNull();
+        const scene = new Scene('EngineTestScene');
+        engine.setScene(scene);
+        expect(engine.getScene()).toBe(scene);
+    });
+
+    it('should resize', () => {
+        const engine = new Engine();
+        engine.resize(1024, 768);
+        expect(engine.width).toBe(1024);
+        expect(engine.height).toBe(768);
+    });
+
+    it('should expose event system', () => {
+        const engine = new Engine();
+        const events = engine.getEvents();
+        expect(events).toBeDefined();
+        expect(typeof events.on).toBe('function');
+        expect(typeof events.emit).toBe('function');
+    });
+
+    it('should stop gracefully when not running', () => {
+        const engine = new Engine();
+        engine.stop();
+        expect(engine.isRunning()).toBe(false);
+    });
+
+    it('should not pause when not running', () => {
+        const engine = new Engine();
+        engine.pause();
+        expect(engine.isPaused()).toBe(false);
+    });
+
+    it('should destroy cleanly', () => {
+        const engine = new Engine();
+        engine.setScene(new Scene('ToDestroy'));
+        engine.destroy();
+        expect(engine.getScene()).toBeNull();
+        expect(engine.getState()).toBe(EngineState.STOPPED);
+    });
+});
+
+// ── ResourceManager Tests ──
+import { ResourceManager } from '../src/core/ResourceManager';
+
+describe('ResourceManager', () => {
+    it('should create and manage resources', () => {
+        const rm = new ResourceManager();
+        expect(rm).toBeDefined();
+        expect(typeof rm.unloadAll).toBe('function');
+    });
+
+    it('should report loading progress', () => {
+        const rm = new ResourceManager();
+        const progress = rm.getProgress();
+        expect(progress).toBeDefined();
+        expect(typeof progress.total).toBe('number');
+    });
+
+    it('should report statistics', () => {
+        const rm = new ResourceManager();
+        const stats = rm.getStats();
+        expect(stats).toBeDefined();
+        expect(typeof stats.resourceCount).toBe('number');
+    });
+});
