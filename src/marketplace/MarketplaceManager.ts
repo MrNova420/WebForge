@@ -235,7 +235,7 @@ export class MarketplaceManager {
 
             // Apply sorting
             if (filters.sortBy) {
-                const order = filters.sortOrder === 'asc' ? 1 : -1;
+                const order = filters.sortOrder === 'asc' ? -1 : 1;
 
                 results.sort((a, b) => {
                     switch (filters.sortBy) {
