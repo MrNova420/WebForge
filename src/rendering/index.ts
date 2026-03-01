@@ -15,6 +15,7 @@ export * from './Renderer';
 export * from './Shader';
 export * from './ShadowMap';
 export * from './Texture';
+export * from './TextureStreaming';
 export * from './WebGLContext';
 export * from './effects/BloomEffect';
 export * from './effects/DepthOfFieldEffect';

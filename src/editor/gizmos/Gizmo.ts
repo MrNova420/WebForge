@@ -3,10 +3,12 @@
  * 
  * Base class for all transform gizmos (translate, rotate, scale).
  * Handles common gizmo functionality like selection, highlighting, and rendering.
+ * Uses cached view-projection matrices and batched draw calls for efficiency.
  */
 
 import { Vector3 } from '../../math/Vector3';
 import { Vector4 } from '../../math/Vector4';
+import { Matrix4 } from '../../math/Matrix4';
 import { Camera } from '../../rendering/Camera';
 import { GameObject } from '../../scene/GameObject';
 
@@ -35,6 +37,9 @@ export const GizmoColors = {
     Plane: { normal: 'rgba(255, 255, 255, 0.3)', highlight: 'rgba(255, 255, 0, 0.5)' }
 };
 
+/** Arrow head half-angle (radians) */
+const ARROW_HEAD_ANGLE = Math.PI / 6;
+
 /**
  * Gizmo interaction state
  */
@@ -51,7 +56,16 @@ export interface GizmoState {
 }
 
 /**
- * Base gizmo class
+ * Batched line segment for efficient gizmo rendering
+ */
+interface GizmoLineBatch {
+    segments: Array<{ sx: number; sy: number; ex: number; ey: number; color: string; width: number }>;
+    fills: Array<{ path: Array<{ x: number; y: number }>; color: string }>;
+    circles: Array<{ cx: number; cy: number; radius: number; color: string; filled: boolean }>;
+}
+
+/**
+ * Base gizmo class with VP matrix caching and batched rendering
  */
 export abstract class Gizmo {
     protected target: GameObject | null = null;
@@ -61,6 +75,15 @@ export abstract class Gizmo {
     
     protected size: number = 100; // Gizmo size in pixels
     protected hoveredAxis: GizmoAxis = GizmoAxis.NONE;
+    
+    /** Cached view-projection matrix (refreshed each render) */
+    protected cachedVPMatrix: Matrix4 | null = null;
+    /** Cached inverse VP matrix (lazily computed) */
+    private cachedInvVPMatrix: Matrix4 | null = null;
+    /** Dirty flag for VP matrix cache */
+    protected vpMatrixDirty: boolean = true;
+    /** Draw batch for the current frame */
+    protected batch: GizmoLineBatch = { segments: [], fills: [], circles: [] };
     
     protected state: GizmoState = {
         isDragging: false,
@@ -85,6 +108,7 @@ export abstract class Gizmo {
     
     /**
      * Sets the target GameObject
+     * @param target - The GameObject to transform, or null to clear
      */
     public setTarget(target: GameObject | null): void {
         this.target = target;
@@ -92,52 +116,150 @@ export abstract class Gizmo {
     
     /**
      * Gets the target GameObject
+     * @returns The current target or null
      */
     public getTarget(): GameObject | null {
         return this.target;
     }
     
     /**
-     * Sets the camera for projection
+     * Sets the camera for projection and invalidates the VP cache
+     * @param camera - The rendering camera
      */
     public setCamera(camera: Camera): void {
         this.camera = camera;
+        this.vpMatrixDirty = true;
     }
     
     /**
      * Sets the gizmo size in pixels
+     * @param size - Visual size of the gizmo handles
      */
     public setSize(size: number): void {
         this.size = size;
     }
     
     /**
-     * Renders the gizmo
+     * Renders the gizmo using batched draw calls.
+     * Refreshes the VP matrix cache, collects all draw primitives,
+     * then flushes them in a single canvas pass.
      */
     public render(): void {
         if (!this.target || !this.camera || !this.ctx || !this.canvas) return;
         
-        // Clear any previous gizmo rendering
+        // Refresh VP cache
+        this.refreshVPCache();
+        
+        // Clear batch
+        this.batch = { segments: [], fills: [], circles: [] };
+        
         this.ctx.save();
         
-        // Render the specific gizmo type
+        // Subclass populates the batch
         this.renderGizmo();
+        
+        // Flush all batched draw calls in one pass
+        this.flushBatch();
         
         this.ctx.restore();
     }
     
     /**
-     * Abstract method to render the specific gizmo type
+     * Refreshes the cached view-projection matrix from the camera
+     */
+    private refreshVPCache(): void {
+        if (!this.camera) return;
+        this.cachedVPMatrix = this.camera.getViewProjectionMatrix();
+        this.cachedInvVPMatrix = null; // Invalidate inverse
+        this.vpMatrixDirty = false;
+    }
+    
+    /**
+     * Gets the cached inverse VP matrix (computed lazily)
+     * @returns The inverse view-projection matrix
+     */
+    protected getInverseVPMatrix(): Matrix4 {
+        if (!this.cachedInvVPMatrix) {
+            if (this.cachedVPMatrix) {
+                this.cachedInvVPMatrix = this.cachedVPMatrix.clone().invert();
+            } else {
+                this.cachedInvVPMatrix = new Matrix4();
+            }
+        }
+        return this.cachedInvVPMatrix;
+    }
+    
+    /**
+     * Flushes the batched draw operations to the canvas in a single pass
+     */
+    private flushBatch(): void {
+        if (!this.ctx) return;
+        
+        // Draw all line segments (grouped by color+width for fewer state changes)
+        const lineGroups = new Map<string, typeof this.batch.segments>();
+        for (const seg of this.batch.segments) {
+            const key = `${seg.color}|${seg.width}`;
+            let group = lineGroups.get(key);
+            if (!group) { group = []; lineGroups.set(key, group); }
+            group.push(seg);
+        }
+        
+        for (const [key, segs] of lineGroups) {
+            const [color, widthStr] = key.split('|');
+            this.ctx.strokeStyle = color;
+            this.ctx.lineWidth = parseFloat(widthStr);
+            this.ctx.beginPath();
+            for (const seg of segs) {
+                this.ctx.moveTo(seg.sx, seg.sy);
+                this.ctx.lineTo(seg.ex, seg.ey);
+            }
+            this.ctx.stroke();
+        }
+        
+        // Draw all fills
+        for (const fill of this.batch.fills) {
+            this.ctx.fillStyle = fill.color;
+            this.ctx.beginPath();
+            if (fill.path.length > 0) {
+                this.ctx.moveTo(fill.path[0].x, fill.path[0].y);
+                for (let i = 1; i < fill.path.length; i++) {
+                    this.ctx.lineTo(fill.path[i].x, fill.path[i].y);
+                }
+            }
+            this.ctx.closePath();
+            this.ctx.fill();
+        }
+        
+        // Draw all circles
+        for (const c of this.batch.circles) {
+            this.ctx.beginPath();
+            this.ctx.arc(c.cx, c.cy, c.radius, 0, Math.PI * 2);
+            if (c.filled) {
+                this.ctx.fillStyle = c.color;
+                this.ctx.fill();
+            } else {
+                this.ctx.strokeStyle = c.color;
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+            }
+        }
+    }
+    
+    /**
+     * Abstract method to render the specific gizmo type.
+     * Implementations should use the batched draw helpers.
      */
     protected abstract renderGizmo(): void;
     
     /**
-     * Handles mouse down event
+     * Handles mouse down event on the gizmo
+     * @param x - Screen X coordinate
+     * @param y - Screen Y coordinate
+     * @returns true if the gizmo captured the event
      */
     public onMouseDown(x: number, y: number): boolean {
         if (!this.target) return false;
         
-        // Check if mouse is over any axis
         const axis = this.hitTest(x, y);
         
         if (axis !== GizmoAxis.NONE) {
@@ -146,7 +268,6 @@ export abstract class Gizmo {
             this.state.dragStart.set(x, y, 0);
             this.state.dragCurrent.set(x, y, 0);
             
-            // Store initial transform
             this.state.objectStartTransform.position.copy(this.target.transform.position);
             this.state.objectStartTransform.rotation.copy(this.target.transform.rotation.toEuler());
             this.state.objectStartTransform.scale.copy(this.target.transform.scale);
@@ -159,6 +280,9 @@ export abstract class Gizmo {
     
     /**
      * Handles mouse move event
+     * @param x - Screen X coordinate
+     * @param y - Screen Y coordinate
+     * @returns true if the gizmo handled the event
      */
     public onMouseMove(x: number, y: number): boolean {
         if (this.state.isDragging) {
@@ -166,7 +290,6 @@ export abstract class Gizmo {
             this.applyTransform();
             return true;
         } else {
-            // Update hovered axis for highlighting
             const previousHovered = this.hoveredAxis;
             this.hoveredAxis = this.hitTest(x, y);
             return previousHovered !== this.hoveredAxis;
@@ -175,6 +298,7 @@ export abstract class Gizmo {
     
     /**
      * Handles mouse up event
+     * @returns true if the gizmo was actively dragging
      */
     public onMouseUp(): boolean {
         if (this.state.isDragging) {
@@ -187,6 +311,9 @@ export abstract class Gizmo {
     
     /**
      * Abstract method to test if a point hits any axis
+     * @param x - Screen X coordinate
+     * @param y - Screen Y coordinate
+     * @returns The axis that was hit, or NONE
      */
     protected abstract hitTest(x: number, y: number): GizmoAxis;
     
@@ -196,25 +323,24 @@ export abstract class Gizmo {
     protected abstract applyTransform(): void;
     
     /**
-     * Projects a 3D point to screen space
+     * Projects a 3D point to screen space using the cached VP matrix
+     * @param worldPos - Position in world space
+     * @returns Screen-space position (x, y = pixels, z = clip-space depth)
      */
     protected projectToScreen(worldPos: Vector3): Vector3 {
-        if (!this.camera || !this.canvas) return new Vector3();
+        if (!this.canvas) return new Vector3();
         
-        // Get view-projection matrix
-        const vpMatrix = this.camera.getViewProjectionMatrix();
+        const vpMatrix = this.cachedVPMatrix || (this.camera ? this.camera.getViewProjectionMatrix() : null);
+        if (!vpMatrix) return new Vector3();
         
-        // Transform to clip space
         const clipPos = vpMatrix.multiplyVector4(new Vector4(worldPos.x, worldPos.y, worldPos.z, 1));
         
-        // Perspective divide
         if (clipPos.w !== 0) {
             clipPos.x /= clipPos.w;
             clipPos.y /= clipPos.w;
             clipPos.z /= clipPos.w;
         }
         
-        // Convert to screen space
         const screenX = (clipPos.x * 0.5 + 0.5) * this.canvas.width;
         const screenY = (1 - (clipPos.y * 0.5 + 0.5)) * this.canvas.height;
         
@@ -222,20 +348,19 @@ export abstract class Gizmo {
     }
     
     /**
-     * Unprojects a screen point to world space
+     * Unprojects a screen point to world space using the cached inverse VP matrix
+     * @param screenX - Screen X coordinate
+     * @param screenY - Screen Y coordinate
+     * @param depth - NDC depth (-1 = near, 1 = far)
+     * @returns World-space position
      */
     protected unprojectToWorld(screenX: number, screenY: number, depth: number): Vector3 {
-        if (!this.camera || !this.canvas) return new Vector3();
+        if (!this.canvas) return new Vector3();
         
-        // Convert screen to NDC
         const ndcX = (screenX / this.canvas.width) * 2 - 1;
         const ndcY = 1 - (screenY / this.canvas.height) * 2;
         
-        // Get inverse view-projection matrix
-        const vpMatrix = this.camera.getViewProjectionMatrix();
-        const invVpMatrix = vpMatrix.invert();
-        
-        // Unproject
+        const invVpMatrix = this.getInverseVPMatrix();
         const worldPos = invVpMatrix.multiplyVector4(new Vector4(ndcX, ndcY, depth, 1));
         
         if (worldPos.w !== 0) {
@@ -248,70 +373,58 @@ export abstract class Gizmo {
     }
     
     /**
-     * Draws a line in screen space
+     * Adds a line to the draw batch
+     * @param start - Start position in screen space
+     * @param end - End position in screen space
+     * @param color - CSS color string
+     * @param lineWidth - Line width in pixels
      */
     protected drawLine(start: Vector3, end: Vector3, color: string, lineWidth: number = 2): void {
-        if (!this.ctx) return;
-        
-        this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = lineWidth;
-        this.ctx.beginPath();
-        this.ctx.moveTo(start.x, start.y);
-        this.ctx.lineTo(end.x, end.y);
-        this.ctx.stroke();
+        this.batch.segments.push({ sx: start.x, sy: start.y, ex: end.x, ey: end.y, color, width: lineWidth });
     }
     
     /**
-     * Draws an arrow in screen space
+     * Adds an arrow (line + head) to the draw batch
+     * @param start - Start position in screen space
+     * @param end - End position (tip) in screen space
+     * @param color - CSS color string
+     * @param headSize - Arrow head size in pixels
      */
     protected drawArrow(start: Vector3, end: Vector3, color: string, headSize: number = 10): void {
-        if (!this.ctx) return;
+        // Line
+        this.batch.segments.push({ sx: start.x, sy: start.y, ex: end.x, ey: end.y, color, width: 3 });
         
-        // Draw line
-        this.drawLine(start, end, color, 3);
-        
-        // Calculate arrow head
+        // Arrow head
         const dx = end.x - start.x;
         const dy = end.y - start.y;
         const angle = Math.atan2(dy, dx);
         
-        // Draw arrow head
-        this.ctx.fillStyle = color;
-        this.ctx.beginPath();
-        this.ctx.moveTo(end.x, end.y);
-        this.ctx.lineTo(
-            end.x - headSize * Math.cos(angle - Math.PI / 6),
-            end.y - headSize * Math.sin(angle - Math.PI / 6)
-        );
-        this.ctx.lineTo(
-            end.x - headSize * Math.cos(angle + Math.PI / 6),
-            end.y - headSize * Math.sin(angle + Math.PI / 6)
-        );
-        this.ctx.closePath();
-        this.ctx.fill();
+        this.batch.fills.push({
+            color,
+            path: [
+                { x: end.x, y: end.y },
+                { x: end.x - headSize * Math.cos(angle - ARROW_HEAD_ANGLE), y: end.y - headSize * Math.sin(angle - ARROW_HEAD_ANGLE) },
+                { x: end.x - headSize * Math.cos(angle + ARROW_HEAD_ANGLE), y: end.y - headSize * Math.sin(angle + ARROW_HEAD_ANGLE) }
+            ]
+        });
     }
     
     /**
-     * Draws a circle in screen space
+     * Adds a circle to the draw batch
+     * @param center - Center in screen space
+     * @param radius - Radius in pixels
+     * @param color - CSS color string
+     * @param filled - Whether to fill or stroke
      */
     protected drawCircle(center: Vector3, radius: number, color: string, filled: boolean = false): void {
-        if (!this.ctx) return;
-        
-        this.ctx.beginPath();
-        this.ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
-        
-        if (filled) {
-            this.ctx.fillStyle = color;
-            this.ctx.fill();
-        } else {
-            this.ctx.strokeStyle = color;
-            this.ctx.lineWidth = 2;
-            this.ctx.stroke();
-        }
+        this.batch.circles.push({ cx: center.x, cy: center.y, radius, color, filled });
     }
     
     /**
-     * Gets the color for an axis based on state
+     * Gets the color for an axis based on interaction state
+     * @param axis - The axis to color
+     * @param baseColors - Normal and highlight colors
+     * @returns CSS color string
      */
     protected getAxisColor(axis: GizmoAxis, baseColors: { normal: string; highlight: string }): string {
         if (this.state.activeAxis === axis) {

@@ -9,3 +9,4 @@ export * from './EditorScene';
 export * from './EditorSelection';
 export * from './EditorCommands';
 export * from './EditorKeyboard';
+export * from './PickingService';
