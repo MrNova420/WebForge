@@ -3673,3 +3673,840 @@ describe('Game State Manager', () => {
         expect(gsm.getStateCount()).toBe(0);
     });
 });
+
+// ── CharacterController Tests ──
+import { CharacterController, CharacterState, CharacterMovementPresets } from '../src/character/CharacterController';
+
+describe('CharacterController', () => {
+    it('should create with default config', () => {
+        const cc = new CharacterController();
+        expect(cc).toBeDefined();
+        expect(cc.getState()).toBe(CharacterState.Idle);
+        expect(cc.position).toBeDefined();
+        expect(cc.velocity).toBeDefined();
+    });
+
+    it('should create with custom config', () => {
+        const cc = new CharacterController({ moveSpeed: 10, sprintSpeed: 20, jumpForce: 15 });
+        const cfg = cc.getConfig();
+        expect(cfg.moveSpeed).toBe(10);
+        expect(cfg.sprintSpeed).toBe(20);
+        expect(cfg.jumpForce).toBe(15);
+    });
+
+    it('should provide FPS movement preset', () => {
+        const cfg = CharacterMovementPresets.defaultFPS();
+        expect(cfg).toBeDefined();
+        expect(cfg.moveSpeed).toBeGreaterThan(0);
+        expect(cfg.jumpForce).toBeGreaterThan(0);
+    });
+
+    it('should provide thirdPerson movement preset', () => {
+        const cfg = CharacterMovementPresets.thirdPerson();
+        expect(cfg).toBeDefined();
+        expect(cfg.moveSpeed).toBeGreaterThan(0);
+    });
+
+    it('should provide platformer movement preset', () => {
+        const cfg = CharacterMovementPresets.platformer();
+        expect(cfg).toBeDefined();
+        expect(cfg.jumpForce).toBeGreaterThan(0);
+    });
+
+    it('should provide realistic movement preset', () => {
+        const cfg = CharacterMovementPresets.realistic();
+        expect(cfg).toBeDefined();
+        expect(cfg.gravity).toBeGreaterThan(0);
+    });
+
+    it('should transition states', () => {
+        const cc = new CharacterController();
+        expect(cc.getState()).toBe(CharacterState.Idle);
+        cc.setState(CharacterState.Walking);
+        expect(cc.getState()).toBe(CharacterState.Walking);
+        cc.setState(CharacterState.Running);
+        expect(cc.getState()).toBe(CharacterState.Running);
+    });
+
+    it('should handle jump mechanics', () => {
+        const cc = new CharacterController();
+        const jumped = cc.jump();
+        expect(typeof jumped).toBe('boolean');
+    });
+
+    it('should apply gravity', () => {
+        const cc = new CharacterController();
+        const prevY = cc.velocity.y;
+        cc.applyGravity(0.016);
+        expect(cc.velocity.y).toBeLessThanOrEqual(prevY);
+    });
+
+    it('should toggle sprint', () => {
+        const cc = new CharacterController();
+        cc.sprint(true);
+        // Sprint flag is set; state updates via _updateMovementState during move
+        cc.move(new Vector3(0, 0, 1), 0.016);
+        expect(cc.getState()).toBe(CharacterState.Sprinting);
+        cc.sprint(false);
+        cc.move(new Vector3(0, 0, 1), 0.016);
+        expect(cc.getState()).not.toBe(CharacterState.Sprinting);
+    });
+
+    it('should toggle crouch', () => {
+        const cc = new CharacterController();
+        cc.crouch(true);
+        expect(cc.getState()).toBe(CharacterState.Crouching);
+        cc.crouch(false);
+        expect(cc.getState()).not.toBe(CharacterState.Crouching);
+    });
+
+    it('should clamp pitch on lookAt', () => {
+        const cc = new CharacterController();
+        cc.lookAt(1.0, 5.0);
+        expect(cc.pitch).toBeLessThanOrEqual(Math.PI / 2);
+        expect(cc.pitch).toBeGreaterThanOrEqual(-Math.PI / 2);
+    });
+
+    it('should teleport to target position', () => {
+        const cc = new CharacterController();
+        const target = new Vector3(10, 20, 30);
+        cc.teleport(target);
+        expect(cc.position.x).toBe(10);
+        expect(cc.position.y).toBe(20);
+        expect(cc.position.z).toBe(30);
+    });
+
+    it('should run update cycle', () => {
+        const cc = new CharacterController();
+        cc.update(0.016);
+        expect(cc).toBeDefined();
+    });
+
+    it('should reset to initial state', () => {
+        const cc = new CharacterController();
+        cc.setState(CharacterState.Running);
+        cc.teleport(new Vector3(100, 100, 100));
+        cc.reset();
+        expect(cc.getState()).toBe(CharacterState.Idle);
+        expect(cc.position.x).toBe(0);
+        expect(cc.position.y).toBe(0);
+        expect(cc.position.z).toBe(0);
+    });
+
+    it('should return forward and right directions', () => {
+        const cc = new CharacterController();
+        const fwd = cc.getForwardDirection();
+        const right = cc.getRightDirection();
+        expect(fwd).toBeDefined();
+        expect(right).toBeDefined();
+        expect(fwd.length()).toBeCloseTo(1, 1);
+        expect(right.length()).toBeCloseTo(1, 1);
+    });
+
+    it('should handle swimming and climbing states', () => {
+        const cc = new CharacterController();
+        cc.setSwimming(true);
+        expect(cc.getState()).toBe(CharacterState.Swimming);
+        cc.setSwimming(false);
+        cc.setClimbing(true);
+        expect(cc.getState()).toBe(CharacterState.Climbing);
+        cc.setClimbing(false);
+    });
+});
+
+// ── InventorySystem Tests ──
+import { Inventory, EquipmentManager, LootTable, ItemRarity, ItemType, EquipmentSlot } from '../src/character/InventorySystem';
+import type { ItemDefinition, InventoryItem } from '../src/character/InventorySystem';
+
+describe('InventorySystem', () => {
+    const ironSword: ItemDefinition = {
+        id: 'iron_sword', name: 'Iron Sword', description: 'A sturdy iron sword',
+        type: ItemType.Weapon, rarity: ItemRarity.Common, stackable: false,
+        maxStack: 1, weight: 3.5, value: 50, usable: false, equippable: true, equipSlot: EquipmentSlot.MainHand,
+        properties: { damage: 10, speed: 1.2 }
+    };
+
+    const healthPotion: ItemDefinition = {
+        id: 'health_potion', name: 'Health Potion', description: 'Restores 50 HP',
+        type: ItemType.Consumable, rarity: ItemRarity.Common, stackable: true,
+        maxStack: 20, weight: 0.5, value: 10, usable: true, equippable: false,
+        properties: { healAmount: 50 }
+    };
+
+    const dragonScale: ItemDefinition = {
+        id: 'dragon_scale', name: 'Dragon Scale', description: 'A rare dragon scale',
+        type: ItemType.Material, rarity: ItemRarity.Legendary, stackable: true,
+        maxStack: 10, weight: 2.0, value: 500, usable: false, equippable: false,
+        properties: {}
+    };
+
+    const steelHelmet: ItemDefinition = {
+        id: 'steel_helmet', name: 'Steel Helmet', description: 'A protective steel helmet',
+        type: ItemType.Armor, rarity: ItemRarity.Uncommon, stackable: false,
+        maxStack: 1, weight: 4.0, value: 80, usable: false, equippable: true, equipSlot: EquipmentSlot.Head,
+        properties: { armor: 15, durability: 100 }
+    };
+
+    it('should create inventory with slots and weight', () => {
+        const inv = new Inventory(20, 100);
+        expect(inv).toBeDefined();
+        expect(inv.getUsedSlots()).toBe(0);
+        expect(inv.getRemainingSlots()).toBe(20);
+        expect(inv.getCurrentWeight()).toBe(0);
+    });
+
+    it('should add and remove items', () => {
+        const inv = new Inventory(20, 100);
+        expect(inv.addItem(ironSword)).toBe(true);
+        expect(inv.getUsedSlots()).toBe(1);
+        expect(inv.hasItem('iron_sword')).toBe(true);
+        expect(inv.removeItem('iron_sword')).toBe(true);
+        expect(inv.hasItem('iron_sword')).toBe(false);
+    });
+
+    it('should stack items correctly', () => {
+        const inv = new Inventory(20, 100);
+        inv.addItem(healthPotion, 5);
+        inv.addItem(healthPotion, 3);
+        expect(inv.getItemCount('health_potion')).toBe(8);
+    });
+
+    it('should enforce weight limits', () => {
+        const inv = new Inventory(20, 5);
+        expect(inv.addItem(ironSword)).toBe(true);
+        expect(inv.addItem(steelHelmet)).toBe(false);
+    });
+
+    it('should enforce slot limits', () => {
+        const inv = new Inventory(1, 1000);
+        expect(inv.addItem(ironSword)).toBe(true);
+        expect(inv.addItem(steelHelmet)).toBe(false);
+    });
+
+    it('should equip and unequip items', () => {
+        const em = new EquipmentManager();
+        const item: InventoryItem = { definition: ironSword, quantity: 1 };
+        const prev = em.equip(EquipmentSlot.MainHand, item);
+        expect(prev).toBeNull();
+        expect(em.getEquipped(EquipmentSlot.MainHand)).toBe(item);
+        const removed = em.unequip(EquipmentSlot.MainHand);
+        expect(removed).toBe(item);
+        expect(em.getEquipped(EquipmentSlot.MainHand)).toBeNull();
+    });
+
+    it('should calculate stat bonuses from equipment', () => {
+        const em = new EquipmentManager();
+        em.equip(EquipmentSlot.MainHand, { definition: ironSword, quantity: 1 });
+        em.equip(EquipmentSlot.Head, { definition: steelHelmet, quantity: 1 });
+        const bonuses = em.getStatBonuses();
+        expect(bonuses).toBeDefined();
+        expect(typeof bonuses).toBe('object');
+    });
+
+    it('should roll loot table', () => {
+        const lt = new LootTable();
+        lt.addEntry('iron_sword', 50, 1, 1);
+        lt.addEntry('health_potion', 80, 1, 5);
+        const drops = lt.roll(3);
+        expect(Array.isArray(drops)).toBe(true);
+        drops.forEach(d => {
+            expect(d.itemId).toBeDefined();
+            expect(d.quantity).toBeGreaterThan(0);
+        });
+    });
+
+    it('should handle guaranteed drops', () => {
+        const lt = new LootTable();
+        lt.setGuaranteedDrop('dragon_scale', 1);
+        const drops = lt.roll();
+        expect(drops.some(d => d.itemId === 'dragon_scale')).toBe(true);
+    });
+
+    it('should sort inventory', () => {
+        const inv = new Inventory(20, 200);
+        inv.addItem(dragonScale, 2);
+        inv.addItem(ironSword);
+        inv.addItem(healthPotion, 5);
+        inv.sort('name');
+        const items = inv.getItems();
+        expect(items.length).toBeGreaterThan(0);
+    });
+
+    it('should find and filter items', () => {
+        const inv = new Inventory(20, 200);
+        inv.addItem(ironSword);
+        inv.addItem(healthPotion, 5);
+        inv.addItem(dragonScale, 2);
+        const weapons = inv.find(i => i.definition.type === ItemType.Weapon);
+        expect(weapons.length).toBe(1);
+        expect(weapons[0].definition.name).toBe('Iron Sword');
+    });
+
+    it('should serialize and deserialize', () => {
+        const inv = new Inventory(20, 200);
+        inv.addItem(ironSword);
+        inv.addItem(healthPotion, 5);
+        const json = inv.toJSON();
+        expect(json).toBeDefined();
+        expect(json.maxSlots).toBe(20);
+        expect(json.maxWeight).toBe(200);
+        const inv2 = new Inventory(20, 200);
+        const registry = (id: string) => {
+            const map: Record<string, ItemDefinition> = { iron_sword: ironSword, health_potion: healthPotion };
+            return map[id];
+        };
+        inv2.fromJSON(json, registry);
+        expect(inv2.hasItem('iron_sword')).toBe(true);
+        expect(inv2.getItemCount('health_potion')).toBe(5);
+    });
+
+    it('should split stacks', () => {
+        const inv = new Inventory(20, 200);
+        inv.addItem(healthPotion, 10);
+        const result = inv.splitStack('health_potion', 4);
+        expect(result).toBe(true);
+    });
+
+    it('should clear all items', () => {
+        const inv = new Inventory(20, 200);
+        inv.addItem(ironSword);
+        inv.addItem(healthPotion, 5);
+        inv.clear();
+        expect(inv.getUsedSlots()).toBe(0);
+        expect(inv.getCurrentWeight()).toBe(0);
+    });
+});
+
+// ── DialogueSystem Tests ──
+import { DialogueManager, DialogueBuilder } from '../src/character/DialogueSystem';
+import type { DialogueTree, DialogueCondition, DialogueEffect } from '../src/character/DialogueSystem';
+
+describe('DialogueSystem', () => {
+    function buildSimpleTree(): DialogueTree {
+        return DialogueBuilder.create('greeting_tree', 'Greeting Dialogue')
+            .addNode('start', 'Elder', 'Welcome, traveler! What brings you here?')
+            .addNode('quest', 'Elder', 'I have a task for you. Will you help?')
+            .addNode('farewell', 'Elder', 'Safe travels, friend.')
+            .addNode('accept', 'Elder', 'Wonderful! Go to the forest and find the amulet.')
+            .addNode('decline', 'Elder', 'Very well. Come back if you change your mind.')
+            .addChoice('start', 'Tell me about a quest', 'quest')
+            .addChoice('start', 'Goodbye', 'farewell')
+            .addChoice('quest', 'I will help!', 'accept')
+            .addChoice('quest', 'Not interested', 'decline')
+            .setStartNode('start')
+            .setVariable('player_reputation', 0)
+            .build();
+    }
+
+    it('should create DialogueManager', () => {
+        const dm = new DialogueManager();
+        expect(dm).toBeDefined();
+        expect(dm.isInDialogue()).toBe(false);
+    });
+
+    it('should build valid dialogue tree', () => {
+        const tree = buildSimpleTree();
+        expect(tree).toBeDefined();
+        expect(tree.id).toBe('greeting_tree');
+        expect(tree.name).toBe('Greeting Dialogue');
+        expect(tree.startNodeId).toBe('start');
+        expect(tree.nodes.size).toBeGreaterThanOrEqual(4);
+    });
+
+    it('should start and advance dialogue', () => {
+        const dm = new DialogueManager();
+        dm.registerTree(buildSimpleTree());
+        const node = dm.startDialogue('greeting_tree');
+        expect(node).toBeDefined();
+        expect(node!.speaker).toBe('Elder');
+        expect(node!.text).toContain('Welcome');
+        expect(dm.isInDialogue()).toBe(true);
+    });
+
+    it('should select choices', () => {
+        const dm = new DialogueManager();
+        dm.registerTree(buildSimpleTree());
+        dm.startDialogue('greeting_tree');
+        const choices = dm.getAvailableChoices();
+        expect(choices.length).toBe(2);
+        const next = dm.selectChoice(choices[0].id);
+        expect(next).toBeDefined();
+        expect(next!.speaker).toBe('Elder');
+    });
+
+    it('should evaluate conditions', () => {
+        const dm = new DialogueManager();
+        dm.setVariable('player_level', 10);
+        const cond: DialogueCondition = { type: 'variable', key: 'player_level', operator: '>=', value: 5 };
+        expect(dm.evaluateCondition(cond)).toBe(true);
+        const cond2: DialogueCondition = { type: 'variable', key: 'player_level', operator: '<', value: 5 };
+        expect(dm.evaluateCondition(cond2)).toBe(false);
+    });
+
+    it('should manage variables', () => {
+        const dm = new DialogueManager();
+        dm.setVariable('gold', 100);
+        expect(dm.getVariable('gold')).toBe(100);
+        dm.setVariable('name', 'Hero');
+        expect(dm.getVariable('name')).toBe('Hero');
+    });
+
+    it('should track dialogue history', () => {
+        const dm = new DialogueManager();
+        dm.registerTree(buildSimpleTree());
+        dm.startDialogue('greeting_tree');
+        const history = dm.getDialogueHistory();
+        expect(Array.isArray(history)).toBe(true);
+        expect(history.length).toBeGreaterThanOrEqual(1);
+        expect(history[0].speaker).toBe('Elder');
+    });
+
+    it('should end dialogue', () => {
+        const dm = new DialogueManager();
+        dm.registerTree(buildSimpleTree());
+        dm.startDialogue('greeting_tree');
+        expect(dm.isInDialogue()).toBe(true);
+        dm.endDialogue();
+        expect(dm.isInDialogue()).toBe(false);
+    });
+
+    it('should handle custom effect handlers', () => {
+        const dm = new DialogueManager();
+        let grantedXp = 0;
+        dm.registerEffectHandler('grant_xp', (effect) => {
+            grantedXp = effect.value as number;
+        });
+        dm.applyEffects([{ type: 'grant_xp', key: 'xp', value: 250 }]);
+        expect(grantedXp).toBe(250);
+    });
+
+    it('should serialize and deserialize', () => {
+        const dm = new DialogueManager();
+        dm.registerTree(buildSimpleTree());
+        dm.setVariable('progress', 42);
+        const json = dm.toJSON();
+        expect(json).toBeDefined();
+        const dm2 = new DialogueManager();
+        dm2.fromJSON(json);
+        expect(dm2.getVariable('progress')).toBe(42);
+    });
+
+    it('should manage multiple trees', () => {
+        const dm = new DialogueManager();
+        dm.registerTree(buildSimpleTree());
+        const shopTree = DialogueBuilder.create('shop_tree', 'Shop Dialogue')
+            .addNode('welcome', 'Merchant', 'Welcome to my shop!')
+            .addNode('browse', 'Merchant', 'Take a look around.')
+            .addChoice('welcome', 'Show me your wares', 'browse')
+            .setStartNode('welcome')
+            .build();
+        dm.registerTree(shopTree);
+        const node1 = dm.startDialogue('greeting_tree');
+        expect(node1!.speaker).toBe('Elder');
+        dm.endDialogue();
+        const node2 = dm.startDialogue('shop_tree');
+        expect(node2!.speaker).toBe('Merchant');
+    });
+
+    it('should fire callback notifications', () => {
+        const dm = new DialogueManager();
+        dm.registerTree(buildSimpleTree());
+        let started = false;
+        let ended = false;
+        dm.onDialogueStart = () => { started = true; };
+        dm.onDialogueEnd = () => { ended = true; };
+        dm.startDialogue('greeting_tree');
+        expect(started).toBe(true);
+        dm.endDialogue();
+        expect(ended).toBe(true);
+    });
+});
+
+// ── QuestSystem Tests ──
+import { QuestManager, QuestChainManager, QuestStatus, ObjectiveType } from '../src/character/QuestSystem';
+import type { QuestDefinition } from '../src/character/QuestSystem';
+
+describe('QuestSystem', () => {
+    const wolfQuest: QuestDefinition = {
+        id: 'kill_wolves', name: 'Wolf Hunt', description: 'Eliminate wolves threatening the village',
+        category: 'Combat', level: 5,
+        objectives: [
+            { id: 'obj_wolves', description: 'Kill 5 wolves', type: ObjectiveType.Kill, targetId: 'wolf', targetCount: 5, currentCount: 0, completed: false },
+            { id: 'obj_alpha', description: 'Kill the alpha wolf', type: ObjectiveType.Kill, targetId: 'alpha_wolf', targetCount: 1, currentCount: 0, completed: false }
+        ],
+        rewards: { experience: 200, currency: 50, items: [{ itemId: 'wolf_pelt', quantity: 3 }] }
+    };
+
+    const herbQuest: QuestDefinition = {
+        id: 'collect_herbs', name: 'Herbalist Request', description: 'Gather healing herbs from the forest',
+        category: 'Gathering', level: 2,
+        objectives: [
+            { id: 'obj_herbs', description: 'Collect 10 herbs', type: ObjectiveType.Collect, targetId: 'healing_herb', targetCount: 10, currentCount: 0, completed: false }
+        ],
+        rewards: { experience: 100, currency: 25 }
+    };
+
+    const escortQuest: QuestDefinition = {
+        id: 'escort_merchant', name: 'Merchant Escort', description: 'Escort the merchant to the city',
+        category: 'Escort', level: 8, prerequisites: ['kill_wolves'],
+        objectives: [
+            { id: 'obj_escort', description: 'Escort the merchant safely', type: ObjectiveType.Escort, targetId: 'merchant', targetCount: 1, currentCount: 0, completed: false }
+        ],
+        rewards: { experience: 300, currency: 150 }
+    };
+
+    it('should create quest manager', () => {
+        const qm = new QuestManager();
+        expect(qm).toBeDefined();
+        expect(qm.getActiveQuests()).toHaveLength(0);
+    });
+
+    it('should register and start quest', () => {
+        const qm = new QuestManager();
+        qm.registerQuest(wolfQuest);
+        expect(qm.startQuest('kill_wolves')).toBe(true);
+        expect(qm.getActiveQuests()).toHaveLength(1);
+        expect(qm.getQuest('kill_wolves')!.status).toBe(QuestStatus.Active);
+    });
+
+    it('should update objective progress', () => {
+        const qm = new QuestManager();
+        qm.registerQuest(wolfQuest);
+        qm.startQuest('kill_wolves');
+        qm.updateObjective('kill_wolves', 'obj_wolves', 3);
+        const progress = qm.getObjectiveProgress('kill_wolves', 'obj_wolves');
+        expect(progress).toBeGreaterThan(0);
+    });
+
+    it('should complete quest with rewards', () => {
+        const qm = new QuestManager();
+        qm.registerQuest(herbQuest);
+        qm.startQuest('collect_herbs');
+        // updateObjective auto-completes when all objectives are done
+        let completedReward: any = null;
+        qm.onQuestComplete((_inst, reward) => { completedReward = reward; });
+        qm.updateObjective('collect_herbs', 'obj_herbs', 10);
+        expect(completedReward).toBeDefined();
+        expect(completedReward.experience).toBe(100);
+        expect(completedReward.currency).toBe(25);
+    });
+
+    it('should fail quest', () => {
+        const qm = new QuestManager();
+        qm.registerQuest(wolfQuest);
+        qm.startQuest('kill_wolves');
+        qm.failQuest('kill_wolves');
+        expect(qm.getQuest('kill_wolves')!.status).toBe(QuestStatus.Failed);
+    });
+
+    it('should abandon quest', () => {
+        const qm = new QuestManager();
+        qm.registerQuest(wolfQuest);
+        qm.startQuest('kill_wolves');
+        qm.abandonQuest('kill_wolves');
+        // abandonQuest deletes the instance from tracking
+        expect(qm.getQuest('kill_wolves')).toBeNull();
+    });
+
+    it('should check prerequisites', () => {
+        const qm = new QuestManager();
+        qm.registerQuest(wolfQuest);
+        qm.registerQuest(escortQuest);
+        expect(qm.isQuestAvailable('escort_merchant')).toBe(false);
+        qm.startQuest('kill_wolves');
+        qm.updateObjective('kill_wolves', 'obj_wolves', 5);
+        qm.updateObjective('kill_wolves', 'obj_alpha', 1);
+        qm.completeQuest('kill_wolves');
+        expect(qm.isQuestAvailable('escort_merchant')).toBe(true);
+    });
+
+    it('should auto-match events with notifyEvent', () => {
+        const qm = new QuestManager();
+        qm.registerQuest(wolfQuest);
+        qm.startQuest('kill_wolves');
+        qm.notifyEvent(ObjectiveType.Kill, 'wolf', 2);
+        const progress = qm.getObjectiveProgress('kill_wolves', 'obj_wolves');
+        expect(progress).toBeGreaterThan(0);
+    });
+
+    it('should manage quest chains', () => {
+        const qm = new QuestManager();
+        qm.registerQuest(wolfQuest);
+        qm.registerQuest(escortQuest);
+        const chain = new QuestChainManager(qm);
+        chain.registerChain(['kill_wolves', 'escort_merchant']);
+        expect(chain.isChainComplete('kill_wolves')).toBe(false);
+        expect(chain.getChainProgress('kill_wolves')).toBe(0);
+    });
+
+    it('should filter available quests', () => {
+        const qm = new QuestManager();
+        qm.registerQuest(wolfQuest);
+        qm.registerQuest(herbQuest);
+        qm.registerQuest(escortQuest);
+        const available = qm.getAvailableQuests();
+        expect(available.length).toBe(2);
+        expect(available.map(q => q.id)).toContain('kill_wolves');
+        expect(available.map(q => q.id)).toContain('collect_herbs');
+    });
+
+    it('should serialize and deserialize', () => {
+        const qm = new QuestManager();
+        qm.registerQuest(wolfQuest);
+        qm.startQuest('kill_wolves');
+        qm.updateObjective('kill_wolves', 'obj_wolves', 3);
+        const json = qm.toJSON();
+        expect(json).toBeDefined();
+        const qm2 = new QuestManager();
+        qm2.registerQuest(wolfQuest);
+        qm2.fromJSON(json);
+        expect(qm2.getQuest('kill_wolves')).toBeDefined();
+    });
+
+    it('should fire callbacks', () => {
+        const qm = new QuestManager();
+        qm.registerQuest(herbQuest);
+        let startedInstance: any = null;
+        let completedInstance: any = null;
+        qm.onQuestStart((inst) => { startedInstance = inst; });
+        qm.onQuestComplete((inst) => { completedInstance = inst; });
+        qm.startQuest('collect_herbs');
+        expect(startedInstance).toBeDefined();
+        expect(startedInstance.definition.id).toBe('collect_herbs');
+        // updateObjective auto-completes quest
+        qm.updateObjective('collect_herbs', 'obj_herbs', 10);
+        expect(completedInstance).toBeDefined();
+        expect(completedInstance.definition.id).toBe('collect_herbs');
+    });
+});
+
+// ── WorldStreaming Tests ──
+import { WorldStreaming, ChunkState } from '../src/scene/WorldStreaming';
+
+describe('WorldStreaming', () => {
+    it('should create with default config', () => {
+        const ws = new WorldStreaming();
+        expect(ws).toBeDefined();
+        const cfg = ws.getConfig();
+        expect(cfg.chunkSize).toBeGreaterThan(0);
+        expect(cfg.loadRadius).toBeGreaterThan(0);
+    });
+
+    it('should convert world to chunk coordinates', () => {
+        const ws = new WorldStreaming({ chunkSize: 64 });
+        const coord = ws.worldToChunkCoord(100, 200);
+        expect(coord).toBeDefined();
+        expect(typeof coord.x).toBe('number');
+        expect(typeof coord.z).toBe('number');
+    });
+
+    it('should convert chunk to world center', () => {
+        const ws = new WorldStreaming({ chunkSize: 64 });
+        const coord = ws.worldToChunkCoord(100, 200);
+        const center = ws.chunkToWorldCenter(coord);
+        expect(center).toBeDefined();
+        expect(center.x).toBeDefined();
+        expect(center.z).toBeDefined();
+    });
+
+    it('should force load a chunk', () => {
+        const ws = new WorldStreaming({ chunkSize: 64 });
+        const coord = { x: 0, z: 0 };
+        ws.forceLoadChunk(coord);
+        // Processing happens during update
+        ws.update(new Vector3(0, 0, 0), 0.016);
+        expect(ws.isChunkLoaded(coord)).toBe(true);
+    });
+
+    it('should calculate chunk distance', () => {
+        const ws = new WorldStreaming({ chunkSize: 64 });
+        const coord = { x: 5, z: 5 };
+        const dist = ws.getChunkDistance(coord, new Vector3(0, 0, 0));
+        expect(dist).toBeGreaterThan(0);
+    });
+
+    it('should add and retrieve objects in radius', () => {
+        const ws = new WorldStreaming({ chunkSize: 64 });
+        ws.forceLoadChunk({ x: 0, z: 0 });
+        ws.addObjectToChunk('tree_1', new Vector3(10, 0, 10));
+        ws.addObjectToChunk('tree_2', new Vector3(15, 0, 15));
+        ws.addObjectToChunk('tree_3', new Vector3(500, 0, 500));
+        const nearby = ws.getObjectsInRadius(new Vector3(12, 0, 12), 50);
+        expect(nearby).toContain('tree_1');
+        expect(nearby).toContain('tree_2');
+    });
+
+    it('should report statistics', () => {
+        const ws = new WorldStreaming({ chunkSize: 64 });
+        ws.forceLoadChunk({ x: 0, z: 0 });
+        ws.forceLoadChunk({ x: 1, z: 0 });
+        ws.update(new Vector3(0, 0, 0), 0.016);
+        const stats = ws.getStatistics();
+        expect(stats.loaded + stats.active).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should update configuration', () => {
+        const ws = new WorldStreaming({ chunkSize: 64 });
+        ws.setConfig({ chunkSize: 128 });
+        expect(ws.getConfig().chunkSize).toBe(128);
+    });
+
+    it('should dispose cleanly', () => {
+        const ws = new WorldStreaming({ chunkSize: 64 });
+        ws.forceLoadChunk({ x: 0, z: 0 });
+        ws.dispose();
+        const stats = ws.getStatistics();
+        expect(stats.loaded).toBe(0);
+    });
+
+    it('should get chunk from world position', () => {
+        const ws = new WorldStreaming({ chunkSize: 64 });
+        const coord = ws.getChunkAt(new Vector3(130, 0, 260));
+        expect(coord).toBeDefined();
+        expect(typeof coord.x).toBe('number');
+        expect(typeof coord.z).toBe('number');
+    });
+});
+
+// ── Sprite2D Tests ──
+import { Sprite, SpriteSheet, SpriteAnimator, SpriteBatch, TileMap, SpriteFlip, SpriteBlendMode } from '../src/rendering/Sprite2D';
+import type { SpriteAnimation } from '../src/rendering/Sprite2D';
+
+describe('Sprite2D', () => {
+    it('should create Sprite with defaults', () => {
+        const sprite = new Sprite();
+        expect(sprite).toBeDefined();
+        expect(sprite.config.visible).toBe(true);
+        expect(sprite.position).toBeDefined();
+    });
+
+    it('should create Sprite with custom config', () => {
+        const sprite = new Sprite({ width: 64, height: 64, flip: SpriteFlip.Horizontal, blendMode: SpriteBlendMode.Additive });
+        expect(sprite.config.width).toBe(64);
+        expect(sprite.config.height).toBe(64);
+        expect(sprite.config.flip).toBe(SpriteFlip.Horizontal);
+        expect(sprite.config.blendMode).toBe(SpriteBlendMode.Additive);
+    });
+
+    it('should manage SpriteSheet frames', () => {
+        const sheet = new SpriteSheet(512, 512);
+        sheet.addFrame('idle_0', 0, 0, 64, 64);
+        sheet.addFrame('idle_1', 64, 0, 64, 64);
+        expect(sheet.getFrameCount()).toBe(2);
+        expect(sheet.getFrame('idle_0')).toBeDefined();
+        expect(sheet.getFrame('idle_0')!.width).toBe(64);
+        expect(sheet.getFrameNames()).toContain('idle_0');
+        expect(sheet.getFrameNames()).toContain('idle_1');
+    });
+
+    it('should generate grid frames', () => {
+        const sheet = new SpriteSheet(256, 256);
+        sheet.generateGrid(4, 4, 64, 64, 'cell');
+        expect(sheet.getFrameCount()).toBe(16);
+    });
+
+    it('should play and stop animations', () => {
+        const animator = new SpriteAnimator();
+        const walkAnim: SpriteAnimation = {
+            name: 'walk', frameDuration: 100, loop: true, pingPong: false,
+            frames: ['walk_0', 'walk_1', 'walk_2', 'walk_3']
+        };
+        animator.addAnimation(walkAnim);
+        animator.play('walk');
+        expect(animator.isPlaying()).toBe(true);
+        expect(animator.getCurrentAnimation()).toBe('walk');
+        animator.stop();
+        expect(animator.isPlaying()).toBe(false);
+    });
+
+    it('should pause and resume animations', () => {
+        const animator = new SpriteAnimator();
+        animator.addAnimation({
+            name: 'run', frameDuration: 100, loop: true, pingPong: false,
+            frames: ['run_0', 'run_1']
+        });
+        animator.play('run');
+        animator.pause();
+        expect(animator.isPlaying()).toBe(false);
+        animator.resume();
+        expect(animator.isPlaying()).toBe(true);
+    });
+
+    it('should advance frames on update', () => {
+        const animator = new SpriteAnimator();
+        animator.addAnimation({
+            name: 'idle', frameDuration: 100, loop: true, pingPong: false,
+            frames: ['idle_0', 'idle_1']
+        });
+        animator.play('idle');
+        animator.update(0.15);
+        expect(animator.getCurrentFrame()).toBeDefined();
+    });
+
+    it('should manage SpriteBatch', () => {
+        const batch = new SpriteBatch();
+        const s1 = new Sprite({ sortingOrder: 2 });
+        const s2 = new Sprite({ sortingOrder: 1 });
+        batch.addSprite(s1);
+        batch.addSprite(s2);
+        expect(batch.getSpriteCount()).toBe(2);
+        batch.sort();
+        batch.removeSprite(s1);
+        expect(batch.getSpriteCount()).toBe(1);
+    });
+
+    it('should create TileMap', () => {
+        const tm = new TileMap(32, 32, 100, 100);
+        expect(tm).toBeDefined();
+        expect(tm.getLayerCount()).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should set and get tiles', () => {
+        const tm = new TileMap(32, 32, 50, 50);
+        tm.setTile(5, 5, 42);
+        expect(tm.getTile(5, 5)).toBe(42);
+        tm.setTile(10, 10, 99);
+        expect(tm.getTile(10, 10)).toBe(99);
+    });
+
+    it('should convert world to tile coordinates', () => {
+        const tm = new TileMap(32, 32, 50, 50);
+        const tile = tm.worldToTile(64, 96);
+        expect(tile.x).toBe(2);
+        expect(tile.y).toBe(3);
+        const world = tm.tileToWorld(2, 3);
+        expect(world.x).toBe(64);
+        expect(world.y).toBe(96);
+    });
+
+    it('should manage TileMap layers', () => {
+        const tm = new TileMap(32, 32, 20, 20);
+        const layerIdx = tm.addLayer('foreground');
+        expect(layerIdx).toBeGreaterThanOrEqual(1);
+        expect(tm.getLayerCount()).toBeGreaterThanOrEqual(2);
+        tm.setTile(0, 0, 10, 0);
+        tm.setTile(0, 0, 20, layerIdx);
+        expect(tm.getTile(0, 0, 0)).toBe(10);
+        expect(tm.getTile(0, 0, layerIdx)).toBe(20);
+    });
+
+    it('should calculate Sprite bounds', () => {
+        const sprite = new Sprite({ width: 100, height: 50 });
+        sprite.position = new Vector2(200, 300);
+        const bounds = sprite.getBounds();
+        expect(bounds).toBeDefined();
+        expect(bounds.width).toBe(100);
+        expect(bounds.height).toBe(50);
+    });
+
+    it('should compute SpriteSheet UVs', () => {
+        const sheet = new SpriteSheet(256, 256);
+        sheet.addFrame('test', 0, 0, 64, 64);
+        const frame = sheet.getFrame('test')!;
+        const uvs = sheet.getUVs(frame);
+        expect(uvs.u0).toBeCloseTo(0, 2);
+        expect(uvs.v0).toBeCloseTo(0, 2);
+        expect(uvs.u1).toBeCloseTo(0.25, 2);
+        expect(uvs.v1).toBeCloseTo(0.25, 2);
+    });
+});
