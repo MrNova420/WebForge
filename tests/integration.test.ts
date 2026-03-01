@@ -1018,7 +1018,7 @@ describe('EditorCommands', () => {
 // Network System Tests
 // ==========================================
 
-import { MessageType } from '../src/network/NetworkManager';
+import { MessageType, NetworkRoom } from '../src/network/NetworkManager';
 import { StateSyncManager } from '../src/network/StateSyncManager';
 
 describe('Network System', () => {
@@ -1036,6 +1036,15 @@ describe('Network System', () => {
         expect(MessageType.CUSTOM_EVENT).toBe('custom_event');
         expect(MessageType.RPC_CALL).toBe('rpc_call');
         expect(MessageType.RPC_RESPONSE).toBe('rpc_response');
+    });
+
+    it('should have room management message types', () => {
+        expect(MessageType.ROOM_CREATE).toBe('room_create');
+        expect(MessageType.ROOM_JOIN).toBe('room_join');
+        expect(MessageType.ROOM_LEAVE).toBe('room_leave');
+        expect(MessageType.ROOM_LIST).toBe('room_list');
+        expect(MessageType.ROOM_UPDATE).toBe('room_update');
+        expect(MessageType.CHAT_MESSAGE).toBe('chat_message');
     });
 
     it('should create StateSyncManager', () => {
@@ -1062,5 +1071,394 @@ describe('Network System', () => {
         sync.clearEntity('test-entity');
         sync.clearAll();
         expect(sync.getInterpolatedTransform('test-entity')).toBeNull();
+    });
+
+    it('should support NetworkRoom interface', () => {
+        const room: NetworkRoom = {
+            id: 'room1',
+            name: 'Test Room',
+            hostId: 'host1',
+            clients: ['host1', 'client2'],
+            maxClients: 8,
+            isPublic: true,
+            metadata: { gameMode: 'deathmatch' }
+        };
+        expect(room.id).toBe('room1');
+        expect(room.clients.length).toBe(2);
+        expect(room.maxClients).toBe(8);
+        expect(room.isPublic).toBe(true);
+    });
+
+    it('should set interpolation delay and update rate', () => {
+        const mockNetwork = { on: vi.fn(), broadcast: vi.fn(), createMessage: vi.fn() };
+        const sync = new StateSyncManager(mockNetwork as any);
+        sync.setInterpolationDelay(200);
+        sync.setUpdateRate(30);
+        // No error thrown means success
+        expect(sync).toBeDefined();
+    });
+});
+
+// ========== Post-Processing Effects Tests ==========
+import { BloomEffect, BloomConfig } from '../src/rendering/effects/BloomEffect';
+import { ToneMappingEffect, ToneMappingOperator, ToneMappingConfig } from '../src/rendering/effects/ToneMappingEffect';
+import { SSAOEffect, SSAOConfig } from '../src/rendering/effects/SSAOEffect';
+import { DepthOfFieldEffect, DepthOfFieldConfig } from '../src/rendering/effects/DepthOfFieldEffect';
+import { MotionBlurEffect, MotionBlurConfig } from '../src/rendering/effects/MotionBlurEffect';
+
+describe('Post-Processing Effects', () => {
+    it('should export BloomConfig interface', () => {
+        const config: BloomConfig = {
+            threshold: 0.8,
+            intensity: 1.5,
+            blurPasses: 3,
+            blurRadius: 2.0
+        };
+        expect(config.threshold).toBe(0.8);
+        expect(config.intensity).toBe(1.5);
+        expect(config.blurPasses).toBe(3);
+    });
+
+    it('should export ToneMappingOperator enum', () => {
+        expect(ToneMappingOperator.LINEAR).toBe('linear');
+        expect(ToneMappingOperator.REINHARD).toBe('reinhard');
+        expect(ToneMappingOperator.ACES).toBe('aces');
+        expect(ToneMappingOperator.UNCHARTED2).toBe('uncharted2');
+        expect(ToneMappingOperator.FILMIC).toBe('filmic');
+    });
+
+    it('should export ToneMappingConfig interface', () => {
+        const config: ToneMappingConfig = {
+            operator: ToneMappingOperator.ACES,
+            exposure: 1.0,
+            whitePoint: 11.2
+        };
+        expect(config.operator).toBe('aces');
+        expect(config.exposure).toBe(1.0);
+    });
+
+    it('should export SSAOConfig interface', () => {
+        const config: SSAOConfig = {
+            samples: 32,
+            radius: 0.5,
+            bias: 0.025,
+            intensity: 1.0
+        };
+        expect(config.samples).toBe(32);
+        expect(config.radius).toBe(0.5);
+    });
+
+    it('should export DepthOfFieldConfig interface', () => {
+        const config: DepthOfFieldConfig = {
+            focusDistance: 10,
+            focusRange: 5,
+            bokehSize: 1.0,
+            maxBlur: 20
+        };
+        expect(config.focusDistance).toBe(10);
+        expect(config.bokehSize).toBe(1.0);
+    });
+
+    it('should export MotionBlurConfig interface', () => {
+        const config: MotionBlurConfig = {
+            samples: 16,
+            strength: 1.0
+        };
+        expect(config.samples).toBe(16);
+        expect(config.strength).toBe(1.0);
+    });
+});
+
+// ========== Terrain System Tests ==========
+import { Terrain } from '../src/terrain/Terrain';
+import { TerrainLOD } from '../src/terrain/TerrainLOD';
+import { TerrainBrush, TerrainBrushType, TerrainFalloffType } from '../src/terrain/TerrainBrush';
+
+describe('Terrain System', () => {
+    it('should create terrain with dimensions', () => {
+        const terrain = new Terrain(64, 64, 100, 100);
+        const dims = terrain.getDimensions();
+        expect(dims.width).toBe(64);
+        expect(dims.height).toBe(64);
+        expect(dims.worldWidth).toBe(100);
+        expect(dims.worldDepth).toBe(100);
+    });
+
+    it('should get height at coordinates', () => {
+        const terrain = new Terrain(16, 16, 50, 50);
+        const height = terrain.getHeightAt(0, 0);
+        expect(typeof height).toBe('number');
+    });
+
+    it('should get world height with interpolation', () => {
+        const terrain = new Terrain(16, 16, 50, 50);
+        const height = terrain.getHeight(10, 10);
+        expect(typeof height).toBe('number');
+    });
+
+    it('should generate mesh at LOD 0', () => {
+        const terrain = new Terrain(8, 8, 10, 10);
+        const mesh = terrain.generateMesh(0);
+        expect(mesh).toBeDefined();
+        expect(mesh.getVertexCount()).toBeGreaterThan(0);
+    });
+
+    it('should generate mesh at LOD 2 with fewer vertices', () => {
+        const terrain = new Terrain(16, 16, 50, 50);
+        const meshLod0 = terrain.generateMesh(0);
+        const meshLod2 = terrain.generateMesh(2);
+        expect(meshLod2.getVertexCount()).toBeLessThan(meshLod0.getVertexCount());
+    });
+
+    it('should get terrain normals', () => {
+        const terrain = new Terrain(8, 8, 10, 10);
+        const normal = terrain.getNormal(4, 4);
+        expect(normal).toBeDefined();
+        expect(normal.length()).toBeCloseTo(1.0, 1);
+    });
+
+    it('should clear terrain data', () => {
+        const terrain = new Terrain(8, 8, 10, 10);
+        terrain.clear();
+        expect(terrain.getHeightAt(4, 4)).toBe(0);
+    });
+});
+
+describe('Terrain LOD System', () => {
+    it('should initialize with default LOD levels', () => {
+        const terrain = new Terrain(8, 8, 10, 10);
+        const lod = new TerrainLOD(terrain);
+        const config = lod.getLODConfiguration();
+        expect(config.length).toBe(5);
+        expect(config[0].level).toBe(0);
+        expect(config[4].level).toBe(4);
+    });
+
+    it('should return LOD 0 for close camera', () => {
+        const terrain = new Terrain(8, 8, 10, 10);
+        const lod = new TerrainLOD(terrain);
+        const level = lod.getLODLevel(0, 0, 0, 0);
+        expect(level).toBe(0);
+    });
+
+    it('should return higher LOD for distant camera', () => {
+        const terrain = new Terrain(8, 8, 10, 10);
+        const lod = new TerrainLOD(terrain);
+        const level = lod.getLODLevel(500, 500, 0, 0);
+        expect(level).toBeGreaterThan(0);
+    });
+
+    it('should allow custom LOD distances', () => {
+        const terrain = new Terrain(8, 8, 10, 10);
+        const lod = new TerrainLOD(terrain);
+        lod.setLODDistances([10, 20, 40, 80]);
+        const config = lod.getLODConfiguration();
+        // After setting distances, they're sorted. Config[0] still has distance 10 (level 0)
+        expect(config[0].distance).toBe(10);
+    });
+
+    it('should get mesh detail multiplier', () => {
+        const terrain = new Terrain(8, 8, 10, 10);
+        const lod = new TerrainLOD(terrain);
+        expect(lod.getMeshDetail(0)).toBe(1.0);
+        expect(lod.getMeshDetail(4)).toBe(0.0625);
+    });
+
+    it('should update LOD for camera position', () => {
+        const terrain = new Terrain(8, 8, 10, 10);
+        const lod = new TerrainLOD(terrain);
+        const levels = lod.update(0, 0);
+        expect(levels).toBeDefined();
+        expect(levels.length).toBeGreaterThan(0);
+    });
+
+    it('should generate LOD mesh based on camera distance', () => {
+        const terrain = new Terrain(16, 16, 50, 50);
+        const lod = new TerrainLOD(terrain);
+        const mesh = lod.generateLODMesh(0, 0);
+        expect(mesh).toBeDefined();
+        expect(mesh.getVertexCount()).toBeGreaterThan(0);
+    });
+});
+
+describe('Terrain Brush System', () => {
+    it('should create terrain brush', () => {
+        const brush = new TerrainBrush('raise', 5, 0.5);
+        expect(brush).toBeDefined();
+    });
+
+    it('should set brush type', () => {
+        const brush = new TerrainBrush('raise', 5, 0.5);
+        brush.setType('lower');
+        expect(brush).toBeDefined();
+    });
+
+    it('should set brush radius', () => {
+        const brush = new TerrainBrush('raise', 5, 0.5);
+        brush.setRadius(10);
+        expect(brush).toBeDefined();
+    });
+
+    it('should set brush strength', () => {
+        const brush = new TerrainBrush('raise', 5, 0.5);
+        brush.setStrength(0.8);
+        expect(brush).toBeDefined();
+    });
+
+    it('should apply brush to terrain (raise)', () => {
+        const terrain = new Terrain(16, 16, 50, 50);
+        const brush = new TerrainBrush('raise', 10, 0.5);
+        const h0 = terrain.getHeightAt(8, 8);
+        brush.apply(terrain, 0, 0); // World center
+        const h1 = terrain.getHeightAt(8, 8);
+        expect(h1).toBeGreaterThan(h0);
+    });
+
+    it('should apply brush to terrain (lower)', () => {
+        const terrain = new Terrain(16, 16, 50, 50);
+        const brush = new TerrainBrush('raise', 10, 0.5);
+        brush.apply(terrain, 0, 0); // Raise first
+
+        const h0 = terrain.getHeightAt(8, 8);
+        brush.setType('lower');
+        brush.apply(terrain, 0, 0);
+        const h1 = terrain.getHeightAt(8, 8);
+        expect(h1).toBeLessThan(h0);
+    });
+
+    it('should apply flatten brush', () => {
+        const terrain = new Terrain(16, 16, 50, 50);
+        const brush = new TerrainBrush('raise', 10, 1.0);
+        brush.apply(terrain, 0, 0); // Create a peak
+
+        brush.setType('flatten');
+        brush.apply(terrain, 0, 0);
+        expect(terrain.getHeightAt(8, 8)).toBeDefined();
+    });
+
+    it('should support all terrain brush types', () => {
+        const types: TerrainBrushType[] = ['raise', 'lower', 'smooth', 'flatten'];
+        for (const type of types) {
+            const brush = new TerrainBrush(type, 3, 0.5);
+            expect(brush).toBeDefined();
+        }
+    });
+});
+
+// ========== Sculpting System Tests ==========
+import { SculptingSystem, BrushType, FalloffType } from '../src/geometry/SculptingSystem';
+import { MeshData } from '../src/geometry/MeshData';
+
+describe('Sculpting System', () => {
+    it('should have all brush types', () => {
+        expect(BrushType.DRAW).toBe('draw');
+        expect(BrushType.SMOOTH).toBe('smooth');
+        expect(BrushType.GRAB).toBe('grab');
+        expect(BrushType.INFLATE).toBe('inflate');
+        expect(BrushType.FLATTEN).toBe('flatten');
+        expect(BrushType.PINCH).toBe('pinch');
+        expect(BrushType.CREASE).toBe('crease');
+    });
+
+    it('should have all falloff types', () => {
+        expect(FalloffType.LINEAR).toBe('linear');
+        expect(FalloffType.SMOOTH).toBe('smooth');
+        expect(FalloffType.SHARP).toBe('sharp');
+        expect(FalloffType.CONSTANT).toBe('constant');
+    });
+
+    it('should create sculpting system with mesh', () => {
+        const mesh = new MeshData({ position: [], normal: [], uv: [], color: [] }, []);
+        const sculpt = new SculptingSystem(mesh);
+        expect(sculpt).toBeDefined();
+    });
+
+    it('should get default settings', () => {
+        const mesh = new MeshData({ position: [], normal: [], uv: [], color: [] }, []);
+        const sculpt = new SculptingSystem(mesh);
+        const settings = sculpt.getSettings();
+        expect(settings.type).toBe(BrushType.DRAW);
+        expect(settings.radius).toBe(1.0);
+        expect(settings.strength).toBe(0.5);
+        expect(settings.falloff).toBe(FalloffType.SMOOTH);
+        expect(settings.symmetry).toBe(false);
+        expect(settings.dynamicTopology).toBe(false);
+    });
+
+    it('should update brush settings', () => {
+        const mesh = new MeshData({ position: [], normal: [], uv: [], color: [] }, []);
+        const sculpt = new SculptingSystem(mesh);
+        sculpt.updateSettings({ type: BrushType.SMOOTH, radius: 2.0, strength: 0.8 });
+        const settings = sculpt.getSettings();
+        expect(settings.type).toBe(BrushType.SMOOTH);
+        expect(settings.radius).toBe(2.0);
+        expect(settings.strength).toBe(0.8);
+    });
+
+    it('should reset stroke state', () => {
+        const mesh = new MeshData({ position: [], normal: [], uv: [], color: [] }, []);
+        const sculpt = new SculptingSystem(mesh);
+        sculpt.resetStroke();
+        // Should not throw
+        expect(sculpt).toBeDefined();
+    });
+});
+
+// ========== Animation System Tests ==========
+import { AnimationPlayer, PlaybackMode, PlaybackState } from '../src/animation/AnimationPlayer';
+
+describe('Animation System', () => {
+    it('should create animation player', () => {
+        const player = new AnimationPlayer();
+        expect(player).toBeDefined();
+        expect(player.getState()).toBe(PlaybackState.STOPPED);
+    });
+
+    it('should have playback modes', () => {
+        expect(PlaybackMode.ONCE).toBe('once');
+        expect(PlaybackMode.LOOP).toBe('loop');
+        expect(PlaybackMode.PING_PONG).toBe('pingpong');
+    });
+
+    it('should have playback states', () => {
+        expect(PlaybackState.STOPPED).toBe('stopped');
+        expect(PlaybackState.PLAYING).toBe('playing');
+        expect(PlaybackState.PAUSED).toBe('paused');
+    });
+
+    it('should not play without clip', () => {
+        const player = new AnimationPlayer();
+        player.play();
+        expect(player.getState()).toBe(PlaybackState.STOPPED);
+    });
+
+    it('should get time as 0 initially', () => {
+        const player = new AnimationPlayer();
+        expect(player.getTime()).toBe(0);
+    });
+
+    it('should set playback speed', () => {
+        const player = new AnimationPlayer();
+        player.setSpeed(2.0);
+        expect(player).toBeDefined();
+    });
+
+    it('should report not playing', () => {
+        const player = new AnimationPlayer();
+        expect(player.isPlaying()).toBe(false);
+    });
+
+    it('should provide events system', () => {
+        const player = new AnimationPlayer();
+        const events = player.getEvents();
+        expect(events).toBeDefined();
+        expect(typeof events.on).toBe('function');
+    });
+
+    it('should register targets', () => {
+        const player = new AnimationPlayer();
+        const mockTarget = { position: new Vector3(0, 0, 0) };
+        player.registerTarget('testObject', mockTarget);
+        expect(player).toBeDefined();
     });
 });
