@@ -30,21 +30,21 @@
 |--------|-------------------------------|--------------------------|
 | Hierarchy, Inspector, Console | ✅ | ✅ wired |
 | Scene viewport + gizmos | ✅ | ✅ wired |
-| Animation timeline | ✅ AnimationPanel.ts | ✅ tab in right panel |
-| Audio controls | ✅ AudioPanel.ts | ✅ tab in right panel |
-| Terrain tools | ✅ TerrainPanel.ts | ✅ tab in right panel |
-| Particle editor | ✅ ParticlePanel.ts | ✅ tab in right panel |
-| Material editor | ✅ MaterialEditorPanel.ts | ✅ tab in right panel |
-| Visual scripting | ✅ VisualScriptingPanel.ts | ❌ not mounted |
+| Animation timeline | ✅ AnimationPanel.ts | ✅ interactive — playback, clips, timeline scrubber |
+| Audio controls | ✅ AudioPanel.ts | ✅ interactive — spatial audio, buses, playback |
+| Terrain tools | ✅ TerrainPanel.ts | ✅ interactive — 7 brush tools, layers, heightmap |
+| Particle editor | ✅ ParticlePanel.ts | ✅ interactive — gradients, physics, 6 presets |
+| Material editor | ✅ MaterialEditorPanel.ts | ✅ interactive — PBR, textures, 6 presets |
+| Visual scripting | ✅ VisualScriptingPanel.ts | ✅ interactive — node canvas, 10 quick nodes, variables |
 | Profiler | ✅ TimelineProfiler.ts | ✅ wired to console tab |
 | Network / multiplayer | ✅ NetworkManager.ts | ✅ wired to console tab |
-| Collaboration | ✅ ChatSystem, Presence | ❌ no UI at all |
+| Collaboration | ✅ ChatSystem, Presence | ❌ no UI yet |
 | Export | ✅ ExportManager.ts | ✅ File → Save As / Export |
 | Play mode | ✅ engine loop | ✅ toolbar wired |
 | Scene save/load | ✅ EditorScene.toJSON/fromJSON | ✅ File menu wired (localStorage + file) |
 
 ### 📋 Next priority
-**Wire the remaining unmounted panels and deepen existing panel functionality** — connect the TypeScript backend classes (VisualScriptingPanel, Collaboration) and add real interactivity to the newly mounted Animation, Material, Terrain, Audio, and Particle panels.
+**Collaboration UI and deeper backend integration** — build a real-time collaboration panel (chat, presence indicators), and connect each interactive panel to its full TypeScript backend class (e.g. AnimationPanel.ts methods, PhysicsWorld for terrain, ParticleSystem GPU rendering).
 
 ---
 
