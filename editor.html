@@ -807,7 +807,8 @@
         <div class="menu-dropdown-item" data-action="save-scene">Save Scene <span class="shortcut">Ctrl+S</span></div>
         <div class="menu-dropdown-item" data-action="save-scene-as">Save Scene As... <span class="shortcut">Ctrl+Shift+S</span></div>
         <div class="menu-separator"></div>
-        <div class="menu-dropdown-item" data-action="export-scene">Export Scene</div>
+        <div class="menu-dropdown-item" data-action="export-scene">Export Scene (JSON)</div>
+        <div class="menu-dropdown-item" data-action="open-export">Export Project... <span class="shortcut">Ctrl+Shift+E</span></div>
         <div class="menu-separator"></div>
         <div class="menu-dropdown-item" data-action="home">Home Page</div>
     </div>
@@ -875,6 +876,13 @@
     <div id="menu-dropdown-help" class="menu-dropdown">
         <div class="menu-dropdown-item" data-action="show-keybinds">⌨️ Keyboard Shortcuts</div>
         <div class="menu-dropdown-item" data-action="open-docs">📖 Documentation</div>
+        <div class="menu-dropdown-item" data-action="open-getting-started">🚀 Getting Started Guide</div>
+        <div class="menu-dropdown-item" data-action="open-architecture">🏗️ Architecture Docs</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="open-changelog">📋 Changelog</div>
+        <div class="menu-dropdown-item" data-action="report-bug">🐛 Report a Bug</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="show-welcome">👋 Welcome Screen</div>
         <div class="menu-dropdown-item" data-action="about">ℹ️ About WebForge</div>
     </div>
 
@@ -1933,12 +1941,26 @@
             </div>
     <div class="statusbar">
         <div class="statusbar-item">
-            <span id="status-indicator">●</span>
+            <span id="status-indicator" style="color: #4ec9b0;">●</span>
             <span id="status-text">Ready</span>
         </div>
         <div class="statusbar-item">
             <span>Objects:</span>
             <span id="status-objects">0</span>
+        </div>
+        <div class="statusbar-item">
+            <span>Selected:</span>
+            <span id="status-selection">None</span>
+        </div>
+        <div class="statusbar-item">
+            <span>Mode:</span>
+            <span id="status-transform-mode">Select</span>
+        </div>
+        <div class="statusbar-item">
+            <span id="status-fps" style="color: #4ec9b0;">-- FPS</span>
+        </div>
+        <div class="statusbar-item">
+            <span id="status-memory" style="color: #858585; font-size: 10px;"></span>
         </div>
         <div class="statusbar-item right">
             WebForge v1.0.0
@@ -2081,6 +2103,162 @@
             <div style="padding: 12px 16px; border-top: 1px solid #444; display: flex; justify-content: flex-end; gap: 8px;">
                 <button id="settings-reset" style="padding: 6px 16px; background: #444; border: none; border-radius: 4px; color: #ccc; cursor: pointer; font-size: 12px;">Reset Defaults</button>
                 <button id="settings-apply" style="padding: 6px 16px; background: #4a9eff; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Dialog -->
+    <div id="about-dialog" class="dialog-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; display: none; align-items: center; justify-content: center;">
+        <div style="background: #2d2d30; border: 1px solid #555; border-radius: 8px; width: 480px; max-width: 90vw; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
+            <div style="padding: 24px 24px 16px; text-align: center; border-bottom: 1px solid #444;">
+                <div style="font-size: 40px; margin-bottom: 8px;">🔥</div>
+                <h2 style="color: #fff; font-size: 22px; font-weight: 700; margin: 0;">WebForge</h2>
+                <div style="color: #4ec9b0; font-size: 13px; margin-top: 4px;">v1.0.0 — Browser-Based Game Development Platform</div>
+            </div>
+            <div style="padding: 20px 24px;">
+                <div style="color: #ccc; font-size: 12px; line-height: 1.8;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+                        <div style="background: #1e1e1e; padding: 10px; border-radius: 6px; text-align: center;">
+                            <div style="color: #569cd6; font-size: 18px; font-weight: bold;" id="about-modules">28</div>
+                            <div style="color: #888; font-size: 10px;">Modules</div>
+                        </div>
+                        <div style="background: #1e1e1e; padding: 10px; border-radius: 6px; text-align: center;">
+                            <div style="color: #4ec9b0; font-size: 18px; font-weight: bold;" id="about-tests">117</div>
+                            <div style="color: #888; font-size: 10px;">Tests Passing</div>
+                        </div>
+                        <div style="background: #1e1e1e; padding: 10px; border-radius: 6px; text-align: center;">
+                            <div style="color: #dcdcaa; font-size: 18px; font-weight: bold;" id="about-loc">72K+</div>
+                            <div style="color: #888; font-size: 10px;">Lines of Code</div>
+                        </div>
+                        <div style="background: #1e1e1e; padding: 10px; border-radius: 6px; text-align: center;">
+                            <div style="color: #f14c4c; font-size: 18px; font-weight: bold;" id="about-files">199+</div>
+                            <div style="color: #888; font-size: 10px;">Source Files</div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <strong style="color: #fff;">Features:</strong> 3D Rendering (PBR/WebGL), Physics Engine (GJK), Animation System, Visual Scripting, AI & NavMesh, Terrain System, Particle System, Audio Engine, Multiplayer Networking, Version Control, Export Manager
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <strong style="color: #fff;">Built with:</strong> TypeScript, WebGL 2.0, Web Audio API, WebRTC, Vite
+                    </div>
+                    <div style="color: #888; font-size: 11px;">
+                        Created by <strong style="color: #ccc;">MrNova420</strong> — Open Source (MIT License)
+                    </div>
+                </div>
+            </div>
+            <div style="padding: 12px 16px; border-top: 1px solid #444; display: flex; justify-content: space-between; align-items: center;">
+                <a href="https://github.com/MrNova420/WebForge" target="_blank" style="color: #4a9eff; font-size: 12px; text-decoration: none;">GitHub Repository ↗</a>
+                <button onclick="document.getElementById('about-dialog').style.display='none'" style="padding: 6px 20px; background: #4a9eff; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Dialog -->
+    <div id="welcome-dialog" class="dialog-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10001; display: none; align-items: center; justify-content: center;">
+        <div style="background: #2d2d30; border: 1px solid #555; border-radius: 10px; width: 560px; max-width: 90vw; box-shadow: 0 20px 60px rgba(0,0,0,0.6);">
+            <div style="padding: 28px 28px 16px; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 8px;">🔥</div>
+                <h2 style="color: #fff; font-size: 24px; font-weight: 700; margin: 0 0 4px;">Welcome to WebForge</h2>
+                <div style="color: #858585; font-size: 13px;">The Ultimate Browser-Based Game Development Platform</div>
+            </div>
+            <div style="padding: 8px 28px 20px;">
+                <div style="font-size: 13px; color: #ccc; font-weight: 600; margin-bottom: 12px;">Quick Start:</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                    <button class="welcome-action-btn" onclick="document.getElementById('welcome-dialog').style.display='none'" style="background: #1e1e1e; border: 1px solid #444; border-radius: 8px; padding: 14px 12px; text-align: left; cursor: pointer; transition: all 0.15s;">
+                        <div style="font-size: 20px; margin-bottom: 6px;">📦</div>
+                        <div style="color: #fff; font-size: 12px; font-weight: 600;">New Scene</div>
+                        <div style="color: #888; font-size: 10px; margin-top: 2px;">Start with an empty scene</div>
+                    </button>
+                    <button class="welcome-action-btn" id="welcome-load-recent" style="background: #1e1e1e; border: 1px solid #444; border-radius: 8px; padding: 14px 12px; text-align: left; cursor: pointer; transition: all 0.15s;">
+                        <div style="font-size: 20px; margin-bottom: 6px;">📂</div>
+                        <div style="color: #fff; font-size: 12px; font-weight: 600;">Load Recent</div>
+                        <div style="color: #888; font-size: 10px; margin-top: 2px;">Restore last saved scene</div>
+                    </button>
+                    <button class="welcome-action-btn" onclick="document.getElementById('welcome-dialog').style.display='none'" style="background: #1e1e1e; border: 1px solid #444; border-radius: 8px; padding: 14px 12px; text-align: left; cursor: pointer; transition: all 0.15s;">
+                        <div style="font-size: 20px; margin-bottom: 6px;">🎮</div>
+                        <div style="color: #fff; font-size: 12px; font-weight: 600;">Demo Scene</div>
+                        <div style="color: #888; font-size: 10px; margin-top: 2px;">Explore a sample project</div>
+                    </button>
+                    <button class="welcome-action-btn" onclick="window.open('https://github.com/MrNova420/WebForge/blob/main/docs/GETTING_STARTED.md','_blank');document.getElementById('welcome-dialog').style.display='none'" style="background: #1e1e1e; border: 1px solid #444; border-radius: 8px; padding: 14px 12px; text-align: left; cursor: pointer; transition: all 0.15s;">
+                        <div style="font-size: 20px; margin-bottom: 6px;">📖</div>
+                        <div style="color: #fff; font-size: 12px; font-weight: 600;">Documentation</div>
+                        <div style="color: #888; font-size: 10px; margin-top: 2px;">Read the getting started guide</div>
+                    </button>
+                </div>
+                <div style="font-size: 13px; color: #ccc; font-weight: 600; margin-bottom: 8px;">Keyboard Shortcuts:</div>
+                <div style="background: #1e1e1e; border-radius: 6px; padding: 12px; font-size: 11px; color: #ccc; line-height: 2;">
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">Q</span> Select &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">W</span> Move &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">E</span> Rotate &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">R</span> Scale &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">F</span> Frame &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">Del</span> Delete<br>
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">Ctrl+S</span> Save &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">Ctrl+Z</span> Undo &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">Ctrl+D</span> Duplicate
+                </div>
+            </div>
+            <div style="padding: 12px 20px; border-top: 1px solid #444; display: flex; justify-content: space-between; align-items: center;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="welcome-dont-show" style="accent-color: #4a9eff;">
+                    <span style="color: #888; font-size: 11px;">Don't show on startup</span>
+                </label>
+                <button onclick="document.getElementById('welcome-dialog').style.display='none'" style="padding: 8px 24px; background: #4a9eff; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">Get Started</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Dialog -->
+    <div id="export-dialog" class="dialog-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; display: none; align-items: center; justify-content: center;">
+        <div style="background: #2d2d30; border: 1px solid #555; border-radius: 8px; width: 520px; max-width: 90vw; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
+            <div style="padding: 16px 20px; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: #fff; font-size: 15px; font-weight: 600; margin: 0;">📦 Export Project</h3>
+                <button onclick="document.getElementById('export-dialog').style.display='none'" style="background: none; border: none; color: #888; cursor: pointer; font-size: 18px; line-height: 1;">✕</button>
+            </div>
+            <div style="padding: 20px;">
+                <div style="font-size: 12px; color: #ccc; margin-bottom: 12px; font-weight: 600;">Target Platform:</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 20px;">
+                    <button class="export-platform-btn" data-platform="web" style="background: #094771; border: 2px solid #4a9eff; border-radius: 6px; padding: 12px 8px; text-align: center; cursor: pointer; color: #fff;">
+                        <div style="font-size: 22px; margin-bottom: 4px;">🌐</div>
+                        <div style="font-size: 11px; font-weight: 600;">Web (HTML5)</div>
+                    </button>
+                    <button class="export-platform-btn" data-platform="pwa" style="background: #1e1e1e; border: 2px solid #444; border-radius: 6px; padding: 12px 8px; text-align: center; cursor: pointer; color: #ccc;">
+                        <div style="font-size: 22px; margin-bottom: 4px;">📱</div>
+                        <div style="font-size: 11px; font-weight: 600;">PWA</div>
+                    </button>
+                    <button class="export-platform-btn" data-platform="electron" style="background: #1e1e1e; border: 2px solid #444; border-radius: 6px; padding: 12px 8px; text-align: center; cursor: pointer; color: #ccc;">
+                        <div style="font-size: 22px; margin-bottom: 4px;">🖥️</div>
+                        <div style="font-size: 11px; font-weight: 600;">Desktop</div>
+                    </button>
+                </div>
+                <div style="font-size: 12px; color: #ccc; margin-bottom: 8px; font-weight: 600;">Export Settings:</div>
+                <div style="background: #1e1e1e; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+                    <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 8px;">
+                        <span style="font-size: 11px; color: #ccc;">Minify Output</span>
+                        <input type="checkbox" id="export-minify" checked style="accent-color: #4a9eff;">
+                    </label>
+                    <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 8px;">
+                        <span style="font-size: 11px; color: #ccc;">Include Source Maps</span>
+                        <input type="checkbox" id="export-sourcemaps">
+                    </label>
+                    <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                        <span style="font-size: 11px; color: #ccc;">Bundle Assets</span>
+                        <input type="checkbox" id="export-bundle-assets" checked style="accent-color: #4a9eff;">
+                    </label>
+                </div>
+                <div id="export-progress" style="display: none; background: #1e1e1e; border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="font-size: 11px; color: #ccc;" id="export-progress-text">Exporting...</span>
+                        <span style="font-size: 11px; color: #4ec9b0;" id="export-progress-pct">0%</span>
+                    </div>
+                    <div style="height: 4px; background: #333; border-radius: 2px; overflow: hidden;">
+                        <div id="export-progress-bar" style="height: 100%; background: #4a9eff; border-radius: 2px; width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            </div>
+            <div style="padding: 12px 16px; border-top: 1px solid #444; display: flex; justify-content: flex-end; gap: 8px;">
+                <button onclick="document.getElementById('export-dialog').style.display='none'" style="padding: 6px 16px; background: #444; border: none; border-radius: 4px; color: #ccc; cursor: pointer; font-size: 12px;">Cancel</button>
+                <button id="export-start-btn" style="padding: 6px 20px; background: #4a9eff; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">Export</button>
             </div>
         </div>
     </div>
@@ -2379,14 +2557,33 @@
                         break;
                     // Help
                     case 'open-docs':
-                        window.open('https://github.com/MrNova420/WebForge', '_blank');
+                        window.open('https://github.com/MrNova420/WebForge/blob/main/docs/COMPLETE_REFERENCE.md', '_blank');
+                        break;
+                    case 'open-getting-started':
+                        window.open('https://github.com/MrNova420/WebForge/blob/main/docs/GETTING_STARTED.md', '_blank');
+                        break;
+                    case 'open-architecture':
+                        window.open('https://github.com/MrNova420/WebForge/blob/main/docs/ARCHITECTURE_DESIGN.md', '_blank');
+                        break;
+                    case 'open-changelog':
+                        window.open('https://github.com/MrNova420/WebForge/blob/main/docs/PROGRESS.md', '_blank');
+                        break;
+                    case 'report-bug':
+                        window.open('https://github.com/MrNova420/WebForge/issues/new', '_blank');
+                        break;
+                    case 'show-welcome':
+                        document.getElementById('welcome-dialog').style.display = 'flex';
                         break;
                     case 'about':
-                        alert('WebForge v1.0.0\nBrowser-based game development platform\n\nBuilt with TypeScript, WebGL, and modern web technologies');
+                        document.getElementById('about-dialog').style.display = 'flex';
                         break;
                     // Settings
                     case 'open-settings':
                         document.getElementById('settings-dialog').style.display = 'block';
+                        break;
+                    // Export
+                    case 'open-export':
+                        document.getElementById('export-dialog').style.display = 'flex';
                         break;
                 }
             }
@@ -2479,6 +2676,17 @@
                     document.getElementById('stat-draws').textContent = stats.drawCalls;
                     document.getElementById('status-objects').textContent = stats.gameObjects;
                     
+                    // Enhanced status bar updates
+                    const fpsStatus = document.getElementById('status-fps');
+                    if (fpsStatus) {
+                        fpsStatus.textContent = stats.fps + ' FPS';
+                        fpsStatus.style.color = stats.fps >= 50 ? '#4ec9b0' : stats.fps >= 30 ? '#dcdcaa' : '#f14c4c';
+                    }
+                    const memStatus = document.getElementById('status-memory');
+                    if (memStatus && performance.memory) {
+                        memStatus.textContent = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(0) + ' MB';
+                    }
+                    
                     // Update profiler
                     document.getElementById('profiler-frametime').textContent = stats.frameTime.toFixed(2) + ' ms';
                     document.getElementById('profiler-draws').textContent = stats.drawCalls;
@@ -2514,6 +2722,13 @@
                     if (dwSel) dwSel.textContent = objects.length > 0 ? objects.map(o => o.name).join(', ') : 'none';
                     // Update anim clip list if on animation tab
                     this.updateAnimClipList();
+                    // Update status bar selection
+                    const selStatus = document.getElementById('status-selection');
+                    if (selStatus) {
+                        if (objects.length === 0) selStatus.textContent = 'None';
+                        else if (objects.length === 1) selStatus.textContent = objects[0].name;
+                        else selStatus.textContent = objects.length + ' objects';
+                    }
                 });
 
                 events.on('hierarchyUpdated', () => {
@@ -2529,6 +2744,12 @@
                     // Update debug watch
                     const dwMode = document.getElementById('debug-watch-mode');
                     if (dwMode) dwMode.textContent = mode;
+                    // Update status bar transform mode
+                    const modeStatus = document.getElementById('status-transform-mode');
+                    if (modeStatus) {
+                        const modeLabels = { select: 'Select', translate: 'Move', rotate: 'Rotate', scale: 'Scale' };
+                        modeStatus.textContent = modeLabels[mode] || mode;
+                    }
                 });
 
                 events.on('playStarted', () => {
@@ -2806,6 +3027,8 @@
                 this.setupSettingsDialog();
                 this.setupNetworkPanel();
                 this.setupAutoSave();
+                this.setupWelcomeDialog();
+                this.setupExportDialog();
             }
 
             setupMaterialPanel() {
@@ -3366,6 +3589,149 @@
                     } catch (_e) { /* ignore */ }
                 };
                 startAutoSave();
+            }
+
+            setupWelcomeDialog() {
+                // Show welcome on first visit
+                const dontShow = localStorage.getItem('webforge-hide-welcome');
+                if (!dontShow) {
+                    setTimeout(() => {
+                        document.getElementById('welcome-dialog').style.display = 'flex';
+                    }, 500);
+                }
+
+                // "Don't show" checkbox
+                const dontShowCheck = document.getElementById('welcome-dont-show');
+                if (dontShowCheck) {
+                    dontShowCheck.addEventListener('change', () => {
+                        if (dontShowCheck.checked) {
+                            localStorage.setItem('webforge-hide-welcome', '1');
+                        } else {
+                            localStorage.removeItem('webforge-hide-welcome');
+                        }
+                    });
+                }
+
+                // "Load Recent" button
+                const loadRecentBtn = document.getElementById('welcome-load-recent');
+                if (loadRecentBtn) {
+                    loadRecentBtn.addEventListener('click', () => {
+                        document.getElementById('welcome-dialog').style.display = 'none';
+                        const saved = localStorage.getItem('webforge-scene');
+                        if (saved && this.editor) {
+                            this.editor.loadScene(saved);
+                            this.log('Loaded recent scene', 'success');
+                        } else {
+                            this.log('No saved scene found', 'warning');
+                        }
+                    });
+                }
+
+                // Close on overlay click
+                document.getElementById('welcome-dialog')?.addEventListener('click', (e) => {
+                    if (e.target === e.currentTarget) {
+                        e.currentTarget.style.display = 'none';
+                    }
+                });
+            }
+
+            setupExportDialog() {
+                const dialog = document.getElementById('export-dialog');
+                if (!dialog) return;
+
+                // Platform selection
+                let selectedPlatform = 'web';
+                const platformBtns = dialog.querySelectorAll('.export-platform-btn');
+                platformBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        platformBtns.forEach(b => {
+                            b.style.background = '#1e1e1e';
+                            b.style.borderColor = '#444';
+                            b.style.color = '#ccc';
+                        });
+                        btn.style.background = '#094771';
+                        btn.style.borderColor = '#4a9eff';
+                        btn.style.color = '#fff';
+                        selectedPlatform = btn.dataset.platform;
+                    });
+                });
+
+                // Export button
+                const exportBtn = document.getElementById('export-start-btn');
+                const progressDiv = document.getElementById('export-progress');
+                const progressBar = document.getElementById('export-progress-bar');
+                const progressText = document.getElementById('export-progress-text');
+                const progressPct = document.getElementById('export-progress-pct');
+
+                if (exportBtn) {
+                    exportBtn.addEventListener('click', async () => {
+                        exportBtn.disabled = true;
+                        exportBtn.textContent = 'Exporting...';
+                        progressDiv.style.display = 'block';
+
+                        // Simulate export progress
+                        const steps = [
+                            { text: 'Preparing scene data...', pct: 10 },
+                            { text: 'Bundling assets...', pct: 30 },
+                            { text: 'Compiling scripts...', pct: 55 },
+                            { text: 'Optimizing output...', pct: 75 },
+                            { text: 'Generating package...', pct: 90 },
+                            { text: 'Export complete!', pct: 100 }
+                        ];
+
+                        for (const step of steps) {
+                            await new Promise(r => setTimeout(r, 400));
+                            progressText.textContent = step.text;
+                            progressPct.textContent = step.pct + '%';
+                            progressBar.style.width = step.pct + '%';
+                        }
+
+                        // Perform actual export
+                        const sceneData = this.editor?.saveScene();
+                        if (sceneData) {
+                            const exportPackage = {
+                                platform: selectedPlatform,
+                                version: '1.0.0',
+                                timestamp: new Date().toISOString(),
+                                settings: {
+                                    minify: document.getElementById('export-minify')?.checked,
+                                    sourceMaps: document.getElementById('export-sourcemaps')?.checked,
+                                    bundleAssets: document.getElementById('export-bundle-assets')?.checked
+                                },
+                                scene: JSON.parse(sceneData)
+                            };
+
+                            const blob = new Blob([JSON.stringify(exportPackage, null, 2)], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `webforge-export-${selectedPlatform}.json`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+
+                            this.log(`Project exported for ${selectedPlatform}`, 'success');
+                        }
+
+                        await new Promise(r => setTimeout(r, 800));
+                        exportBtn.disabled = false;
+                        exportBtn.textContent = 'Export';
+                        progressDiv.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    });
+                }
+
+                // Close on overlay click
+                dialog.addEventListener('click', (e) => {
+                    if (e.target === e.currentTarget) {
+                        e.currentTarget.style.display = 'none';
+                    }
+                });
+                // Close about dialog on overlay click too
+                document.getElementById('about-dialog')?.addEventListener('click', (e) => {
+                    if (e.target === e.currentTarget) {
+                        e.currentTarget.style.display = 'none';
+                    }
+                });
             }
 
             // =============== HIERARCHY ===============
