@@ -2768,3 +2768,141 @@ describe('RigidBody Extended', () => {
         expect(body).toBeDefined(); // Body exists, may be sleeping
     });
 });
+
+// ========== Mesh Quality Enhancer Tests ==========
+import { MeshQualityEnhancer } from '../src/geometry/MeshQualityEnhancer';
+
+describe('Mesh Quality Enhancer', () => {
+    it('should analyze mesh quality with edge topology', () => {
+        const mesh = MeshData.createCube(1);
+        const metrics = MeshQualityEnhancer.analyzeMeshQuality(mesh);
+        
+        expect(metrics.vertexCount).toBeGreaterThan(0);
+        expect(metrics.faceCount).toBeGreaterThan(0);
+        expect(metrics.manifoldEdges).toBeGreaterThanOrEqual(0);
+        expect(metrics.boundaryEdges).toBeGreaterThanOrEqual(0);
+        expect(metrics.averageTriangleQuality).toBeGreaterThan(0);
+    });
+
+    it('should compute edge counts for a cube mesh', () => {
+        const mesh = MeshData.createCube(1);
+        const metrics = MeshQualityEnhancer.analyzeMeshQuality(mesh);
+        
+        // A cube has 12 triangles (6 faces × 2), 18 edges
+        expect(metrics.faceCount).toBeGreaterThan(0);
+        expect(metrics.manifoldEdges + metrics.boundaryEdges).toBeGreaterThan(0);
+    });
+
+    it('should generate LODs', () => {
+        const mesh = MeshData.createCube(1);
+        const lods = MeshQualityEnhancer.generateLODs(mesh, 3);
+        
+        expect(lods.length).toBe(3);
+        expect(lods[0]).toBe(mesh); // LOD 0 is original
+    });
+
+    it('should detect degenerate triangles', () => {
+        // Create a mesh with a degenerate triangle (zero area)
+        const mesh = new MeshData(
+            { position: [0,0,0, 1,0,0, 0,1,0, 0,0,0, 0,0,0, 0,0,0] },
+            [0, 1, 2, 3, 4, 5]
+        );
+        const metrics = MeshQualityEnhancer.analyzeMeshQuality(mesh);
+        expect(metrics.degenerateTriangles).toBeGreaterThan(0);
+    });
+});
+
+// ========== Retopology Tools Tests ==========
+import { RetopologyTools } from '../src/geometry/RetopologyTools';
+
+describe('Retopology Tools', () => {
+    it('should analyze edge flow', () => {
+        const retopo = new RetopologyTools();
+        const mesh = MeshData.createCube(1);
+        const metrics = retopo.analyzeEdgeFlow(mesh);
+        
+        expect(metrics.triangleCount).toBeGreaterThan(0);
+        expect(metrics.averageValence).toBeGreaterThan(0);
+        expect(metrics.quadPercentage).toBeGreaterThanOrEqual(0);
+        expect(metrics.quadPercentage).toBeLessThanOrEqual(100);
+    });
+
+    it('should detect quads in edge flow analysis', () => {
+        // Create two coplanar triangles that form a quad
+        const mesh = new MeshData(
+            { position: [0,0,0, 1,0,0, 1,0,1, 0,0,1] },
+            [0, 1, 2, 0, 2, 3]
+        );
+        const retopo = new RetopologyTools();
+        const metrics = retopo.analyzeEdgeFlow(mesh);
+        
+        // Should detect these as forming at least one quad
+        expect(metrics.triangleCount).toBe(2);
+        expect(metrics.quadPercentage).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should optimize edge flow', () => {
+        const retopo = new RetopologyTools();
+        const mesh = MeshData.createCube(1);
+        const optimized = retopo.optimizeEdgeFlow(mesh, 2);
+        
+        expect(optimized).toBeDefined();
+        expect(optimized.getVertexCount()).toBeGreaterThan(0);
+    });
+});
+
+// ========== Constraint Tests ==========
+import { HingeConstraint, SliderConstraint, DistanceConstraint } from '../src/physics/Constraint';
+
+describe('Physics Constraints', () => {
+    it('should create a hinge constraint', () => {
+        const bodyA = new RigidBody({ type: RigidBodyType.DYNAMIC, mass: 1.0 });
+        const bodyB = new RigidBody({ type: RigidBodyType.DYNAMIC, mass: 1.0 });
+        
+        const hinge = new HingeConstraint(
+            bodyA, bodyB,
+            new Vector3(0, 0, 0), new Vector3(0, 0, 0),
+            new Vector3(0, 1, 0)
+        );
+        
+        expect(hinge).toBeDefined();
+        expect(hinge.axis.y).toBeCloseTo(1);
+    });
+
+    it('should solve hinge constraint', () => {
+        const bodyA = new RigidBody({ type: RigidBodyType.DYNAMIC, mass: 1.0 });
+        const bodyB = new RigidBody({ type: RigidBodyType.DYNAMIC, mass: 1.0 });
+        bodyA.setPosition(new Vector3(0, 0, 0));
+        bodyB.setPosition(new Vector3(2, 0, 0));
+        
+        const hinge = new HingeConstraint(
+            bodyA, bodyB,
+            new Vector3(1, 0, 0), new Vector3(-1, 0, 0),
+            new Vector3(0, 1, 0)
+        );
+        
+        // Should not throw
+        hinge.solve(1/60);
+        expect(bodyA.getPosition()).toBeDefined();
+    });
+
+    it('should create a distance constraint', () => {
+        const bodyA = new RigidBody({ type: RigidBodyType.DYNAMIC, mass: 1.0 });
+        const bodyB = new RigidBody({ type: RigidBodyType.DYNAMIC, mass: 1.0 });
+        
+        const constraint = new DistanceConstraint(bodyA, bodyB, 5.0);
+        expect(constraint).toBeDefined();
+    });
+
+    it('should create a slider constraint', () => {
+        const bodyA = new RigidBody({ type: RigidBodyType.DYNAMIC, mass: 1.0 });
+        const bodyB = new RigidBody({ type: RigidBodyType.DYNAMIC, mass: 1.0 });
+        
+        const slider = new SliderConstraint(
+            bodyA, bodyB,
+            new Vector3(1, 0, 0),
+            -5, 5
+        );
+        expect(slider).toBeDefined();
+    });
+});

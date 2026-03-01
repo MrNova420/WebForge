@@ -176,7 +176,63 @@ export class HingeConstraint extends Constraint {
       }
     }
     
-    // TODO: Solve angular constraint (limit rotation to axis)
+    // Solve angular constraint (limit rotation to hinge axis)
+    // Project angular velocities onto the hinge axis and constrain off-axis rotation
+    const angVelA = this.bodyA.getAngularVelocity();
+    const angVelB = this.bodyB ? this.bodyB.getAngularVelocity() : new Vector3();
+    
+    // Relative angular velocity
+    const relAngVel = angVelB.clone().subtract(angVelA);
+    
+    // Component along hinge axis (this is allowed)
+    const axialComponent = this.axis.clone().multiplyScalar(relAngVel.dot(this.axis));
+    
+    // Off-axis component (this should be constrained)
+    const offAxisComponent = relAngVel.clone().subtract(axialComponent);
+    
+    // Apply correction to remove off-axis rotation
+    if (offAxisComponent.lengthSquared() > 0.0001) {
+      const invMassA = this.bodyA.getInverseMass();
+      const invMassB = this.bodyB ? this.bodyB.getInverseMass() : 0;
+      const totalInvMass = invMassA + invMassB;
+      
+      if (totalInvMass > 0) {
+        const angCorrection = offAxisComponent.clone().multiplyScalar(0.5);
+        
+        if (invMassA > 0) {
+          this.bodyA.setAngularVelocity(
+            angVelA.clone().add(angCorrection.clone().multiplyScalar(invMassA / totalInvMass))
+          );
+        }
+        if (invMassB > 0 && this.bodyB) {
+          this.bodyB.setAngularVelocity(
+            angVelB.clone().subtract(angCorrection.clone().multiplyScalar(invMassB / totalInvMass))
+          );
+        }
+      }
+    }
+    
+    // Apply angle limits
+    const projA = angVelA.dot(this.axis);
+    const projB = angVelB.dot(this.axis);
+    const relAngleRate = projB - projA;
+    
+    // Simple angle clamping using velocity correction
+    if (relAngleRate < this.minAngle * 10) {
+      const correction = (this.minAngle * 10 - relAngleRate) * 0.3;
+      if (this.bodyA.getInverseMass() > 0) {
+        this.bodyA.setAngularVelocity(
+          angVelA.clone().subtract(this.axis.clone().multiplyScalar(correction * 0.5))
+        );
+      }
+    } else if (relAngleRate > this.maxAngle * 10) {
+      const correction = (relAngleRate - this.maxAngle * 10) * 0.3;
+      if (this.bodyA.getInverseMass() > 0) {
+        this.bodyA.setAngularVelocity(
+          angVelA.clone().add(this.axis.clone().multiplyScalar(correction * 0.5))
+        );
+      }
+    }
   }
 }
 
