@@ -499,13 +499,16 @@
 - Collisions
 - Attachments
 
-### **Fluid Simulation**
+### **Fluid Simulation** ✅ Implemented
 
-**Particle-Based Fluids:**
-- SPH (Smoothed Particle Hydrodynamics)
-- Water simulation
-- Viscosity control
-- Surface tension
+**Particle-Based Fluids (SPH):** — `src/physics/FluidSimulation.ts`
+- ✅ SPH (Smoothed Particle Hydrodynamics) solver
+- ✅ Poly6, Spiky gradient, and Viscosity Laplacian kernels
+- ✅ Spatial hash grid for O(1) neighbor lookup
+- ✅ Water simulation with surface tension
+- ✅ Viscosity control
+- ✅ Dam-break and droplet presets
+- ✅ Configurable particle radius, rest density, stiffness
 
 **Grid-Based Fluids:**
 - Smoke simulation
@@ -1004,7 +1007,7 @@
 
 ---
 
-**Last Updated:** 2026-01-06  
+**Last Updated:** 2026-03-01  
 **Version:** 1.0  
 **Total Features:** 500+  
-**Status:** Comprehensive feature specification complete
+**Status:** Feature-complete — all core systems implemented

@@ -18,7 +18,7 @@
 | **Package Manager** | npm | Bun (monorepo with workspaces) |
 | **Architecture** | Single-package, modular `src/` | Monorepo with 17+ packages |
 | **Based On** | Original creation | Fork/rebrand of [OpenCode](https://github.com/anomalyco/opencode) |
-| **Status** | Phase 1 — Alpha (active) | v0.0.1 — In Development |
+| **Status** | Phase 10 — Feature-Complete (active) | v0.0.1 — In Development |
 | **Created** | Jan 6, 2026 | Feb 1, 2026 |
 | **Last Commit** | Feb 2, 2026 | Feb 1, 2026 |
 | **License** | MIT | MIT |
@@ -31,7 +31,7 @@
 
 ```
 webforge/
-├── src/                    ← One codebase, 30+ modules
+├── src/                    ← One codebase, 33 modules
 │   ├── core/               # Engine lifecycle, events, input, time
 │   ├── math/               # Vector2/3/4, Matrix4, Quaternion, Transform
 │   ├── rendering/          # WebGL renderer, shaders, materials, effects
@@ -55,7 +55,7 @@ webforge/
 │   ├── procedural/         # Procedural generation
 │   ├── optimization/       # Frustum culling, LOD, instancing
 │   └── ... 10 more modules
-├── tests/                  # 6 test files, 105 tests
+├── tests/                  # 9 test files, 579 tests
 ├── index.html              # Landing page
 ├── editor.html             # Full visual editor UI
 └── docs/                   # Comprehensive documentation
