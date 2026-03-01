@@ -1336,7 +1336,7 @@
                         <div style="background: #252525; border-radius: 4px; padding: 8px;">
                             <span style="font-size: 11px; color: #aaa; font-weight: bold;">💬 Chat</span>
                             <div id="net-chat-log" style="margin-top: 6px; max-height: 60px; overflow-y: auto; font-size: 11px;">
-                                <div style="color: #666; font-style: italic; font-size: 10px;">Chat messages will appear here</div>
+                                <div data-placeholder="true" style="color: #666; font-style: italic; font-size: 10px;">Chat messages will appear here</div>
                             </div>
                             <div style="display: flex; gap: 4px; margin-top: 6px;">
                                 <input type="text" id="net-chat-input" placeholder="Type a message..." style="flex: 1; padding: 4px 8px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px;">
@@ -3032,6 +3032,7 @@
                     playBtn.textContent = animPlaying ? '⏸' : '▶';
                     playBtn.style.color = animPlaying ? '#ff9800' : '#4CAF50';
                     if (animPlaying) {
+                        clearInterval(animInterval);
                         const fps = parseInt(fpsSelect?.value) || 30;
                         animInterval = setInterval(() => {
                             const max = parseInt(totalFrames?.textContent) || 30;
@@ -3320,10 +3321,17 @@
                     const log = document.getElementById('net-chat-log');
                     if (!input || !log || !input.value.trim()) return;
                     // Clear placeholder if first message
-                    if (log.querySelector('div[style*="italic"]')) log.innerHTML = '';
+                    if (log.querySelector('[data-placeholder]')) log.innerHTML = '';
                     const msg = document.createElement('div');
                     msg.style.cssText = 'padding: 2px 0; font-size: 11px;';
-                    msg.innerHTML = `<span style="color: #4a9eff; font-weight: bold;">You:</span> <span style="color: #ddd;">${input.value}</span>`;
+                    const label = document.createElement('span');
+                    label.style.cssText = 'color: #4a9eff; font-weight: bold;';
+                    label.textContent = 'You: ';
+                    const text = document.createElement('span');
+                    text.style.color = '#ddd';
+                    text.textContent = input.value;
+                    msg.appendChild(label);
+                    msg.appendChild(text);
                     log.appendChild(msg);
                     log.scrollTop = log.scrollHeight;
                     input.value = '';
@@ -3349,7 +3357,9 @@
                                     try {
                                         localStorage.setItem('webforge-scene', json);
                                         this.log('Auto-saved scene', 'info');
-                                    } catch (_e) { /* ignore quota errors */ }
+                                    } catch (e) {
+                                        this.log('Auto-save failed: storage quota exceeded', 'error');
+                                    }
                                 }
                             }, interval * 1000);
                         }
