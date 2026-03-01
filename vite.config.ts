@@ -16,6 +16,10 @@ export default defineConfig({
     port: 5173,
     open: '/',
   },
+  preview: {
+    port: 4173,
+    open: '/',
+  },
   esbuild: {
     // Use esbuild for faster transforms
     target: 'es2022',

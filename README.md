@@ -9,6 +9,35 @@
 
 ---
 
+## ⚠️ Development Status — Honest Notes
+
+> **The landing page (`index.html`) describes the full planned vision of WebForge. Most of those features are NOT yet implemented in the editor.**
+
+### ✅ What actually works right now
+- Dev server, build pipeline, TypeScript compilation
+- Landing page / homepage
+- Basic editor shell (menubar, toolbar, panels layout)
+- Core math library (Vector2, Vector3, Matrix, etc.) — used in landing page live demo
+- Basic scene hierarchy UI
+
+### 🚧 Still missing / not wired up yet
+- Terrain system (UI placeholder only)
+- Animation system (no skeletal anim, blend trees, IK)
+- 3D mesh creation / modeling tools
+- Physics engine (no real simulation yet)
+- Particle system
+- AI / NavMesh pathfinding
+- Multiplayer / networking
+- Visual scripting (Blueprint-style nodes)
+- Audio system
+- Export system
+- Any Unity / Unreal / Blender-equivalent workflow
+
+### 📋 The plan
+Everything on the landing page is the **target** — it represents what WebForge is being built toward, not what's shipped today. Features will be checked off here as they're completed.
+
+---
+
 ## 🚀 Quick Start
 
 ```bash

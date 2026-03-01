@@ -21,6 +21,7 @@
     "dev": "vite",
     "dev:editor": "vite --open /editor.html",
     "build": "tsc && vite build",
+    "build:serve": "tsc && vite build && vite preview",
     "build:watch": "tsc && vite build --watch",
     "compile": "tsc",
     "compile:watch": "tsc --watch",
