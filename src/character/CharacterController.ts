@@ -146,12 +146,12 @@ export class CharacterController {
         const controlFactor = this._grounded ? 1.0 : this._config.airControl;
 
         const worldDir = this._toWorldDirection(direction);
-        const moveDelta = worldDir.multiplyScalar(speed * controlFactor * deltaTime);
+        const factor = speed * controlFactor * deltaTime;
 
-        this.velocity = new Vector3(
-            this.velocity.x + moveDelta.x,
+        this.velocity.set(
+            this.velocity.x + worldDir.x * factor,
             this.velocity.y,
-            this.velocity.z + moveDelta.z
+            this.velocity.z + worldDir.z * factor
         );
 
         this._updateMovementState(direction);
@@ -165,7 +165,7 @@ export class CharacterController {
     public jump(): boolean {
         if (!this._grounded || this._state === CharacterState.Dead) return false;
 
-        this.velocity = new Vector3(this.velocity.x, this._config.jumpForce, this.velocity.z);
+        this.velocity.set(this.velocity.x, this._config.jumpForce, this.velocity.z);
         this._grounded = false;
         this.setState(CharacterState.Jumping);
         return true;
@@ -203,7 +203,7 @@ export class CharacterController {
     public applyGravity(deltaTime: number): void {
         if (this._grounded || this._swimming || this._climbing) return;
 
-        this.velocity = new Vector3(
+        this.velocity.set(
             this.velocity.x,
             this.velocity.y - this._config.gravity * deltaTime,
             this.velocity.z
@@ -299,7 +299,7 @@ export class CharacterController {
 
     /** Returns the current horizontal speed (ignoring vertical component). */
     public getSpeed(): number {
-        return new Vector3(this.velocity.x, 0, this.velocity.z).length();
+        return Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
     }
 
     /** Returns a copy of the active configuration. */
@@ -392,7 +392,7 @@ export class CharacterController {
     /** Applies linear drag to horizontal velocity. */
     private _applyDrag(deltaTime: number): void {
         const dragFactor = Math.max(0, 1 - this._config.drag * deltaTime);
-        this.velocity = new Vector3(
+        this.velocity.set(
             this.velocity.x * dragFactor,
             this.velocity.y,
             this.velocity.z * dragFactor
@@ -401,7 +401,7 @@ export class CharacterController {
 
     /** Integrates velocity into position. */
     private _integrate(deltaTime: number): void {
-        this.position = new Vector3(
+        this.position.set(
             this.position.x + this.velocity.x * deltaTime,
             this.position.y + this.velocity.y * deltaTime,
             this.position.z + this.velocity.z * deltaTime
@@ -413,8 +413,8 @@ export class CharacterController {
         const wasGrounded = this._grounded;
 
         if (this.position.y <= 0) {
-            this.position = new Vector3(this.position.x, 0, this.position.z);
-            this.velocity = new Vector3(this.velocity.x, Math.max(0, this.velocity.y), this.velocity.z);
+            this.position.set(this.position.x, 0, this.position.z);
+            this.velocity.set(this.velocity.x, Math.max(0, this.velocity.y), this.velocity.z);
             this._grounded = true;
 
             if (!wasGrounded && this._state === CharacterState.Falling) {
@@ -422,7 +422,7 @@ export class CharacterController {
             }
         } else {
             this._grounded = this.velocity.y <= 0 &&
-                this.position.y < this._config.groundCheckDistance;
+                this.position.y <= this._config.groundCheckDistance;
         }
     }
 }
