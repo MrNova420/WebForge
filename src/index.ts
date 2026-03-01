@@ -70,6 +70,9 @@ export * from './vfx';
 // Character Systems
 export * from './character';
 
+// Game UI System
+export * from './ui';
+
 // Production Tools
 export * from './tools';
 

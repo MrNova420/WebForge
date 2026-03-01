@@ -3231,3 +3231,445 @@ describe('ResourceManager', () => {
         expect(typeof stats.resourceCount).toBe('number');
     });
 });
+
+// ── Game UI System Tests ──
+import { GameUI, UIText, UIPanel, UIButton, UIProgressBar, UIHealthBar, UIImage, UIAnchor, UIElement } from '../src/ui/GameUI';
+
+describe('Game UI System', () => {
+    it('should create GameUI manager', () => {
+        expect(GameUI).toBeDefined();
+        expect(typeof GameUI.prototype.addElement).toBe('function');
+        expect(typeof GameUI.prototype.removeElement).toBe('function');
+        expect(typeof GameUI.prototype.render).toBe('function');
+    });
+
+    it('should create UIText element', () => {
+        const text = new UIText('fps', 'FPS: 60', { x: 10, y: 10, fontSize: 16, color: '#fff' });
+        expect(text).toBeDefined();
+        expect(text.id).toBe('fps');
+    });
+
+    it('should create UIPanel element', () => {
+        const panel = new UIPanel('hud', { x: 0, y: 0, width: 200, height: 50, backgroundColor: '#333' });
+        expect(panel).toBeDefined();
+        expect(panel.id).toBe('hud');
+    });
+
+    it('should create UIButton element', () => {
+        const btn = new UIButton('start', 'Start Game', { x: 100, y: 200, width: 150, height: 40 });
+        expect(btn).toBeDefined();
+        expect(btn.id).toBe('start');
+    });
+
+    it('should create UIProgressBar element', () => {
+        const bar = new UIProgressBar('xp', { x: 10, y: 30, width: 200, height: 20, value: 0.5 });
+        expect(bar).toBeDefined();
+        expect(bar.id).toBe('xp');
+    });
+
+    it('should create UIHealthBar element', () => {
+        const health = new UIHealthBar('hp', { x: 10, y: 10, width: 200, height: 20, value: 0.75 });
+        expect(health).toBeDefined();
+        expect(health.id).toBe('hp');
+    });
+
+    it('should create UIImage element', () => {
+        const img = new UIImage('icon', { x: 0, y: 0, width: 64, height: 64 });
+        expect(img).toBeDefined();
+        expect(img.id).toBe('icon');
+    });
+
+    it('should support all anchor positions', () => {
+        expect(UIAnchor.TopLeft).toBeDefined();
+        expect(UIAnchor.Center).toBeDefined();
+        expect(UIAnchor.BottomRight).toBeDefined();
+    });
+
+    it('should support parent-child hierarchy', () => {
+        const parent = new UIPanel('parent', { x: 0, y: 0, width: 300, height: 200 });
+        const child = new UIText('child', 'Hello', { x: 10, y: 10 });
+        expect(typeof parent.addChild).toBe('function');
+        expect(typeof parent.removeChild).toBe('function');
+        expect(typeof parent.findById).toBe('function');
+    });
+
+    it('should support hit testing', () => {
+        const panel = new UIPanel('hit', { x: 0, y: 0, width: 100, height: 100 });
+        expect(typeof panel.hitTest).toBe('function');
+    });
+});
+
+// ── Input Action Map Tests ──
+import { InputActionMap, InputBindingType } from '../src/core/InputActionMap';
+import { Input } from '../src/core/Input';
+
+describe('Input Action Map', () => {
+    it('should create InputActionMap with Input', () => {
+        const input = new Input();
+        const actionMap = new InputActionMap(input);
+        expect(actionMap).toBeDefined();
+    });
+
+    it('should register and query actions', () => {
+        const input = new Input();
+        const actionMap = new InputActionMap(input);
+        actionMap.registerAction('Jump', 'button', [
+            { type: InputBindingType.Keyboard, key: ' ' }
+        ]);
+        expect(actionMap.getAllActions()).toContain('Jump');
+        expect(actionMap.getActionCount()).toBe(1);
+    });
+
+    it('should remove actions', () => {
+        const input = new Input();
+        const actionMap = new InputActionMap(input);
+        actionMap.registerAction('Test', 'button', []);
+        actionMap.removeAction('Test');
+        expect(actionMap.getAllActions()).not.toContain('Test');
+    });
+
+    it('should create default FPS actions', () => {
+        const input = new Input();
+        const actionMap = new InputActionMap(input);
+        actionMap.createDefaultFPSActions();
+        const actions = actionMap.getAllActions();
+        expect(actions).toContain('MoveForward');
+        expect(actions).toContain('Jump');
+        expect(actions).toContain('Fire');
+        expect(actions).toContain('LookX');
+        expect(actions.length).toBeGreaterThanOrEqual(10);
+    });
+
+    it('should create default third person actions', () => {
+        const input = new Input();
+        const actionMap = new InputActionMap(input);
+        actionMap.createDefaultThirdPersonActions();
+        const actions = actionMap.getAllActions();
+        expect(actions.length).toBeGreaterThan(0);
+    });
+
+    it('should export and import bindings', () => {
+        const input = new Input();
+        const actionMap = new InputActionMap(input);
+        actionMap.registerAction('Attack', 'button', [
+            { type: InputBindingType.Keyboard, key: 'f' }
+        ]);
+        const json = actionMap.exportBindings();
+        expect(typeof json).toBe('string');
+        expect(json.length).toBeGreaterThan(0);
+
+        const actionMap2 = new InputActionMap(input);
+        actionMap2.importBindings(json);
+        expect(actionMap2.getAllActions()).toContain('Attack');
+    });
+
+    it('should rebind actions', () => {
+        const input = new Input();
+        const actionMap = new InputActionMap(input);
+        actionMap.registerAction('Jump', 'button', [
+            { type: InputBindingType.Keyboard, key: ' ' }
+        ]);
+        actionMap.rebindAction('Jump', 0, { type: InputBindingType.Keyboard, key: 'w' });
+        const bindings = actionMap.getBindings('Jump');
+        expect(bindings[0].key).toBe('w');
+    });
+
+    it('should clear all actions', () => {
+        const input = new Input();
+        const actionMap = new InputActionMap(input);
+        actionMap.createDefaultFPSActions();
+        actionMap.clear();
+        expect(actionMap.getActionCount()).toBe(0);
+    });
+
+    it('should support all binding types', () => {
+        expect(InputBindingType.Keyboard).toBeDefined();
+        expect(InputBindingType.MouseButton).toBeDefined();
+        expect(InputBindingType.MouseAxis).toBeDefined();
+        expect(InputBindingType.GamepadButton).toBeDefined();
+        expect(InputBindingType.GamepadAxis).toBeDefined();
+    });
+});
+
+// ── Player Camera Tests ──
+import { PlayerCamera, PlayerCameraMode } from '../src/scene/PlayerCamera';
+
+describe('Player Camera Controllers', () => {
+    it('should create FPS camera', () => {
+        const cam = PlayerCamera.createFPS();
+        expect(cam).toBeDefined();
+        expect(cam.getPosition()).toBeDefined();
+    });
+
+    it('should create third-person camera', () => {
+        const cam = PlayerCamera.createThirdPerson();
+        expect(cam).toBeDefined();
+    });
+
+    it('should create orbital camera', () => {
+        const cam = PlayerCamera.createOrbital();
+        expect(cam).toBeDefined();
+    });
+
+    it('should create top-down camera', () => {
+        const cam = PlayerCamera.createTopDown();
+        expect(cam).toBeDefined();
+    });
+
+    it('should create side-scroller camera', () => {
+        const cam = PlayerCamera.createSideScroller();
+        expect(cam).toBeDefined();
+    });
+
+    it('should support all camera modes', () => {
+        expect(PlayerCameraMode.FirstPerson).toBeDefined();
+        expect(PlayerCameraMode.ThirdPerson).toBeDefined();
+        expect(PlayerCameraMode.Orbital).toBeDefined();
+        expect(PlayerCameraMode.TopDown).toBeDefined();
+        expect(PlayerCameraMode.SideScroller).toBeDefined();
+    });
+
+    it('should have camera shake', () => {
+        const cam = PlayerCamera.createFPS();
+        expect(typeof cam.shake).toBe('function');
+        cam.shake(0.5, 0.3);
+    });
+
+    it('should update and provide view matrix', () => {
+        const cam = PlayerCamera.createFPS();
+        cam.update(0.016);
+        const viewMatrix = cam.getViewMatrix();
+        expect(viewMatrix).toBeDefined();
+        expect(viewMatrix.elements).toBeDefined();
+        expect(viewMatrix.elements.length).toBe(16);
+    });
+
+    it('should support rotation', () => {
+        const cam = PlayerCamera.createFPS();
+        cam.rotate(0.1, 0.05);
+        expect(cam.getYaw()).not.toBe(0);
+        expect(cam.getPitch()).not.toBe(0);
+    });
+
+    it('should support zoom for orbital camera', () => {
+        const cam = PlayerCamera.createOrbital();
+        expect(typeof cam.zoom).toBe('function');
+        cam.zoom(-1);
+    });
+
+    it('should provide direction vectors', () => {
+        const cam = PlayerCamera.createFPS();
+        expect(cam.getForward()).toBeDefined();
+        expect(cam.getRight()).toBeDefined();
+        expect(cam.getUp()).toBeDefined();
+    });
+
+    it('should get/set FOV', () => {
+        const cam = PlayerCamera.createFPS();
+        cam.setFOV(90);
+        expect(cam.getFOV()).toBe(90);
+    });
+});
+
+// ── Scene Serialization Tests ──
+import { SceneSerializer, ComponentRegistry } from '../src/scene/SceneSerializer';
+
+describe('Scene Serialization', () => {
+    it('should serialize a scene to JSON', () => {
+        const scene = new Scene('SerTest');
+        const obj = new GameObject('TestObj');
+        obj.transform.position.set(1, 2, 3);
+        scene.add(obj);
+        scene.update(0);
+        const json = SceneSerializer.toJSON(scene);
+        expect(typeof json).toBe('string');
+        expect(json.length).toBeGreaterThan(0);
+        expect(json).toContain('SerTest');
+        expect(json).toContain('TestObj');
+    });
+
+    it('should deserialize a scene from JSON', () => {
+        const scene = new Scene('Original');
+        const obj = new GameObject('MyObj');
+        obj.transform.position.set(5, 10, 15);
+        scene.add(obj);
+        scene.update(0);
+        const json = SceneSerializer.toJSON(scene);
+        const restored = SceneSerializer.fromJSON(json);
+        expect(restored.name).toBe('Original');
+        const found = restored.findByName('MyObj');
+        expect(found).toBeDefined();
+        if (found) {
+            expect(found.transform.position.x).toBeCloseTo(5);
+            expect(found.transform.position.y).toBeCloseTo(10);
+            expect(found.transform.position.z).toBeCloseTo(15);
+        }
+    });
+
+    it('should serialize/deserialize hierarchy', () => {
+        const scene = new Scene('Hierarchy');
+        const parent = new GameObject('Parent');
+        const child = new GameObject('Child');
+        child.setParent(parent);
+        scene.add(parent);
+        scene.update(0);
+        const json = SceneSerializer.toJSON(scene);
+        const restored = SceneSerializer.fromJSON(json);
+        const restoredParent = restored.findByName('Parent');
+        expect(restoredParent).toBeDefined();
+    });
+
+    it('should clone a scene', () => {
+        const scene = new Scene('CloneMe');
+        scene.add(new GameObject('A'));
+        scene.add(new GameObject('B'));
+        scene.update(0);
+        const cloned = SceneSerializer.clone(scene);
+        expect(cloned.name).toBe('CloneMe');
+        expect(cloned.findByName('A')).toBeDefined();
+        expect(cloned.findByName('B')).toBeDefined();
+    });
+
+    it('should diff two scenes', () => {
+        const sceneA = new Scene('A');
+        sceneA.add(new GameObject('Shared'));
+        sceneA.add(new GameObject('OnlyInA'));
+        sceneA.update(0);
+
+        const sceneB = new Scene('B');
+        sceneB.add(new GameObject('Shared'));
+        sceneB.add(new GameObject('OnlyInB'));
+        sceneB.update(0);
+
+        const diff = SceneSerializer.diff(sceneA, sceneB);
+        expect(diff).toBeDefined();
+        expect(diff.added.length).toBeGreaterThan(0);
+        expect(diff.removed.length).toBeGreaterThan(0);
+    });
+
+    it('should get version number', () => {
+        expect(SceneSerializer.getVersion()).toBe(1);
+    });
+
+    it('should have ComponentRegistry for custom components', () => {
+        expect(ComponentRegistry).toBeDefined();
+        expect(typeof ComponentRegistry.register).toBe('function');
+        expect(typeof ComponentRegistry.getRegisteredTypes).toBe('function');
+    });
+});
+
+// ── Game State Manager Tests ──
+import { GameStateManager } from '../src/core/GameStateManager';
+
+describe('Game State Manager', () => {
+    it('should create GameStateManager', () => {
+        const gsm = new GameStateManager();
+        expect(gsm).toBeDefined();
+        expect(gsm.getCurrentState()).toBeNull();
+    });
+
+    it('should add and set states', () => {
+        const gsm = new GameStateManager();
+        gsm.addState({ name: 'MainMenu' });
+        gsm.addState({ name: 'Gameplay' });
+        gsm.setState('MainMenu');
+        expect(gsm.getCurrentState()).toBe('MainMenu');
+        expect(gsm.isInState('MainMenu')).toBe(true);
+    });
+
+    it('should track state history', () => {
+        const gsm = new GameStateManager();
+        gsm.addState({ name: 'A' });
+        gsm.addState({ name: 'B' });
+        gsm.addTransition({ from: 'A', to: 'B' });
+        gsm.setState('A');
+        gsm.transitionTo('B');
+        const history = gsm.getStateHistory();
+        expect(history.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should validate transitions', () => {
+        const gsm = new GameStateManager();
+        gsm.addState({ name: 'A' });
+        gsm.addState({ name: 'B' });
+        gsm.addState({ name: 'C' });
+        gsm.addTransition({ from: 'A', to: 'B' });
+        gsm.setState('A');
+        expect(gsm.canTransitionTo('B')).toBe(true);
+        expect(gsm.canTransitionTo('C')).toBe(false);
+    });
+
+    it('should call lifecycle hooks', () => {
+        let entered = false;
+        let exited = false;
+        const gsm = new GameStateManager();
+        gsm.addState({
+            name: 'A',
+            onEnter: () => { entered = true; },
+            onExit: () => { exited = true; }
+        });
+        gsm.addState({ name: 'B' });
+        gsm.addTransition({ from: 'A', to: 'B' });
+        gsm.setState('A');
+        expect(entered).toBe(true);
+        gsm.transitionTo('B');
+        expect(exited).toBe(true);
+    });
+
+    it('should support push/pop state stack', () => {
+        const gsm = new GameStateManager();
+        gsm.addState({ name: 'Gameplay' });
+        gsm.addState({ name: 'Pause' });
+        gsm.setState('Gameplay');
+        gsm.pushState('Pause');
+        expect(gsm.getCurrentState()).toBe('Pause');
+        expect(gsm.getStackDepth()).toBeGreaterThanOrEqual(1);
+        const popped = gsm.popState();
+        expect(popped).toBeDefined();
+        expect(gsm.getCurrentState()).toBe('Gameplay');
+    });
+
+    it('should pause and resume', () => {
+        const gsm = new GameStateManager();
+        gsm.addState({ name: 'Play' });
+        gsm.setState('Play');
+        gsm.pause();
+        expect(gsm.isPaused()).toBe(true);
+        gsm.resume();
+        expect(gsm.isPaused()).toBe(false);
+    });
+
+    it('should update current state', () => {
+        let updated = false;
+        const gsm = new GameStateManager();
+        gsm.addState({ name: 'Running', onUpdate: () => { updated = true; } });
+        gsm.setState('Running');
+        gsm.update(0.016);
+        expect(updated).toBe(true);
+    });
+
+    it('should create default game flow', () => {
+        const gsm = GameStateManager.createDefaultGameFlow();
+        expect(gsm).toBeDefined();
+        const states = gsm.getAllStates();
+        expect(states).toContain('MainMenu');
+        expect(states).toContain('Loading');
+        expect(states).toContain('Gameplay');
+        expect(states).toContain('Pause');
+        expect(states).toContain('GameOver');
+    });
+
+    it('should get available transitions', () => {
+        const gsm = GameStateManager.createDefaultGameFlow();
+        gsm.setState('MainMenu');
+        const available = gsm.getAvailableTransitions();
+        expect(available).toContain('Loading');
+    });
+
+    it('should clear all states', () => {
+        const gsm = new GameStateManager();
+        gsm.addState({ name: 'Test' });
+        gsm.clear();
+        expect(gsm.getStateCount()).toBe(0);
+    });
+});

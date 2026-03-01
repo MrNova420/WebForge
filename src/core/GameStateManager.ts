@@ -27,7 +27,7 @@ export interface GameState {
 /**
  * Defines a valid transition between two states.
  */
-export interface StateTransition {
+export interface GameStateTransition {
     /** Source state name, or '*' to match any state */
     from: string;
     /** Target state name */
@@ -54,7 +54,7 @@ export interface StateTransition {
  */
 export class GameStateManager {
     private _states: Map<string, GameState> = new Map();
-    private _transitions: StateTransition[] = [];
+    private _transitions: GameStateTransition[] = [];
     private _currentState: string | null = null;
     private _previousState: string | null = null;
     private _history: string[] = [];
@@ -86,7 +86,7 @@ export class GameStateManager {
     // -- Transition registration ---------------------------------------------
 
     /** Adds a transition rule between states. */
-    public addTransition(transition: StateTransition): void {
+    public addTransition(transition: GameStateTransition): void {
         this._transitions.push(transition);
     }
 
@@ -310,7 +310,7 @@ export class GameStateManager {
 
     // -- Private helpers -----------------------------------------------------
 
-    private _findTransition(from: string, to: string): StateTransition | undefined {
+    private _findTransition(from: string, to: string): GameStateTransition | undefined {
         return this._transitions.find(
             (t) => (t.from === from || t.from === '*') && t.to === to
         );
