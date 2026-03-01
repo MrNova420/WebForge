@@ -242,7 +242,7 @@ export abstract class NetworkManager {
     /**
      * Create network message
      */
-    protected createMessage(type: MessageType, data: any, reliable: boolean = true): NetworkMessage {
+    public createMessage(type: MessageType, data: any, reliable: boolean = true): NetworkMessage {
         return {
             type,
             senderId: this.localClientId,

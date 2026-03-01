@@ -1650,10 +1650,19 @@
                     <!-- Heightmap -->
                     <div style="background: #333; border-radius: 4px; padding: 10px;">
                         <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Heightmap</div>
-                        <div style="display: flex; gap: 6px;">
+                        <div style="display: flex; gap: 6px; margin-bottom: 6px;">
                             <button class="toolbar-btn" id="terrain-btn-import-hm" style="font-size: 10px; padding: 3px 6px; flex: 1;">📥 Import</button>
                             <button class="toolbar-btn" id="terrain-btn-export-hm" style="font-size: 10px; padding: 3px 6px; flex: 1;">📤 Export</button>
                             <button class="toolbar-btn" id="terrain-btn-flatten-all" style="font-size: 10px; padding: 3px 6px; flex: 1;">⏚ Reset</button>
+                        </div>
+                        <!-- Terrain Generation Presets -->
+                        <div style="font-size: 11px; color: #888; margin-bottom: 4px;">Generate Terrain</div>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button class="toolbar-btn terrain-gen-btn" data-preset="hills" style="font-size: 10px; padding: 3px 6px;">🏔 Hills</button>
+                            <button class="toolbar-btn terrain-gen-btn" data-preset="mountains" style="font-size: 10px; padding: 3px 6px;">⛰ Mountains</button>
+                            <button class="toolbar-btn terrain-gen-btn" data-preset="valleys" style="font-size: 10px; padding: 3px 6px;">🏞 Valleys</button>
+                            <button class="toolbar-btn terrain-gen-btn" data-preset="islands" style="font-size: 10px; padding: 3px 6px;">🏝 Islands</button>
+                            <button class="toolbar-btn terrain-gen-btn" data-preset="flat" style="font-size: 10px; padding: 3px 6px;">━ Flat</button>
                         </div>
                     </div>
                 </div>
@@ -3154,11 +3163,13 @@
                 });
 
                 // Tool buttons
+                let activeTerrainTool = 'raise';
                 document.querySelectorAll('.terrain-tool-btn').forEach(btn => {
                     btn.onclick = () => {
                         document.querySelectorAll('.terrain-tool-btn').forEach(b => b.classList.remove('active'));
                         btn.classList.add('active');
-                        this.log(`Terrain tool: ${btn.dataset.tool}`, 'info');
+                        activeTerrainTool = btn.dataset.tool || 'raise';
+                        this.log(`Terrain tool: ${activeTerrainTool}`, 'info');
                     };
                 });
 
@@ -3172,7 +3183,59 @@
 
                 // Heightmap buttons
                 document.getElementById('terrain-btn-flatten-all')?.addEventListener('click', () => {
-                    this.log('Terrain reset to flat', 'info');
+                    if (this.editor.resetTerrainHeight()) {
+                        this.log('Terrain reset to flat', 'success');
+                    } else {
+                        this.log('Select a terrain object first', 'warn');
+                    }
+                });
+
+                // Export heightmap
+                document.getElementById('terrain-btn-export-hm')?.addEventListener('click', () => {
+                    if (!this.editor.exportTerrainHeightmap()) {
+                        this.log('Select a terrain object first', 'warn');
+                    }
+                });
+
+                // Import heightmap
+                document.getElementById('terrain-btn-import-hm')?.addEventListener('click', () => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.json';
+                    input.onchange = () => {
+                        const file = input.files?.[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const text = e.target?.result;
+                                if (typeof text === 'string') {
+                                    this.editor.importTerrainHeightmap(text);
+                                }
+                            };
+                            reader.readAsText(file);
+                        }
+                    };
+                    input.click();
+                });
+
+                // Add terrain layer
+                document.getElementById('terrain-btn-add-layer')?.addEventListener('click', () => {
+                    const name = prompt('Layer name:', 'New Layer');
+                    if (name) {
+                        const colors = ['#4a7c3f', '#8b7355', '#7a7a7a', '#d4c990', '#3a6b35'];
+                        const color = colors[Math.floor(Math.random() * colors.length)];
+                        this.editor.addTerrainLayer(name, color);
+                    }
+                });
+
+                // Terrain generation presets
+                document.querySelectorAll('.terrain-gen-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const preset = btn.dataset.preset || 'hills';
+                        if (!this.editor.generateTerrainNoise(preset)) {
+                            this.log('Select a terrain object first', 'warn');
+                        }
+                    });
                 });
             }
 

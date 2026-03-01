@@ -923,6 +923,217 @@ export class EditorApplication {
     }
 
     /**
+     * Get selected terrain object (if any)
+     */
+    getSelectedTerrain(): any | null {
+        const sel = this.context.getSelection();
+        if (sel.length === 0) return null;
+        const obj = sel[0] as any;
+        return obj.isTerrain ? obj : null;
+    }
+
+    /**
+     * Apply terrain brush at a position
+     */
+    applyTerrainBrush(tool: string, x: number, z: number, brushSize: number, brushStrength: number): boolean {
+        const terrain = this.getSelectedTerrain();
+        if (!terrain || !terrain.terrainHeightData) return false;
+        
+        const res = terrain.terrainResolution || 64;
+        const data = terrain.terrainHeightData as Float32Array;
+        const radius = Math.floor((brushSize / 100) * res * 0.5);
+        const strength = (brushStrength / 100) * 0.1;
+        
+        // Convert world position to heightmap coordinates
+        const hx = Math.floor(((x / terrain.terrainWidth) + 0.5) * res);
+        const hz = Math.floor(((z / terrain.terrainDepth) + 0.5) * res);
+        
+        for (let dz = -radius; dz <= radius; dz++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                const px = hx + dx;
+                const pz = hz + dz;
+                if (px < 0 || px >= res || pz < 0 || pz >= res) continue;
+                
+                const dist = Math.sqrt(dx * dx + dz * dz) / radius;
+                if (dist > 1) continue;
+                
+                // Smooth falloff
+                const falloff = 1 - (3 * dist * dist - 2 * dist * dist * dist);
+                const idx = pz * res + px;
+                
+                switch (tool) {
+                    case 'raise':
+                        data[idx] += strength * falloff;
+                        break;
+                    case 'lower':
+                        data[idx] -= strength * falloff;
+                        break;
+                    case 'smooth': {
+                        let sum = 0;
+                        let count = 0;
+                        for (let sy = -1; sy <= 1; sy++) {
+                            for (let sx = -1; sx <= 1; sx++) {
+                                const nx = px + sx;
+                                const nz = pz + sy;
+                                if (nx >= 0 && nx < res && nz >= 0 && nz < res) {
+                                    sum += data[nz * res + nx];
+                                    count++;
+                                }
+                            }
+                        }
+                        const avg = sum / count;
+                        data[idx] += (avg - data[idx]) * strength * falloff * 5;
+                        break;
+                    }
+                    case 'flatten':
+                        data[idx] *= (1 - strength * falloff);
+                        break;
+                }
+            }
+        }
+        
+        this.events.emit('terrainModified', { tool, x, z });
+        return true;
+    }
+
+    /**
+     * Generate terrain heightmap using noise
+     */
+    generateTerrainNoise(preset: string = 'hills'): boolean {
+        const terrain = this.getSelectedTerrain();
+        if (!terrain || !terrain.terrainHeightData) return false;
+        
+        const res = terrain.terrainResolution || 64;
+        const data = terrain.terrainHeightData as Float32Array;
+        
+        const presets: Record<string, { freq: number; amp: number; octaves: number }> = {
+            flat: { freq: 0, amp: 0, octaves: 1 },
+            hills: { freq: 3, amp: 0.3, octaves: 4 },
+            mountains: { freq: 2, amp: 0.8, octaves: 6 },
+            valleys: { freq: 4, amp: 0.5, octaves: 5 },
+            islands: { freq: 2, amp: 0.6, octaves: 4 }
+        };
+        
+        const cfg = presets[preset] || presets.hills;
+        
+        // Simple multi-octave noise
+        for (let z = 0; z < res; z++) {
+            for (let x = 0; x < res; x++) {
+                let height = 0;
+                let amplitude = cfg.amp;
+                let frequency = cfg.freq;
+                
+                for (let oct = 0; oct < cfg.octaves; oct++) {
+                    const nx = (x / res) * frequency;
+                    const nz = (z / res) * frequency;
+                    // Simple hash-based noise
+                    const val = Math.sin(nx * 12.9898 + nz * 78.233) * 43758.5453;
+                    height += (val - Math.floor(val)) * amplitude;
+                    amplitude *= 0.5;
+                    frequency *= 2;
+                }
+                
+                // Island mask (higher in center, lower at edges)
+                if (preset === 'islands') {
+                    const cx = (x / res - 0.5) * 2;
+                    const cz = (z / res - 0.5) * 2;
+                    const edgeDist = 1 - Math.sqrt(cx * cx + cz * cz);
+                    height *= Math.max(0, edgeDist);
+                }
+                
+                data[z * res + x] = height;
+            }
+        }
+        
+        this.events.emit('terrainModified', { tool: 'generate', preset });
+        this.log(`Terrain generated: ${preset}`, 'success');
+        return true;
+    }
+
+    /**
+     * Flatten/reset all terrain height data
+     */
+    resetTerrainHeight(): boolean {
+        const terrain = this.getSelectedTerrain();
+        if (!terrain || !terrain.terrainHeightData) return false;
+        
+        const data = terrain.terrainHeightData as Float32Array;
+        data.fill(0);
+        this.events.emit('terrainModified', { tool: 'reset' });
+        this.log('Terrain height reset', 'info');
+        return true;
+    }
+
+    /**
+     * Add a terrain texture layer
+     */
+    addTerrainLayer(name: string, color: string): boolean {
+        const terrain = this.getSelectedTerrain();
+        if (!terrain) return false;
+        
+        if (!terrain.terrainLayers) terrain.terrainLayers = [];
+        terrain.terrainLayers.push({ name, color, weight: 1.0 });
+        this.events.emit('terrainModified', { tool: 'addLayer', name });
+        this.log(`Terrain layer added: ${name}`, 'success');
+        return true;
+    }
+
+    /**
+     * Export terrain heightmap as downloadable file
+     */
+    exportTerrainHeightmap(): boolean {
+        const terrain = this.getSelectedTerrain();
+        if (!terrain || !terrain.terrainHeightData) return false;
+        
+        const res = terrain.terrainResolution || 64;
+        const data = terrain.terrainHeightData as Float32Array;
+        
+        // Export as JSON
+        const json = JSON.stringify({
+            resolution: res,
+            width: terrain.terrainWidth,
+            depth: terrain.terrainDepth,
+            heights: Array.from(data)
+        });
+        
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `terrain_heightmap_${res}x${res}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        this.log('Heightmap exported', 'success');
+        return true;
+    }
+
+    /**
+     * Import terrain heightmap from file
+     */
+    importTerrainHeightmap(jsonString: string): boolean {
+        const terrain = this.getSelectedTerrain();
+        if (!terrain) return false;
+        
+        try {
+            const parsed = JSON.parse(jsonString);
+            if (parsed.heights && Array.isArray(parsed.heights)) {
+                const res = parsed.resolution || terrain.terrainResolution || 64;
+                terrain.terrainResolution = res;
+                terrain.terrainHeightData = new Float32Array(parsed.heights);
+                if (parsed.width) terrain.terrainWidth = parsed.width;
+                if (parsed.depth) terrain.terrainDepth = parsed.depth;
+                this.events.emit('terrainModified', { tool: 'import' });
+                this.log('Heightmap imported', 'success');
+                return true;
+            }
+        } catch (e) {
+            this.log('Failed to import heightmap: invalid format', 'error');
+        }
+        return false;
+    }
+
+    /**
      * Add an audio source component to the selected object
      */
     addAudioSource(): boolean {
