@@ -2909,7 +2909,7 @@ describe('Physics Constraints', () => {
 
 
 // ── Massive Instancing System Tests ──
-import { InstanceBatch, InstancingSystem, InstanceData as InstData, InstanceBatchConfig as IBConfig } from '../src/optimization/InstancingSystem';
+import { InstanceBatch, InstancingSystem } from '../src/optimization/InstancingSystem';
 
 describe('Massive Instancing System', () => {
     it('should export InstanceBatch and InstancingSystem classes', () => {

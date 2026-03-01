@@ -36,6 +36,9 @@ const MAT4_BYTES = FLOATS_PER_MATRIX * FLOAT_SIZE;
 /** Chunk size for partial buffer uploads (16 KB = 256 matrices) */
 const UPLOAD_CHUNK_SIZE = 256;
 
+/** Use chunked upload when dirty range exceeds this many chunks (avoids overhead for small updates) */
+const CHUNK_THRESHOLD_MULTIPLIER = 4;
+
 /** Attribute location where instance matrix columns start (4,5,6,7) */
 const INSTANCE_ATTR_START = 4;
 
@@ -421,8 +424,8 @@ export class InstanceBatch {
         end * FLOATS_PER_MATRIX
       );
       
-      // For very large ranges, use chunked upload
-      if (end - start > UPLOAD_CHUNK_SIZE * 4) {
+      // For very large ranges, use chunked upload to avoid stalling the GPU pipeline
+      if (end - start > UPLOAD_CHUNK_SIZE * CHUNK_THRESHOLD_MULTIPLIER) {
         for (let i = start; i < end; i += UPLOAD_CHUNK_SIZE) {
           const chunkEnd = Math.min(i + UPLOAD_CHUNK_SIZE, end);
           const chunkOffset = i * FLOATS_PER_MATRIX * FLOAT_SIZE;

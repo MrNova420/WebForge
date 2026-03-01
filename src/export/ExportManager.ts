@@ -414,7 +414,6 @@ export class ExportManager {
      * Generate game bundle JavaScript
      */
     private generateGameBundle(name: string, config: ExportConfig): string {
-        const minify = config.minify;
         const code = `// ${name} - Built with WebForge Engine
 // Version: ${config.version || '1.0.0'}
 (function(global) {
@@ -487,7 +486,9 @@ export class ExportManager {
   global.WebForgeGame = WebForgeGame;
 })(typeof window !== 'undefined' ? window : this);`;
         
-        return minify ? code.replace(/\s+/g, ' ').replace(/\n/g, '') : code;
+        // Note: proper minification requires a library like terser;
+        // for now, return the readable code regardless of the minify flag.
+        return code;
     }
 
     /**
@@ -586,8 +587,8 @@ app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) creat
                 dist: 'electron-builder'
             },
             devDependencies: {
-                electron: '^28.0.0',
-                'electron-builder': '^24.0.0'
+                electron: '^33.0.0',
+                'electron-builder': '^25.0.0'
             }
         }, null, 2);
     }
