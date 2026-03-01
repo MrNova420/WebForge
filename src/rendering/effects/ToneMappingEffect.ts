@@ -170,6 +170,7 @@ export class ToneMappingEffect extends BasePostEffect {
     `;
     
     this.toneMappingShader = new Shader(this.gl, vertexShader, fragmentShader);
+    this.toneMappingShader.compile().catch(() => { this.toneMappingShader = null; });
   }
 
   /**

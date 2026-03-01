@@ -218,6 +218,16 @@ export class SSAOEffect extends BasePostEffect {
     
     this.ssaoShader = new Shader(this.gl, vertexShader, ssaoFragmentShader);
     this.blurShader = new Shader(this.gl, vertexShader, blurFragmentShader);
+    
+    // Compile shaders so they can be used in render()
+    this.ssaoShader.compile().catch(err => {
+      this.logger.warn('Failed to compile SSAO shader: ' + err);
+      this.ssaoShader = null;
+    });
+    this.blurShader.compile().catch(err => {
+      this.logger.warn('Failed to compile blur shader: ' + err);
+      this.blurShader = null;
+    });
   }
 
   /**
@@ -269,6 +279,8 @@ export class SSAOEffect extends BasePostEffect {
     }
     
     input.bind(0); // Use scene color as position approximation
+    // Bind scene color to unit 1 as a normal approximation fallback
+    input.bind(1);
     if (this._noiseTexture) this._noiseTexture.bind(2);
     this.renderQuad();
     
@@ -285,13 +297,23 @@ export class SSAOEffect extends BasePostEffect {
       this.renderQuad();
     }
     
-    // Step 3: Output to target (applies occlusion factor)
+    // Step 3: Composite blurred SSAO result into output
     if (output) {
       output.bind();
     } else {
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     }
     this.gl.viewport(0, 0, this.width, this.height);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    
+    // Use blur shader to blit the blurred SSAO texture to output
+    const blurredTex = this.blurBuffer.getColorTexture();
+    if (blurredTex) {
+      this.blurShader.use();
+      this.blurShader.setUniform('u_texture', 0);
+      blurredTex.bind(0);
+      this.renderQuad();
+    }
   }
 
   /**

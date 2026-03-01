@@ -111,6 +111,12 @@ export class MotionBlurEffect extends BasePostEffect {
     `;
     
     this.motionBlurShader = new Shader(this.gl, vertexShader, fragmentShader);
+    
+    // Compile shader so it can be used in render()
+    this.motionBlurShader.compile().catch(err => {
+      this.logger.warn('Failed to compile motion blur shader: ' + err);
+      this.motionBlurShader = null;
+    });
   }
 
   /**
@@ -145,11 +151,13 @@ export class MotionBlurEffect extends BasePostEffect {
     // Use shader
     this.motionBlurShader.use();
     this.motionBlurShader.setUniform('u_colorTexture', 0);
+    this.motionBlurShader.setUniform('u_velocityTexture', 1);
     this.motionBlurShader.setUniform('u_samples', this._samples);
     this.motionBlurShader.setUniform('u_strength', this._strength);
     
     // Bind input texture as both color and velocity (simplified — real impl uses separate velocity buffer)
     input.bind(0);
+    input.bind(1); // Bind to velocity texture unit as fallback
     
     // Render full-screen quad
     this.renderQuad();

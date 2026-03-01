@@ -131,6 +131,12 @@ export class PostProcessing {
     
     this.copyShader = new Shader(this.gl, vertSrc, fragSrc);
     
+    // Compile shader so copyTexture() can call use() without throwing
+    this.copyShader.compile().catch(err => {
+      this.logger.warn('Failed to compile copy shader: ' + err);
+      this.copyShader = null;
+    });
+    
     // Create full-screen quad
     const verts = new Float32Array([
       -1, -1, 0, 0,

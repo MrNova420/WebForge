@@ -236,7 +236,7 @@ export class TerrainBrush {
                     const falloff = this.calculateFalloff(distance);
                     const effectiveStrength = this.strength * falloff;
                     
-                    this.applyAt(terrain, x, z, effectiveStrength);
+                    this.applyAt(terrain, x, z, effectiveStrength, centerGridX, centerGridZ);
                 }
             }
         }
@@ -249,8 +249,10 @@ export class TerrainBrush {
      * @param x - Grid X coordinate
      * @param z - Grid Z coordinate
      * @param strength - Effective strength at this position
+     * @param brushCenterX - Brush center grid X coordinate
+     * @param brushCenterZ - Brush center grid Z coordinate
      */
-    private applyAt(terrain: Terrain, x: number, z: number, strength: number): void {
+    private applyAt(terrain: Terrain, x: number, z: number, strength: number, brushCenterX?: number, brushCenterZ?: number): void {
         const currentHeight = terrain.getHeightAt(x, z);
         
         switch (this.type) {
@@ -336,16 +338,16 @@ export class TerrainBrush {
             }
                 
             case 'stamp': {
-                // Stamp brush - applies a height pattern
+                // Stamp brush - applies a height pattern relative to brush center
                 if (!this.stampPattern) break;
-                // Map grid coords to stamp pattern coords
-                const dims2 = terrain.getDimensions();
-                const centerGridX = dims2.width / 2;
-                const centerGridZ = dims2.height / 2;
-                const gridRadius = (this.radius / dims2.worldWidth) * dims2.width;
+                const sDims = terrain.getDimensions();
+                const gridRadiusStamp = (this.radius / sDims.worldWidth) * sDims.width;
+                // Use brush center (passed from apply) instead of terrain center
+                const stampCenterX = brushCenterX !== undefined ? brushCenterX : sDims.width / 2;
+                const stampCenterZ = brushCenterZ !== undefined ? brushCenterZ : sDims.height / 2;
                 
-                const sx = Math.floor(((x - (centerGridX - gridRadius)) / (gridRadius * 2)) * this.stampSize);
-                const sz = Math.floor(((z - (centerGridZ - gridRadius)) / (gridRadius * 2)) * this.stampSize);
+                const sx = Math.floor(((x - (stampCenterX - gridRadiusStamp)) / (gridRadiusStamp * 2)) * this.stampSize);
+                const sz = Math.floor(((z - (stampCenterZ - gridRadiusStamp)) / (gridRadiusStamp * 2)) * this.stampSize);
                 
                 if (sx >= 0 && sx < this.stampSize && sz >= 0 && sz < this.stampSize) {
                     const stampValue = this.stampPattern[sz * this.stampSize + sx];
@@ -355,11 +357,12 @@ export class TerrainBrush {
             }
                 
             case 'plateau': {
-                // Plateau brush - creates flat-topped areas with natural edges
+                // Plateau brush - creates flat-topped areas with natural edges relative to brush center
                 const pDims = terrain.getDimensions();
                 const gridRadiusPlateau = (this.radius / pDims.worldWidth) * pDims.width;
-                const centerXp = pDims.width / 2;
-                const centerZp = pDims.height / 2;
+                // Use brush center (passed from apply) instead of terrain center
+                const centerXp = brushCenterX !== undefined ? brushCenterX : pDims.width / 2;
+                const centerZp = brushCenterZ !== undefined ? brushCenterZ : pDims.height / 2;
                 const distFromCenter = Math.sqrt(
                     Math.pow(x - centerXp, 2) + Math.pow(z - centerZp, 2)
                 ) / gridRadiusPlateau;

@@ -2020,6 +2020,17 @@ export class EditorRenderer {
         if (this.postProcessing) {
             this.postProcessing.resize(width, height);
         }
+
+        // Ensure the scene framebuffer matches the new dimensions when post-processing is enabled
+        if (this.sceneFramebuffer) {
+            const gl = this.glContext.getGL() as WebGL2RenderingContext;
+            this.sceneFramebuffer = new Framebuffer(gl, {
+                width,
+                height,
+                colorAttachments: 1,
+                depthAttachment: true
+            });
+        }
     }
 
     /**
@@ -2085,6 +2096,11 @@ export class EditorRenderer {
         if (this.postProcessing) {
             this.postProcessing.dispose();
             this.postProcessing = null;
+        }
+
+        if (this.sceneFramebuffer) {
+            this.sceneFramebuffer.destroy();
+            this.sceneFramebuffer = null;
         }
         
         this.logger.info('EditorRenderer disposed');

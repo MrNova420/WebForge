@@ -56,6 +56,7 @@ export class AdvancedVFXSystem {
     private godRays: GodRaysSettings;
     
     private time: number = 0;
+    private baseFogDensity: number = 0.01;
     
     constructor() {
         // Default volumetric fog
@@ -111,12 +112,12 @@ export class AdvancedVFXSystem {
     }
     
     /**
-     * Animate volumetric fog - simulates wind-driven density variation
+     * Animate volumetric fog - simulates wind-driven density variation (frame-rate independent)
      */
     private animateVolumetricFog(_deltaTime: number): void {
-        // Animate fog density with subtle wind-driven variation
+        // Compute fog density from base + wind offset (not cumulative addition)
         const windEffect = Math.sin(this.time * 0.3) * 0.002 + Math.sin(this.time * 0.7) * 0.001;
-        this.volumetricFog.density = Math.max(0.001, this.volumetricFog.density + windEffect);
+        this.volumetricFog.density = Math.max(0.001, this.baseFogDensity + windEffect);
         
         // Animate fog color based on time-of-day approximation
         const dayProgress = (Math.sin(this.time * 0.01) + 1) * 0.5; // 0 = night, 1 = day
@@ -156,6 +157,7 @@ export class AdvancedVFXSystem {
      */
     public enableVolumetricFog(settings: Partial<VolumetricFogSettings> = {}): void {
         this.volumetricFog = { ...this.volumetricFog, enabled: true, ...settings };
+        this.baseFogDensity = this.volumetricFog.density;
     }
     
     /**
@@ -170,6 +172,9 @@ export class AdvancedVFXSystem {
      */
     public updateVolumetricFog(settings: Partial<VolumetricFogSettings>): void {
         this.volumetricFog = { ...this.volumetricFog, ...settings };
+        if (settings.density !== undefined) {
+            this.baseFogDensity = settings.density;
+        }
     }
     
     /**

@@ -165,6 +165,10 @@ export class DepthOfFieldEffect extends BasePostEffect {
     
     this.dofShader = new Shader(this.gl, vertexShader, cocFragmentShader);
     this.blurShader = new Shader(this.gl, vertexShader, bokehFragmentShader);
+    
+    // Compile shaders so they can be used in render()
+    this.dofShader.compile().catch(() => { this.dofShader = null; });
+    this.blurShader.compile().catch(() => { this.blurShader = null; });
   }
 
   /**

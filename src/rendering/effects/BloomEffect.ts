@@ -110,6 +110,7 @@ export class BloomEffect extends BasePostEffect {
     `;
     
     this.brightnessShader = new Shader(this.gl, brightnessVertexShader, brightnessFragmentShader);
+    this.brightnessShader.compile().catch(() => { this.brightnessShader = null; });
     
     // Gaussian blur shader
     const blurFragmentShader = `#version 300 es
@@ -139,6 +140,7 @@ export class BloomEffect extends BasePostEffect {
     `;
     
     this.blurShader = new Shader(this.gl, brightnessVertexShader, blurFragmentShader);
+    this.blurShader.compile().catch(() => { this.blurShader = null; });
     
     // Combine shader
     const combineFragmentShader = `#version 300 es
@@ -161,6 +163,7 @@ export class BloomEffect extends BasePostEffect {
     `;
     
     this.combineShader = new Shader(this.gl, brightnessVertexShader, combineFragmentShader);
+    this.combineShader.compile().catch(() => { this.combineShader = null; });
   }
 
   /**
