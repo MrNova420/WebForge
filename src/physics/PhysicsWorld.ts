@@ -218,11 +218,258 @@ export class PhysicsWorld {
    * @param origin - Ray origin
    * @param direction - Ray direction (normalized)
    * @param maxDistance - Maximum ray distance
-   * @returns Raycast result or null
+   * @returns Raycast result or null (closest hit)
    */
-  raycast(_origin: Vector3, _direction: Vector3, _maxDistance: number = Infinity): RaycastResult | null {
-    // TODO: Implement raycast
-    return null;
+  raycast(origin: Vector3, direction: Vector3, maxDistance: number = Infinity): RaycastResult | null {
+    const dir = direction.clone().normalize();
+    let closest: RaycastResult | null = null;
+
+    for (const body of this.bodies) {
+      if (!body.shape) continue;
+
+      const bodyPos = body.getPosition ? body.getPosition() : new Vector3();
+      const result = this.raycastShape(origin, dir, body.shape, bodyPos, maxDistance);
+      
+      if (result && result.distance < (closest ? closest.distance : maxDistance)) {
+        closest = { body, point: result.point, normal: result.normal, distance: result.distance };
+      }
+    }
+
+    return closest;
+  }
+
+  /**
+   * Performs a raycast against all bodies, returning all hits
+   * @param origin - Ray origin
+   * @param direction - Ray direction (normalized)
+   * @param maxDistance - Maximum ray distance
+   * @returns Array of raycast results sorted by distance
+   */
+  raycastAll(origin: Vector3, direction: Vector3, maxDistance: number = Infinity): RaycastResult[] {
+    const dir = direction.clone().normalize();
+    const results: RaycastResult[] = [];
+
+    for (const body of this.bodies) {
+      if (!body.shape) continue;
+
+      const bodyPos = body.getPosition ? body.getPosition() : new Vector3();
+      const result = this.raycastShape(origin, dir, body.shape, bodyPos, maxDistance);
+      
+      if (result) {
+        results.push({ body, point: result.point, normal: result.normal, distance: result.distance });
+      }
+    }
+
+    return results.sort((a, b) => a.distance - b.distance);
+  }
+
+  /**
+   * Tests a ray against a collision shape
+   */
+  private raycastShape(
+    origin: Vector3, 
+    direction: Vector3, 
+    shape: any, 
+    position: Vector3,
+    maxDistance: number
+  ): { point: Vector3; normal: Vector3; distance: number } | null {
+    switch (shape.type) {
+      case 'sphere':
+        return this.raySphereIntersect(origin, direction, position, shape.radius, maxDistance);
+      case 'box':
+        return this.rayBoxIntersect(origin, direction, position, shape.halfExtents, maxDistance);
+      case 'plane':
+        return this.rayPlaneIntersect(origin, direction, shape.normal, shape.distance, maxDistance);
+      case 'capsule':
+        return this.rayCapsuleIntersect(origin, direction, position, shape.radius, shape.height, maxDistance);
+      default:
+        // Fallback: test against bounding sphere
+        if (shape.getBoundingSphere) {
+          const bs = shape.getBoundingSphere();
+          return this.raySphereIntersect(origin, direction, position, bs.radius, maxDistance);
+        }
+        return null;
+    }
+  }
+
+  /**
+   * Ray-Sphere intersection test
+   */
+  private raySphereIntersect(
+    origin: Vector3, direction: Vector3, 
+    center: Vector3, radius: number, maxDistance: number
+  ): { point: Vector3; normal: Vector3; distance: number } | null {
+    const oc = origin.clone().subtract(center);
+    const a = direction.dot(direction);
+    const b = 2.0 * oc.dot(direction);
+    const c = oc.dot(oc) - radius * radius;
+    const discriminant = b * b - 4 * a * c;
+
+    if (discriminant < 0) return null;
+
+    const sqrtD = Math.sqrt(discriminant);
+    let t = (-b - sqrtD) / (2 * a);
+    
+    // If nearest intersection is behind ray origin, try the far one
+    if (t < 0) t = (-b + sqrtD) / (2 * a);
+    if (t < 0 || t > maxDistance) return null;
+
+    const point = origin.clone().add(direction.clone().multiplyScalar(t));
+    const normal = point.clone().subtract(center).normalize();
+
+    return { point, normal, distance: t };
+  }
+
+  /**
+   * Ray-AABB (Axis-Aligned Bounding Box) intersection test
+   */
+  private rayBoxIntersect(
+    origin: Vector3, direction: Vector3,
+    center: Vector3, halfExtents: Vector3, maxDistance: number
+  ): { point: Vector3; normal: Vector3; distance: number } | null {
+    const min = center.clone().subtract(halfExtents);
+    const max = center.clone().add(halfExtents);
+
+    let tmin = -Infinity;
+    let tmax = Infinity;
+    let normalAxis = 0;
+    let normalSign = 1;
+
+    // Test X slab
+    if (Math.abs(direction.x) > 1e-8) {
+      const t1 = (min.x - origin.x) / direction.x;
+      const t2 = (max.x - origin.x) / direction.x;
+      const tNear = Math.min(t1, t2);
+      const tFar = Math.max(t1, t2);
+      if (tNear > tmin) { tmin = tNear; normalAxis = 0; normalSign = t1 < t2 ? -1 : 1; }
+      if (tFar < tmax) tmax = tFar;
+    } else if (origin.x < min.x || origin.x > max.x) {
+      return null;
+    }
+
+    // Test Y slab
+    if (Math.abs(direction.y) > 1e-8) {
+      const t1 = (min.y - origin.y) / direction.y;
+      const t2 = (max.y - origin.y) / direction.y;
+      const tNear = Math.min(t1, t2);
+      const tFar = Math.max(t1, t2);
+      if (tNear > tmin) { tmin = tNear; normalAxis = 1; normalSign = t1 < t2 ? -1 : 1; }
+      if (tFar < tmax) tmax = tFar;
+    } else if (origin.y < min.y || origin.y > max.y) {
+      return null;
+    }
+
+    // Test Z slab
+    if (Math.abs(direction.z) > 1e-8) {
+      const t1 = (min.z - origin.z) / direction.z;
+      const t2 = (max.z - origin.z) / direction.z;
+      const tNear = Math.min(t1, t2);
+      const tFar = Math.max(t1, t2);
+      if (tNear > tmin) { tmin = tNear; normalAxis = 2; normalSign = t1 < t2 ? -1 : 1; }
+      if (tFar < tmax) tmax = tFar;
+    } else if (origin.z < min.z || origin.z > max.z) {
+      return null;
+    }
+
+    if (tmin > tmax || tmax < 0) return null;
+    
+    const t = tmin >= 0 ? tmin : tmax;
+    if (t > maxDistance) return null;
+
+    const point = origin.clone().add(direction.clone().multiplyScalar(t));
+    const normal = new Vector3();
+    if (normalAxis === 0) normal.x = normalSign;
+    else if (normalAxis === 1) normal.y = normalSign;
+    else normal.z = normalSign;
+
+    return { point, normal, distance: t };
+  }
+
+  /**
+   * Ray-Plane intersection test
+   */
+  private rayPlaneIntersect(
+    origin: Vector3, direction: Vector3,
+    planeNormal: Vector3, planeDistance: number, maxDistance: number
+  ): { point: Vector3; normal: Vector3; distance: number } | null {
+    const denom = planeNormal.dot(direction);
+    if (Math.abs(denom) < 1e-8) return null; // Ray is parallel to plane
+
+    const t = -(planeNormal.dot(origin) + planeDistance) / denom;
+    if (t < 0 || t > maxDistance) return null;
+
+    const point = origin.clone().add(direction.clone().multiplyScalar(t));
+    const normal = denom < 0 ? planeNormal.clone() : planeNormal.clone().multiplyScalar(-1);
+
+    return { point, normal, distance: t };
+  }
+
+  /**
+   * Ray-Capsule intersection test (approximated as sphere + cylinder + sphere)
+   */
+  private rayCapsuleIntersect(
+    origin: Vector3, direction: Vector3,
+    center: Vector3, radius: number, height: number, maxDistance: number
+  ): { point: Vector3; normal: Vector3; distance: number } | null {
+    const halfHeight = height / 2;
+
+    // Test against top sphere
+    const topCenter = center.clone().add(new Vector3(0, halfHeight, 0));
+    const topResult = this.raySphereIntersect(origin, direction, topCenter, radius, maxDistance);
+
+    // Test against bottom sphere
+    const bottomCenter = center.clone().add(new Vector3(0, -halfHeight, 0));
+    const bottomResult = this.raySphereIntersect(origin, direction, bottomCenter, radius, maxDistance);
+
+    // Test against cylinder (infinite cylinder in Y, then clamp)
+    const cylinderResult = this.rayCylinderYIntersect(origin, direction, center, radius, halfHeight, maxDistance);
+
+    // Find closest hit
+    let best: { point: Vector3; normal: Vector3; distance: number } | null = null;
+    for (const result of [topResult, bottomResult, cylinderResult]) {
+      if (result && (!best || result.distance < best.distance)) {
+        best = result;
+      }
+    }
+
+    return best;
+  }
+
+  /**
+   * Ray-Cylinder intersection test (Y-axis aligned)
+   */
+  private rayCylinderYIntersect(
+    origin: Vector3, direction: Vector3,
+    center: Vector3, radius: number, halfHeight: number, maxDistance: number
+  ): { point: Vector3; normal: Vector3; distance: number } | null {
+    // 2D circle test in XZ plane
+    const ox = origin.x - center.x;
+    const oz = origin.z - center.z;
+    const dx = direction.x;
+    const dz = direction.z;
+
+    const a = dx * dx + dz * dz;
+    if (a < 1e-8) return null; // Ray is parallel to Y axis
+
+    const b = 2 * (ox * dx + oz * dz);
+    const c = ox * ox + oz * oz - radius * radius;
+    const discriminant = b * b - 4 * a * c;
+
+    if (discriminant < 0) return null;
+
+    const sqrtD = Math.sqrt(discriminant);
+    let t = (-b - sqrtD) / (2 * a);
+    if (t < 0) t = (-b + sqrtD) / (2 * a);
+    if (t < 0 || t > maxDistance) return null;
+
+    const point = origin.clone().add(direction.clone().multiplyScalar(t));
+    const relY = point.y - center.y;
+    
+    // Check if hit is within cylinder height
+    if (relY < -halfHeight || relY > halfHeight) return null;
+
+    const normal = new Vector3(point.x - center.x, 0, point.z - center.z).normalize();
+    return { point, normal, distance: t };
   }
 
   /**
