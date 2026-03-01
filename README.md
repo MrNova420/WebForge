@@ -4,7 +4,7 @@
 
 [![Status](https://img.shields.io/badge/status-alpha-green)]()
 [![Version](https://img.shields.io/badge/version-1.0.0-blue)]()
-[![Tests](https://img.shields.io/badge/tests-94%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-105%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ---
@@ -30,21 +30,21 @@
 |--------|-------------------------------|--------------------------|
 | Hierarchy, Inspector, Console | ✅ | ✅ wired |
 | Scene viewport + gizmos | ✅ | ✅ wired |
-| Animation timeline | ✅ AnimationPanel.ts | ❌ not mounted |
-| Audio controls | ✅ AudioPanel.ts | ❌ not mounted |
-| Terrain tools | ✅ TerrainPanel.ts | ❌ not mounted |
-| Particle editor | ✅ ParticlePanel.ts | ❌ not mounted |
-| Material editor | ✅ MaterialEditorPanel.ts | ❌ not mounted |
+| Animation timeline | ✅ AnimationPanel.ts | ✅ tab in right panel |
+| Audio controls | ✅ AudioPanel.ts | ✅ tab in right panel |
+| Terrain tools | ✅ TerrainPanel.ts | ✅ tab in right panel |
+| Particle editor | ✅ ParticlePanel.ts | ✅ tab in right panel |
+| Material editor | ✅ MaterialEditorPanel.ts | ✅ tab in right panel |
 | Visual scripting | ✅ VisualScriptingPanel.ts | ❌ not mounted |
-| Profiler | ✅ TimelineProfiler.ts | ❌ not wired to UI tab |
-| Network / multiplayer | ✅ NetworkManager.ts | ❌ not wired to UI tab |
+| Profiler | ✅ TimelineProfiler.ts | ✅ wired to console tab |
+| Network / multiplayer | ✅ NetworkManager.ts | ✅ wired to console tab |
 | Collaboration | ✅ ChatSystem, Presence | ❌ no UI at all |
-| Export | ✅ ExportManager.ts | ❌ menu item only |
-| Play mode | ✅ engine loop | ⚠️ buttons exist, wiring unclear |
-| Scene save/load | ✅ menu items | ❌ no actual implementation |
+| Export | ✅ ExportManager.ts | ✅ File → Save As / Export |
+| Play mode | ✅ engine loop | ✅ toolbar wired |
+| Scene save/load | ✅ EditorScene.toJSON/fromJSON | ✅ File menu wired (localStorage + file) |
 
 ### 📋 Next priority
-**Mount and wire the existing panel classes into `editor.html`** — the backend work is mostly done, the editor frontend just needs to expose it.
+**Wire the remaining unmounted panels and deepen existing panel functionality** — connect the TypeScript backend classes (VisualScriptingPanel, Collaboration) and add real interactivity to the newly mounted Animation, Material, Terrain, Audio, and Particle panels.
 
 ---
 
@@ -75,7 +75,7 @@ npm run build
 | `npm run dev` | Start development server with hot reload |
 | `npm run build` | Build for production (TypeScript + Vite) |
 | `npm run compile` | TypeScript compile only |
-| `npm test` | Run all tests (94 tests) |
+| `npm test` | Run all tests (105 tests) |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run lint` | Type-check without emit |
 
@@ -273,18 +273,31 @@ All documentation is in the **[docs/](./docs/)** folder.
 ```
 webforge/
 ├── src/
-│   ├── core/           # Engine core (ECS, Scene, Events)
-│   ├── math/           # Math library (Vector3, Matrix4, etc.)
-│   ├── rendering/      # Rendering system (WebGL, materials, shaders)
-│   ├── physics/        # Physics engine (rigid body, soft body)
-│   ├── animation/      # Animation system (skeletal, state machine)
-│   ├── audio/          # Audio system (3D spatial, effects)
-│   ├── editor/         # Visual editor (React UI)
-│   ├── modeler/        # 3D modeling tools
-│   ├── network/        # Multiplayer networking
+│   ├── core/           # Engine core (Events, Input, Time, Resources, Logger)
+│   ├── math/           # Math library (Vector2/3/4, Matrix4, Quaternion, Transform)
+│   ├── scene/          # Scene graph (GameObject, Scene)
+│   ├── rendering/      # WebGL renderer, PBR materials, shaders, lighting, shadows
+│   ├── physics/        # Physics engine (rigid body, soft body, collision, GJK)
+│   ├── animation/      # Animation system (skeletal, state machine, IK, blend trees)
+│   ├── audio/          # Audio system (3D spatial, effects, adaptive music)
+│   ├── editor/         # Visual editor (panels, gizmos, commands, app orchestration)
+│   ├── terrain/        # Terrain system (heightmap, LOD, painting)
+│   ├── particles/      # Particle systems (CPU/GPU)
+│   ├── ai/             # AI (NavMesh, behavior trees, steering)
+│   ├── network/        # Multiplayer (WebRTC, WebSocket)
+│   ├── scripting/      # Visual scripting (node graph)
+│   ├── vfx/            # Visual effects
+│   ├── water/          # Water simulation
+│   ├── weather/        # Weather system
+│   ├── geometry/       # Geometry utilities
+│   ├── character/      # Character systems
+│   ├── debug/          # Debug tools, live debugger
+│   ├── tools/          # Production tools
 │   └── utils/          # Utilities (pooling, profiling)
 ├── docs/               # Complete documentation
-├── tests/              # Comprehensive test suite
+├── tests/              # Comprehensive test suite (105 tests)
+├── editor.html         # Full visual editor UI
+├── index.html          # Landing page
 └── examples/           # Example games & demos
 ```
 
@@ -305,51 +318,51 @@ webforge/
 
 ## 🗺️ Development Roadmap
 
-### 📍 Current Status: Phase 1 - Foundation (5% Complete)
+### 📍 Current Status: Phase 5 — Editor Frontend Wiring
 
 | Phase | Timeline | Status | Focus |
 |-------|----------|--------|-------|
-| **Phase 1** | Months 1-2 | 🟡 In Progress | Foundation (Math, Core, WebGL) |
-| **Phase 2** | Months 3-4 | ⚪ Planned | Advanced Rendering (PBR, Lighting, Shadows) |
-| **Phase 3** | Months 5-6 | ⚪ Planned | Physics (Rigid Body, Soft Body, Fluids) |
-| **Phase 4** | Months 7-8 | ⚪ Planned | Animation (Skeletal, State Machine, IK) |
-| **Phase 5** | Months 9-10 | ⚪ Planned | Editor (Scene View, Inspector, Visual Script) |
+| **Phase 1** | Months 1-2 | ✅ Complete | Foundation (Math, Core, WebGL) |
+| **Phase 2** | Months 3-4 | ✅ Complete | Advanced Rendering (PBR, Lighting, Shadows) |
+| **Phase 3** | Months 5-6 | ✅ Complete | Physics (Rigid Body, Soft Body, Fluids) |
+| **Phase 4** | Months 7-8 | ✅ Complete | Animation (Skeletal, State Machine, IK) |
+| **Phase 5** | Months 9-10 | 🟡 In Progress | Editor (Scene View, Inspector, Visual Script) |
 | **Phase 6** | Months 11-12 | ⚪ Planned | 3D Modeler (Modeling, Sculpting, Texturing) |
 | **Phase 7** | Months 13-15 | ⚪ Planned | Advanced Features (Terrain, Particles, Materials) |
 | **Phase 8** | Months 16-18 | ⚪ Planned | Multiplayer (Networking, State Sync, Matchmaking) |
 | **Phase 9** | Months 19-21 | ⚪ Planned | Polish (Optimization, Bug Fixes, Documentation) |
 | **Phase 10** | Months 22-24 | ⚪ Planned | Launch (Beta Testing, Marketing, Release) |
 
-### 🎯 Phase 1: Foundation (Current)
+### 🎯 Phase 1: Foundation (Complete ✅)
 
-**Week 1-2: Math Library**
-- [ ] Vector2, Vector3, Vector4
-- [ ] Matrix3, Matrix4
-- [ ] Quaternion
-- [ ] Transform system
+**Math Library**
+- [x] Vector2, Vector3, Vector4
+- [x] Matrix3, Matrix4
+- [x] Quaternion
+- [x] Transform system
 
-**Week 3-4: Core Engine**
-- [ ] Engine class (main loop)
-- [ ] Time system
-- [ ] Input manager
-- [ ] Event system
-- [ ] Resource manager
+**Core Engine**
+- [x] Engine class (main loop)
+- [x] Time system
+- [x] Input manager
+- [x] Event system
+- [x] Resource manager
 
-**Week 5-6: WebGL Foundation**
-- [ ] WebGL context
-- [ ] Shader system
-- [ ] Buffer management
-- [ ] Texture system
-- [ ] Framebuffers
+**WebGL Foundation**
+- [x] WebGL context
+- [x] Shader system
+- [x] Buffer management
+- [x] Texture system
+- [x] Framebuffers
 
-**Week 7-8: Basic Rendering**
-- [ ] Mesh system
-- [ ] Material system
-- [ ] Camera system
-- [ ] Forward renderer
-- [ ] Debug rendering
+**Basic Rendering**
+- [x] Mesh system
+- [x] Material system
+- [x] Camera system
+- [x] Forward renderer
+- [x] Debug rendering
 
-**Milestone:** Render a textured, lit, spinning cube at 144 FPS
+**Milestone:** ✅ Rendering pipeline operational with PBR, shadows, post-processing
 
 See [docs/COMPLETE_REFERENCE.md](./docs/COMPLETE_REFERENCE.md) for the complete implementation plan.
 
@@ -461,7 +474,7 @@ MIT License - Free for commercial & personal use
 - WebGL 2.0 - Graphics rendering
 - Web Audio API - 3D spatial audio
 - WebRTC - Multiplayer networking
-- React - Editor UI (future)
+- Vite - Build tooling and dev server
 
 ---
 

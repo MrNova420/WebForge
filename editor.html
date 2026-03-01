@@ -860,6 +860,13 @@
         <div class="menu-dropdown-item" data-action="show-debug">Debug</div>
         <div class="menu-dropdown-item" data-action="show-network">Network</div>
         <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="show-inspector">Inspector</div>
+        <div class="menu-dropdown-item" data-action="show-animation">Animation</div>
+        <div class="menu-dropdown-item" data-action="show-material">Material Editor</div>
+        <div class="menu-dropdown-item" data-action="show-terrain">Terrain Tools</div>
+        <div class="menu-dropdown-item" data-action="show-audio">Audio</div>
+        <div class="menu-dropdown-item" data-action="show-particles">Particle System</div>
+        <div class="menu-separator"></div>
         <div class="menu-dropdown-item" data-action="show-keybinds">Keyboard Shortcuts</div>
     </div>
     <div id="menu-dropdown-help" class="menu-dropdown">
@@ -1172,14 +1179,147 @@
         <!-- Vertical Resize Handle (Right) -->
         <div class="resize-handle-v" id="resize-right"></div>
 
-        <!-- Right Column: Inspector -->
+        <!-- Right Column: Inspector + Panel Tabs -->
         <div class="right-column" id="right-column">
             <div class="panel" id="inspector-panel">
-                <div class="panel-header">
-                    <span>Inspector</span>
+                <div class="console-tabs" id="right-panel-tabs">
+                    <div class="console-tab active" data-rtab="inspector">Inspector</div>
+                    <div class="console-tab" data-rtab="animation">Animation</div>
+                    <div class="console-tab" data-rtab="material">Material</div>
+                    <div class="console-tab" data-rtab="terrain">Terrain</div>
+                    <div class="console-tab" data-rtab="audio">Audio</div>
+                    <div class="console-tab" data-rtab="particles">Particles</div>
                 </div>
                 <div class="panel-content" id="inspector-content">
                     <div class="inspector-empty">No object selected</div>
+                </div>
+                <div class="panel-content" id="animation-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
+                    <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">🎬 Animation Timeline</div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 12px; color: #aaa;">Clips</span>
+                            <button class="panel-btn" title="Add Clip">+</button>
+                        </div>
+                        <div id="anim-clip-list" style="font-size: 12px; color: #888; font-style: italic;">No animation clips</div>
+                    </div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">State Machine</div>
+                        <div style="font-size: 12px; color: #888; font-style: italic;">No states defined</div>
+                    </div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Timeline</div>
+                        <div style="height: 60px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center;">
+                            <span style="font-size: 11px; color: #666;">Select an object with animation</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-content" id="material-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
+                    <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">🎨 Material Editor</div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Shader</div>
+                        <select style="width: 100%; padding: 5px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 12px;">
+                            <option>Standard PBR</option>
+                            <option>Unlit</option>
+                            <option>Toon</option>
+                            <option>Custom</option>
+                        </select>
+                    </div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Albedo</div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="color" value="#6699cc" style="width: 30px; height: 24px; border: none; background: none; cursor: pointer;">
+                            <span style="font-size: 11px; color: #888;">#6699cc</span>
+                        </div>
+                    </div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Metallic</div>
+                        <input type="range" min="0" max="100" value="0" style="width: 100%;">
+                    </div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Roughness</div>
+                        <input type="range" min="0" max="100" value="50" style="width: 100%;">
+                    </div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Texture Maps</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                            <div style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer;">Albedo</div>
+                            <div style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer;">Normal</div>
+                            <div style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer;">Metallic</div>
+                            <div style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer;">Roughness</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-content" id="terrain-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
+                    <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">🏔️ Terrain Tools</div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">Brush Tool</div>
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <button class="toolbar-btn active" style="font-size: 11px; padding: 4px 8px;">Raise</button>
+                            <button class="toolbar-btn" style="font-size: 11px; padding: 4px 8px;">Lower</button>
+                            <button class="toolbar-btn" style="font-size: 11px; padding: 4px 8px;">Smooth</button>
+                            <button class="toolbar-btn" style="font-size: 11px; padding: 4px 8px;">Flatten</button>
+                            <button class="toolbar-btn" style="font-size: 11px; padding: 4px 8px;">Paint</button>
+                        </div>
+                    </div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Brush Size</div>
+                        <input type="range" min="1" max="50" value="10" style="width: 100%;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px; margin-top: 8px;">Brush Strength</div>
+                        <input type="range" min="1" max="100" value="50" style="width: 100%;">
+                    </div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Terrain Layers</div>
+                        <div style="font-size: 12px; color: #888; font-style: italic;">No terrain in scene</div>
+                    </div>
+                </div>
+                <div class="panel-content" id="audio-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
+                    <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">🎵 Audio</div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Audio Sources</div>
+                        <div style="font-size: 12px; color: #888; font-style: italic;">No audio sources in scene</div>
+                    </div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Master Volume</div>
+                        <input type="range" min="0" max="100" value="100" style="width: 100%;">
+                    </div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Audio Buses</div>
+                        <div style="font-size: 11px; display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; justify-content: space-between; color: #ccc;"><span>Master</span><span>100%</span></div>
+                            <div style="display: flex; justify-content: space-between; color: #ccc;"><span>Music</span><span>80%</span></div>
+                            <div style="display: flex; justify-content: space-between; color: #ccc;"><span>SFX</span><span>100%</span></div>
+                            <div style="display: flex; justify-content: space-between; color: #ccc;"><span>Ambient</span><span>60%</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-content" id="particles-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
+                    <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">✨ Particle System</div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Emitter Shape</div>
+                        <select style="width: 100%; padding: 5px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 12px;">
+                            <option>Point</option>
+                            <option>Sphere</option>
+                            <option>Box</option>
+                            <option>Cone</option>
+                            <option>Circle</option>
+                        </select>
+                    </div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Emission Rate</div>
+                        <input type="range" min="1" max="500" value="50" style="width: 100%;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px; margin-top: 8px;">Lifetime</div>
+                        <input type="range" min="1" max="100" value="20" style="width: 100%;">
+                    </div>
+                    <div style="background: #333; border-radius: 4px; padding: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Presets</div>
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <button class="toolbar-btn" style="font-size: 10px; padding: 3px 6px;">🔥 Fire</button>
+                            <button class="toolbar-btn" style="font-size: 10px; padding: 3px 6px;">💨 Smoke</button>
+                            <button class="toolbar-btn" style="font-size: 10px; padding: 3px 6px;">✨ Sparks</button>
+                            <button class="toolbar-btn" style="font-size: 10px; padding: 3px 6px;">🌧️ Rain</button>
+                            <button class="toolbar-btn" style="font-size: 10px; padding: 3px 6px;">❄️ Snow</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1354,12 +1494,65 @@
                 switch (action) {
                     // File
                     case 'new-scene':
-                    case 'open-scene':
-                    case 'save-scene':
-                    case 'save-scene-as':
-                    case 'export-scene':
-                        ui.log('Scene file operations are not yet implemented in this build.', 'warn');
+                        if (confirm('Create new scene? Unsaved changes will be lost.')) {
+                            editor.newScene();
+                        }
                         break;
+                    case 'open-scene': {
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = '.json,.webforge';
+                        fileInput.onchange = (evt) => {
+                            const file = evt.target.files?.[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const data = e.target?.result;
+                                if (typeof data === 'string') {
+                                    editor.loadScene(data);
+                                }
+                            };
+                            reader.readAsText(file);
+                        };
+                        fileInput.click();
+                        break;
+                    }
+                    case 'save-scene': {
+                        const json = editor.saveScene();
+                        if (json) {
+                            try { localStorage.setItem('webforge-scene', json); } catch (_e) { /* ignore */ }
+                            ui.log('Scene saved to browser storage', 'success');
+                        }
+                        break;
+                    }
+                    case 'save-scene-as': {
+                        const sceneData = editor.saveScene();
+                        if (sceneData) {
+                            const blob = new Blob([sceneData], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'scene.webforge.json';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                            ui.log('Scene exported to file', 'success');
+                        }
+                        break;
+                    }
+                    case 'export-scene': {
+                        const exportData = editor.saveScene();
+                        if (exportData) {
+                            const blob = new Blob([exportData], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'scene.webforge.json';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                            ui.log('Scene exported', 'success');
+                        }
+                        break;
+                    }
                     case 'home': window.location.href = 'index.html'; break;
                     // Edit
                     case 'undo': editor?.undo(); break;
@@ -1401,19 +1594,37 @@
                         break;
                     // Window
                     case 'show-console':
-                        document.querySelector('.console-tab[data-tab="console"]')?.click();
+                        document.querySelector('#console-panel .console-tab[data-tab="console"]')?.click();
                         break;
                     case 'show-profiler':
-                        document.querySelector('.console-tab[data-tab="profiler"]')?.click();
+                        document.querySelector('#console-panel .console-tab[data-tab="profiler"]')?.click();
                         break;
                     case 'show-debug':
-                        document.querySelector('.console-tab[data-tab="debug"]')?.click();
+                        document.querySelector('#console-panel .console-tab[data-tab="debug"]')?.click();
                         break;
                     case 'show-network':
-                        document.querySelector('.console-tab[data-tab="network"]')?.click();
+                        document.querySelector('#console-panel .console-tab[data-tab="network"]')?.click();
                         break;
                     case 'show-keybinds':
-                        document.querySelector('.console-tab[data-tab="keybinds"]')?.click();
+                        document.querySelector('#console-panel .console-tab[data-tab="keybinds"]')?.click();
+                        break;
+                    case 'show-inspector':
+                        document.querySelector('#right-panel-tabs .console-tab[data-rtab="inspector"]')?.click();
+                        break;
+                    case 'show-animation':
+                        document.querySelector('#right-panel-tabs .console-tab[data-rtab="animation"]')?.click();
+                        break;
+                    case 'show-material':
+                        document.querySelector('#right-panel-tabs .console-tab[data-rtab="material"]')?.click();
+                        break;
+                    case 'show-terrain':
+                        document.querySelector('#right-panel-tabs .console-tab[data-rtab="terrain"]')?.click();
+                        break;
+                    case 'show-audio':
+                        document.querySelector('#right-panel-tabs .console-tab[data-rtab="audio"]')?.click();
+                        break;
+                    case 'show-particles':
+                        document.querySelector('#right-panel-tabs .console-tab[data-rtab="particles"]')?.click();
                         break;
                     // Help
                     case 'open-docs':
@@ -1438,21 +1649,36 @@
                 // Get canvas
                 const canvas = document.getElementById('scene-canvas');
                 
+                // Check if we have a saved scene in localStorage
+                const savedScene = localStorage.getItem('webforge-scene');
+                const hasSavedScene = savedScene && savedScene.length > 10;
+
                 // Create editor application
                 this.editor = new EditorApplication({
                     canvas: canvas,
                     debug: true,
-                    createDemoScene: true
+                    createDemoScene: !hasSavedScene
                 });
 
                 // Initialize editor
                 await this.editor.initialize();
+
+                // Load saved scene if available
+                if (hasSavedScene) {
+                    try {
+                        this.editor.loadScene(savedScene);
+                    } catch (_e) {
+                        // Fall back to demo scene on load failure
+                        this.editor.getScene()?.createDemoScene();
+                    }
+                }
                 
                 // Setup event listeners
                 this.setupEditorEvents();
                 this.setupToolbarEvents();
                 this.setupPanelEvents();
                 this.setupContextMenu();
+                this.setupKeyboardShortcuts();
                 
                 // Start render loop
                 this.editor.start();
@@ -1463,8 +1689,12 @@
                 // Initial UI update
                 this.updateHierarchy();
                 this.log('WebForge Editor initialized', 'success');
-                this.log('Loading demo scene...', 'info');
-                this.log(`Demo scene loaded - ${this.editor.getScene()?.getObjectCount() || 0} objects`, 'info');
+                if (hasSavedScene) {
+                    this.log('Restored scene from browser storage', 'info');
+                } else {
+                    this.log('Loading demo scene...', 'info');
+                }
+                this.log(`Scene ready — ${this.editor.getScene()?.getObjectCount() || 0} objects`, 'info');
             }
 
             // =============== EDITOR EVENTS ===============
@@ -1638,10 +1868,10 @@
                     document.getElementById('console-content').innerHTML = '';
                 };
 
-                // Console tabs
-                document.querySelectorAll('.console-tab').forEach(tab => {
+                // Console tabs (scoped to console-panel)
+                document.querySelectorAll('#console-panel .console-tab').forEach(tab => {
                     tab.onclick = () => {
-                        document.querySelectorAll('.console-tab').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('#console-panel .console-tab').forEach(t => t.classList.remove('active'));
                         tab.classList.add('active');
                         
                         // Show/hide content based on tab
@@ -1651,6 +1881,37 @@
                         document.getElementById('keybinds-content').style.display = tabName === 'keybinds' ? 'block' : 'none';
                         document.getElementById('profiler-content').style.display = tabName === 'profiler' ? 'block' : 'none';
                         document.getElementById('network-content').style.display = tabName === 'network' ? 'block' : 'none';
+                    };
+                });
+
+                // Right panel tabs (Inspector, Animation, Material, Terrain, Audio, Particles)
+                const rightPanelIds = [
+                    'inspector-content',
+                    'animation-panel-content',
+                    'material-panel-content',
+                    'terrain-panel-content',
+                    'audio-panel-content',
+                    'particles-panel-content'
+                ];
+                document.querySelectorAll('#right-panel-tabs .console-tab').forEach(tab => {
+                    tab.onclick = () => {
+                        document.querySelectorAll('#right-panel-tabs .console-tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        const tabName = tab.dataset.rtab;
+                        rightPanelIds.forEach(id => {
+                            const el = document.getElementById(id);
+                            if (el) el.style.display = 'none';
+                        });
+                        const mapping = {
+                            'inspector': 'inspector-content',
+                            'animation': 'animation-panel-content',
+                            'material': 'material-panel-content',
+                            'terrain': 'terrain-panel-content',
+                            'audio': 'audio-panel-content',
+                            'particles': 'particles-panel-content'
+                        };
+                        const target = document.getElementById(mapping[tabName]);
+                        if (target) target.style.display = 'block';
                     };
                 });
 
@@ -2143,9 +2404,65 @@
                         break;
                 }
             }
-        }
 
-        // =============== RESIZABLE PANELS ===============
+            // =============== KEYBOARD SHORTCUTS ===============
+            setupKeyboardShortcuts() {
+                document.addEventListener('keydown', (e) => {
+                    // Ignore shortcuts when typing in inputs
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+                    // Ctrl+S = Save scene
+                    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 's') {
+                        e.preventDefault();
+                        const json = this.editor.saveScene();
+                        if (json) {
+                            try { localStorage.setItem('webforge-scene', json); } catch (_err) { /* ignore */ }
+                            this.log('Scene saved to browser storage', 'success');
+                        }
+                    }
+                    // Ctrl+Shift+S = Save As (download file)
+                    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
+                        e.preventDefault();
+                        const data = this.editor.saveScene();
+                        if (data) {
+                            const blob = new Blob([data], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'scene.webforge.json';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                            this.log('Scene exported to file', 'success');
+                        }
+                    }
+                    // Ctrl+N = New scene
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                        e.preventDefault();
+                        if (confirm('Create new scene? Unsaved changes will be lost.')) {
+                            this.editor.newScene();
+                        }
+                    }
+                    // Ctrl+O = Open scene
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                        e.preventDefault();
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = '.json,.webforge';
+                        fileInput.onchange = (evt) => {
+                            const file = evt.target.files?.[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                                const d = ev.target?.result;
+                                if (typeof d === 'string') this.editor.loadScene(d);
+                            };
+                            reader.readAsText(file);
+                        };
+                        fileInput.click();
+                    }
+                });
+            }
+        }
         function setupResizablePanels() {
             // Left column resize (horizontal - width)
             const leftColumn = document.getElementById('left-column');

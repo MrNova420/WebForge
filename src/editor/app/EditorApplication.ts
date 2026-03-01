@@ -462,6 +462,23 @@ export class EditorApplication {
     }
 
     /**
+     * Select all GameObjects in the scene
+     */
+    selectAll(): void {
+        if (!this.scene) return;
+
+        const all = this.scene.getAllGameObjects();
+        this.context.setSelection(all);
+    }
+
+    /**
+     * Deselect all GameObjects
+     */
+    deselectAll(): void {
+        this.context.clearSelection();
+    }
+
+    /**
      * Frame selected objects (focus camera on selection)
      */
     frameSelected(): void {
@@ -590,6 +607,52 @@ export class EditorApplication {
         this.scene?.restoreState();
         this.events.emit('playStopped');
         this.log('Play mode stopped', 'info');
+    }
+
+    // ========== Scene Save/Load ==========
+
+    /**
+     * Save scene to JSON and return it
+     */
+    saveScene(): string | null {
+        if (!this.scene) return null;
+
+        const json = this.scene.toJSON();
+        const data = JSON.stringify(json, null, 2);
+        this.log('Scene saved', 'success');
+        return data;
+    }
+
+    /**
+     * Load scene from JSON string
+     */
+    loadScene(data: string): boolean {
+        if (!this.scene) return false;
+
+        try {
+            const json = JSON.parse(data);
+            this.scene.fromJSON(json);
+            this.context.clearSelection();
+            this.updateHierarchy();
+            this.log(`Scene loaded — ${this.scene.getObjectCount()} objects`, 'success');
+            return true;
+        } catch (error) {
+            this.logger.error('Failed to load scene', error);
+            this.log('Failed to load scene: invalid data', 'error');
+            return false;
+        }
+    }
+
+    /**
+     * Create a new empty scene
+     */
+    newScene(): void {
+        if (!this.scene) return;
+
+        this.scene.clear();
+        this.context.clearSelection();
+        this.updateHierarchy();
+        this.log('New scene created', 'success');
     }
 
     // ========== View Controls ==========
