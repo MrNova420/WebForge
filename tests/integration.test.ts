@@ -1003,14 +1003,14 @@ describe('EditorCommands', () => {
     });
 
     it('should handle PropertyChangeCommand', () => {
-        const target = { nested: { value: 42 } } as Record<string, unknown>;
+        const target: Record<string, unknown> = { nested: { value: 42 } };
         const cmd = new PropertyChangeCommand(target, 'nested.value', 42, 99, 'Change value');
         
         cmd.execute();
-        expect((target.nested as Record<string, unknown>).value).toBe(99);
+        expect((target.nested as { value: number }).value).toBe(99);
         
         cmd.undo();
-        expect((target.nested as Record<string, unknown>).value).toBe(42);
+        expect((target.nested as { value: number }).value).toBe(42);
     });
 });
 

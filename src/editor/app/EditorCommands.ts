@@ -168,11 +168,27 @@ export class PropertyChangeCommand implements ICommand {
 
     private setNestedProperty(obj: Record<string, unknown>, path: string, value: unknown): void {
         const keys = path.split('.');
+        // Guard against prototype pollution
+        for (const key of keys) {
+            if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+                return;
+            }
+        }
         let current: Record<string, unknown> = obj;
         for (let i = 0; i < keys.length - 1; i++) {
-            current = current[keys[i]] as Record<string, unknown>;
+            if (!Object.prototype.hasOwnProperty.call(current, keys[i])) {
+                return;
+            }
+            const next = current[keys[i]];
+            if (next == null || typeof next !== 'object') {
+                return;
+            }
+            current = next as Record<string, unknown>;
         }
-        current[keys[keys.length - 1]] = value;
+        const finalKey = keys[keys.length - 1];
+        if (Object.prototype.hasOwnProperty.call(current, finalKey)) {
+            current[finalKey] = value;
+        }
     }
 }
 
