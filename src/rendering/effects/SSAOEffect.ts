@@ -91,7 +91,7 @@ export class SSAOEffect extends BasePostEffect {
       // Scale samples
       let scale = i / this._samples;
       scale = 0.1 + scale * scale * 0.9; // Lerp between 0.1 and 1.0
-      sample.multiplyScalar(scale);
+      sample.multiplyScalarSelf(scale);
       
       this.sampleKernel.push(sample);
     }
