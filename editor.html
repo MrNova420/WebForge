@@ -3162,14 +3162,14 @@
                     this.updateHierarchy();
                 });
 
-                // Tool buttons
-                let activeTerrainTool = 'raise';
+                // Track active terrain tool for brush operations
+                this._activeTerrainTool = this._activeTerrainTool || 'raise';
                 document.querySelectorAll('.terrain-tool-btn').forEach(btn => {
                     btn.onclick = () => {
                         document.querySelectorAll('.terrain-tool-btn').forEach(b => b.classList.remove('active'));
                         btn.classList.add('active');
-                        activeTerrainTool = btn.dataset.tool || 'raise';
-                        this.log(`Terrain tool: ${activeTerrainTool}`, 'info');
+                        this._activeTerrainTool = btn.dataset.tool || 'raise';
+                        this.log(`Terrain tool: ${this._activeTerrainTool}`, 'info');
                     };
                 });
 

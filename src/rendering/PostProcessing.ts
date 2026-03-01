@@ -140,6 +140,10 @@ export class PostProcessing {
     ]);
     
     this.copyQuadVAO = this.glContext.createVertexArray();
+    if (!this.copyQuadVAO) {
+      this.logger.warn('Failed to create copy quad VAO');
+      return;
+    }
     this.glContext.bindVertexArray(this.copyQuadVAO);
     
     this.copyQuadVBO = this.gl.createBuffer();

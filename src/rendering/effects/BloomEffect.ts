@@ -256,8 +256,8 @@ export class BloomEffect extends BasePostEffect {
     this.combineShader.setUniform('u_intensity', this._intensity);
     
     input.bind(0);
-    // Bind the last blur result
-    const lastBlurIdx = Math.min(this.blurPasses - 1, this.blurBuffers.length - 1);
+    // Bind the last blur result (guard against empty blur buffer array)
+    const lastBlurIdx = this.blurBuffers.length > 0 ? Math.min(this.blurPasses - 1, this.blurBuffers.length - 1) : -1;
     const bloomTex = lastBlurIdx >= 0 ? this.blurBuffers[lastBlurIdx].getColorTexture() : null;
     if (bloomTex) {
       bloomTex.bind(1);

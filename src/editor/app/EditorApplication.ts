@@ -957,7 +957,7 @@ export class EditorApplication {
                 const dist = Math.sqrt(dx * dx + dz * dz) / radius;
                 if (dist > 1) continue;
                 
-                // Smooth falloff
+                // Smoothstep falloff (3t² - 2t³) for natural brush transitions
                 const falloff = 1 - (3 * dist * dist - 2 * dist * dist * dist);
                 const idx = pz * res + px;
                 
