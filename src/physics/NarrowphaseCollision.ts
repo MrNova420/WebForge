@@ -180,8 +180,10 @@ export class Narrowphase {
   }
 
   /**
-   * Tests box-box collision using AABB (simplified)
-   * TODO: Implement SAT for oriented boxes
+   * Tests box-box collision using AABB overlap with minimum penetration axis
+   * Note: Currently tests axis-aligned bounding boxes. For full oriented box support,
+   * rotation data must be passed to the narrowphase. The AABB test is correct for
+   * axis-aligned use cases and serves as a conservative broadphase-compatible test.
    */
   private static testBoxBox(
     boxA: BoxShape,
