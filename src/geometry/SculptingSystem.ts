@@ -6,6 +6,7 @@
  */
 
 import { Vector3 } from '../math/Vector3';
+import { Vector2 } from '../math/Vector2';
 import { MeshData } from './MeshData';
 
 /**
@@ -336,19 +337,19 @@ export class SculptingSystem {
                 if (maxEdge === e01) {
                     const mid = p0.add(p1).divideScalar(2);
                     const midNormal = this.getVertexNormal(v0).add(this.getVertexNormal(v1)).normalize();
-                    midIdx = this.mesh.addVertex(mid, midNormal, { x: 0.5, y: 0.5 } as any);
+                    midIdx = this.mesh.addVertex(mid, midNormal, new Vector2(0.5, 0.5));
                     newFaces.push([v0, midIdx, v2]);
                     newFaces.push([midIdx, v1, v2]);
                 } else if (maxEdge === e12) {
                     const mid = p1.add(p2).divideScalar(2);
                     const midNormal = this.getVertexNormal(v1).add(this.getVertexNormal(v2)).normalize();
-                    midIdx = this.mesh.addVertex(mid, midNormal, { x: 0.5, y: 0.5 } as any);
+                    midIdx = this.mesh.addVertex(mid, midNormal, new Vector2(0.5, 0.5));
                     newFaces.push([v0, v1, midIdx]);
                     newFaces.push([v0, midIdx, v2]);
                 } else {
                     const mid = p2.add(p0).divideScalar(2);
                     const midNormal = this.getVertexNormal(v2).add(this.getVertexNormal(v0)).normalize();
-                    midIdx = this.mesh.addVertex(mid, midNormal, { x: 0.5, y: 0.5 } as any);
+                    midIdx = this.mesh.addVertex(mid, midNormal, new Vector2(0.5, 0.5));
                     newFaces.push([v0, v1, midIdx]);
                     newFaces.push([midIdx, v1, v2]);
                 }
