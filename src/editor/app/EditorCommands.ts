@@ -143,6 +143,40 @@ export class RenameCommand implements ICommand {
 }
 
 /**
+ * Generic property change command (for arbitrary object properties)
+ */
+export class PropertyChangeCommand implements ICommand {
+    description: string;
+    
+    constructor(
+        private target: Record<string, unknown>,
+        private propertyPath: string,
+        private oldValue: unknown,
+        private newValue: unknown,
+        description?: string
+    ) {
+        this.description = description || `Change ${propertyPath}`;
+    }
+    
+    execute(): void {
+        this.setNestedProperty(this.target, this.propertyPath, this.newValue);
+    }
+    
+    undo(): void {
+        this.setNestedProperty(this.target, this.propertyPath, this.oldValue);
+    }
+
+    private setNestedProperty(obj: Record<string, unknown>, path: string, value: unknown): void {
+        const keys = path.split('.');
+        let current: Record<string, unknown> = obj;
+        for (let i = 0; i < keys.length - 1; i++) {
+            current = current[keys[i]] as Record<string, unknown>;
+        }
+        current[keys[keys.length - 1]] = value;
+    }
+}
+
+/**
  * Composite command (for batch operations)
  */
 export class CompositeCommand implements ICommand {

@@ -785,3 +785,282 @@ describe('WebForge Facade', () => {
         engine.dispose();
     });
 });
+
+// ==========================================
+// Undo/Redo Command System Tests
+// ==========================================
+
+import {
+    UndoManager,
+    TransformVec3Command,
+    TransformRotationCommand,
+    CreateObjectCommand,
+    DeleteObjectCommand,
+    RenameCommand,
+    PropertyChangeCommand,
+    CompositeCommand,
+    EditorCommands,
+} from '../src/editor/app/EditorCommands';
+import { GameObject } from '../src/scene/GameObject';
+
+describe('UndoManager', () => {
+    let undoManager: UndoManager;
+
+    beforeEach(() => {
+        undoManager = new UndoManager(50);
+    });
+
+    it('should start with empty stacks', () => {
+        expect(undoManager.canUndo()).toBe(false);
+        expect(undoManager.canRedo()).toBe(false);
+        expect(undoManager.getUndoCount()).toBe(0);
+        expect(undoManager.getRedoCount()).toBe(0);
+    });
+
+    it('should execute commands and track history', () => {
+        const obj = new GameObject('Test');
+        const cmd = EditorCommands.createPositionChange(obj, new Vector3(10, 20, 30));
+        undoManager.execute(cmd);
+
+        expect(undoManager.canUndo()).toBe(true);
+        expect(undoManager.canRedo()).toBe(false);
+        expect(undoManager.getUndoCount()).toBe(1);
+        expect(obj.transform.position.x).toBeCloseTo(10);
+        expect(obj.transform.position.y).toBeCloseTo(20);
+        expect(obj.transform.position.z).toBeCloseTo(30);
+    });
+
+    it('should undo commands', () => {
+        const obj = new GameObject('Test');
+        obj.transform.position.set(1, 2, 3);
+        const cmd = EditorCommands.createPositionChange(obj, new Vector3(10, 20, 30));
+        undoManager.execute(cmd);
+        
+        const result = undoManager.undo();
+        expect(result).toBe(true);
+        expect(obj.transform.position.x).toBeCloseTo(1);
+        expect(obj.transform.position.y).toBeCloseTo(2);
+        expect(obj.transform.position.z).toBeCloseTo(3);
+        expect(undoManager.canRedo()).toBe(true);
+    });
+
+    it('should redo commands', () => {
+        const obj = new GameObject('Test');
+        const cmd = EditorCommands.createPositionChange(obj, new Vector3(10, 20, 30));
+        undoManager.execute(cmd);
+        undoManager.undo();
+        
+        const result = undoManager.redo();
+        expect(result).toBe(true);
+        expect(obj.transform.position.x).toBeCloseTo(10);
+        expect(obj.transform.position.y).toBeCloseTo(20);
+        expect(obj.transform.position.z).toBeCloseTo(30);
+    });
+
+    it('should clear redo stack on new action', () => {
+        const obj = new GameObject('Test');
+        undoManager.execute(EditorCommands.createPositionChange(obj, new Vector3(1, 0, 0)));
+        undoManager.execute(EditorCommands.createPositionChange(obj, new Vector3(2, 0, 0)));
+        undoManager.undo();
+        expect(undoManager.canRedo()).toBe(true);
+        
+        // New action clears redo
+        undoManager.execute(EditorCommands.createPositionChange(obj, new Vector3(3, 0, 0)));
+        expect(undoManager.canRedo()).toBe(false);
+    });
+
+    it('should respect max history size', () => {
+        const obj = new GameObject('Test');
+        const mgr = new UndoManager(5);
+        for (let i = 0; i < 10; i++) {
+            mgr.execute(EditorCommands.createPositionChange(obj, new Vector3(i, 0, 0)));
+        }
+        expect(mgr.getUndoCount()).toBe(5);
+    });
+
+    it('should clear history', () => {
+        const obj = new GameObject('Test');
+        undoManager.execute(EditorCommands.createPositionChange(obj, new Vector3(1, 0, 0)));
+        undoManager.clear();
+        expect(undoManager.canUndo()).toBe(false);
+        expect(undoManager.canRedo()).toBe(false);
+    });
+
+    it('should emit historyChanged events', () => {
+        const events = undoManager.getEvents();
+        let eventFired = false;
+        events.on('historyChanged', () => { eventFired = true; });
+        
+        const obj = new GameObject('Test');
+        undoManager.execute(EditorCommands.createPositionChange(obj, new Vector3(1, 0, 0)));
+        expect(eventFired).toBe(true);
+    });
+});
+
+describe('EditorCommands', () => {
+    it('should handle TransformVec3Command for position', () => {
+        const obj = new GameObject('Test');
+        obj.transform.position.set(0, 0, 0);
+        const cmd = new TransformVec3Command(obj, 'position', new Vector3(0, 0, 0), new Vector3(5, 10, 15));
+        
+        cmd.execute();
+        expect(obj.transform.position.x).toBeCloseTo(5);
+        
+        cmd.undo();
+        expect(obj.transform.position.x).toBeCloseTo(0);
+    });
+
+    it('should handle TransformVec3Command for scale', () => {
+        const obj = new GameObject('Test');
+        obj.transform.scale.set(1, 1, 1);
+        const cmd = EditorCommands.createScaleChange(obj, new Vector3(2, 3, 4));
+        
+        cmd.execute();
+        expect(obj.transform.scale.x).toBeCloseTo(2);
+        expect(obj.transform.scale.y).toBeCloseTo(3);
+        
+        cmd.undo();
+        expect(obj.transform.scale.x).toBeCloseTo(1);
+    });
+
+    it('should handle TransformRotationCommand', () => {
+        const obj = new GameObject('Test');
+        const oldRot = obj.transform.rotation.clone();
+        const newRot = new Quaternion(0, 0.707, 0, 0.707);
+        const cmd = new TransformRotationCommand(obj, oldRot, newRot);
+        
+        cmd.execute();
+        expect(obj.transform.rotation.y).toBeCloseTo(0.707);
+        
+        cmd.undo();
+        expect(obj.transform.rotation.y).toBeCloseTo(oldRot.y);
+    });
+
+    it('should handle RenameCommand', () => {
+        const obj = new GameObject('OldName');
+        const cmd = EditorCommands.rename(obj, 'NewName');
+        
+        cmd.execute();
+        expect(obj.name).toBe('NewName');
+        
+        cmd.undo();
+        expect(obj.name).toBe('OldName');
+    });
+
+    it('should handle CreateObjectCommand', () => {
+        const obj = new GameObject('Created');
+        const added: GameObject[] = [];
+        const removed: GameObject[] = [];
+        
+        const cmd = EditorCommands.createObject(
+            obj,
+            (o) => added.push(o),
+            (o) => removed.push(o)
+        );
+        
+        cmd.execute();
+        expect(added).toContain(obj);
+        
+        cmd.undo();
+        expect(removed).toContain(obj);
+    });
+
+    it('should handle DeleteObjectCommand', () => {
+        const obj = new GameObject('Deleted');
+        const added: GameObject[] = [];
+        const removed: GameObject[] = [];
+        
+        const cmd = EditorCommands.deleteObject(
+            obj,
+            (o) => added.push(o),
+            (o) => removed.push(o)
+        );
+        
+        cmd.execute();
+        expect(removed).toContain(obj);
+        
+        cmd.undo();
+        expect(added).toContain(obj);
+    });
+
+    it('should handle CompositeCommand', () => {
+        const obj = new GameObject('Test');
+        obj.transform.position.set(0, 0, 0);
+        
+        const cmds = [
+            EditorCommands.createPositionChange(obj, new Vector3(10, 0, 0)),
+            EditorCommands.rename(obj, 'Renamed')
+        ];
+        const composite = EditorCommands.composite(cmds, 'Batch');
+        
+        composite.execute();
+        expect(obj.transform.position.x).toBeCloseTo(10);
+        expect(obj.name).toBe('Renamed');
+        
+        composite.undo();
+        expect(obj.transform.position.x).toBeCloseTo(0);
+        expect(obj.name).toBe('Test');
+    });
+
+    it('should handle PropertyChangeCommand', () => {
+        const target = { nested: { value: 42 } } as Record<string, unknown>;
+        const cmd = new PropertyChangeCommand(target, 'nested.value', 42, 99, 'Change value');
+        
+        cmd.execute();
+        expect((target.nested as Record<string, unknown>).value).toBe(99);
+        
+        cmd.undo();
+        expect((target.nested as Record<string, unknown>).value).toBe(42);
+    });
+});
+
+// ==========================================
+// Network System Tests
+// ==========================================
+
+import { MessageType } from '../src/network/NetworkManager';
+import { StateSyncManager } from '../src/network/StateSyncManager';
+
+describe('Network System', () => {
+    it('should have all message types defined', () => {
+        expect(MessageType.CONNECT).toBe('connect');
+        expect(MessageType.DISCONNECT).toBe('disconnect');
+        expect(MessageType.PING).toBe('ping');
+        expect(MessageType.PONG).toBe('pong');
+        expect(MessageType.STATE_UPDATE).toBe('state_update');
+        expect(MessageType.TRANSFORM_UPDATE).toBe('transform_update');
+        expect(MessageType.ENTITY_SPAWN).toBe('entity_spawn');
+        expect(MessageType.ENTITY_DESTROY).toBe('entity_destroy');
+        expect(MessageType.PLAYER_INPUT).toBe('player_input');
+        expect(MessageType.PLAYER_ACTION).toBe('player_action');
+        expect(MessageType.CUSTOM_EVENT).toBe('custom_event');
+        expect(MessageType.RPC_CALL).toBe('rpc_call');
+        expect(MessageType.RPC_RESPONSE).toBe('rpc_response');
+    });
+
+    it('should create StateSyncManager', () => {
+        // Create a mock network manager
+        const mockNetwork = {
+            on: vi.fn(),
+            broadcast: vi.fn(),
+            createMessage: vi.fn(),
+        };
+        const sync = new StateSyncManager(mockNetwork as any);
+        expect(sync).toBeDefined();
+    });
+
+    it('should handle transform interpolation with no data', () => {
+        const mockNetwork = { on: vi.fn(), broadcast: vi.fn(), createMessage: vi.fn() };
+        const sync = new StateSyncManager(mockNetwork as any);
+        const result = sync.getInterpolatedTransform('nonexistent');
+        expect(result).toBeNull();
+    });
+
+    it('should clear entity states', () => {
+        const mockNetwork = { on: vi.fn(), broadcast: vi.fn(), createMessage: vi.fn() };
+        const sync = new StateSyncManager(mockNetwork as any);
+        sync.clearEntity('test-entity');
+        sync.clearAll();
+        expect(sync.getInterpolatedTransform('test-entity')).toBeNull();
+    });
+});

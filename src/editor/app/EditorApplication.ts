@@ -17,7 +17,7 @@ import { EditorContext, TransformMode, TransformSpace } from '../EditorContext';
 import { EditorRenderer } from './EditorRenderer';
 import { EditorScene } from './EditorScene';
 import { EditorSelection } from './EditorSelection';
-import { UndoManager } from './EditorCommands';
+import { UndoManager, CreateObjectCommand, EditorCommands } from './EditorCommands';
 import { EditorKeyboard } from './EditorKeyboard';
 
 /**
@@ -376,6 +376,17 @@ export class EditorApplication {
         if (!this.scene) return null;
         
         const gameObject = this.scene.createGameObject(name);
+        
+        // Record for undo
+        const sceneRef = this.scene;
+        this.undoManager.execute(
+            EditorCommands.createObject(
+                gameObject,
+                (obj) => { sceneRef.addGameObject(obj); },
+                (obj) => { sceneRef.removeGameObject(obj); }
+            )
+        );
+        
         this.updateHierarchy();
         this.log(`Created: ${name}`, 'success');
         return gameObject;
@@ -392,6 +403,17 @@ export class EditorApplication {
             gameObject.transform.position.set(position.x, position.y, position.z);
             gameObject.transform.markLocalDirty();
         }
+        
+        // Record for undo
+        const sceneRef = this.scene;
+        this.undoManager.execute(
+            EditorCommands.createObject(
+                gameObject,
+                (obj) => { sceneRef.addGameObject(obj); },
+                (obj) => { sceneRef.removeGameObject(obj); }
+            )
+        );
+        
         this.updateHierarchy();
         this.log(`Created ${type}`, 'success');
         return gameObject;
@@ -408,6 +430,17 @@ export class EditorApplication {
             gameObject.transform.position.set(position.x, position.y, position.z);
             gameObject.transform.markLocalDirty();
         }
+        
+        // Record for undo
+        const sceneRef = this.scene;
+        this.undoManager.execute(
+            EditorCommands.createObject(
+                gameObject,
+                (obj) => { sceneRef.addGameObject(obj); },
+                (obj) => { sceneRef.removeGameObject(obj); }
+            )
+        );
+        
         this.updateHierarchy();
         this.log(`Created ${type} light`, 'success');
         return gameObject;
@@ -418,10 +451,30 @@ export class EditorApplication {
      */
     deleteSelected(): void {
         const selected = this.context.getSelection();
-        if (selected.length === 0) return;
+        if (selected.length === 0 || !this.scene) return;
         
-        for (const obj of selected) {
-            this.scene?.removeGameObject(obj);
+        const sceneRef = this.scene;
+        
+        if (selected.length === 1) {
+            this.undoManager.execute(
+                EditorCommands.deleteObject(
+                    selected[0],
+                    (obj) => { sceneRef.addGameObject(obj); },
+                    (obj) => { sceneRef.removeGameObject(obj); }
+                )
+            );
+        } else {
+            // Batch delete
+            const commands = selected.map(obj =>
+                EditorCommands.deleteObject(
+                    obj,
+                    (o) => { sceneRef.addGameObject(o); },
+                    (o) => { sceneRef.removeGameObject(o); }
+                )
+            );
+            this.undoManager.execute(
+                EditorCommands.composite(commands, `Delete ${selected.length} objects`)
+            );
         }
         
         this.context.clearSelection();
@@ -436,12 +489,30 @@ export class EditorApplication {
         const selected = this.context.getSelection();
         if (selected.length === 0 || !this.scene) return;
         
+        const sceneRef = this.scene;
         const newObjects: GameObject[] = [];
+        const commands: CreateObjectCommand[] = [];
+        
         for (const obj of selected) {
             const clone = obj.clone();
             clone.name = obj.name + '_copy';
-            this.scene.addGameObject(clone);
+            sceneRef.addGameObject(clone);
             newObjects.push(clone);
+            commands.push(
+                EditorCommands.createObject(
+                    clone,
+                    (o) => { sceneRef.addGameObject(o); },
+                    (o) => { sceneRef.removeGameObject(o); }
+                )
+            );
+        }
+        
+        if (commands.length === 1) {
+            this.undoManager.execute(commands[0]);
+        } else {
+            this.undoManager.execute(
+                EditorCommands.composite(commands, `Duplicate ${selected.length} objects`)
+            );
         }
         
         this.context.setSelection(newObjects);
@@ -569,6 +640,42 @@ export class EditorApplication {
             this.updateInspector();
             this.log('Redo', 'info');
         }
+    }
+
+    /**
+     * Get undo manager for external access
+     */
+    getUndoManager(): UndoManager {
+        return this.undoManager;
+    }
+
+    /**
+     * Change a selected object's position with undo support
+     */
+    setObjectPosition(obj: GameObject, x: number, y: number, z: number): void {
+        const newPos = obj.transform.position.clone();
+        newPos.set(x, y, z);
+        this.undoManager.execute(EditorCommands.createPositionChange(obj, newPos));
+        this.updateInspector();
+    }
+
+    /**
+     * Change a selected object's scale with undo support
+     */
+    setObjectScale(obj: GameObject, x: number, y: number, z: number): void {
+        const newScale = obj.transform.scale.clone();
+        newScale.set(x, y, z);
+        this.undoManager.execute(EditorCommands.createScaleChange(obj, newScale));
+        this.updateInspector();
+    }
+
+    /**
+     * Rename an object with undo support
+     */
+    renameObject(obj: GameObject, newName: string): void {
+        this.undoManager.execute(EditorCommands.rename(obj, newName));
+        this.updateHierarchy();
+        this.updateInspector();
     }
 
     // ========== Play Mode ==========
