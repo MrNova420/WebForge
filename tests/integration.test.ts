@@ -627,3 +627,161 @@ describe('Stress Tests', () => {
         expect(stats.total).toBe(500);
     });
 });
+
+// ==========================================
+// WebForge Facade Tests
+// ==========================================
+
+import { WebForge, QualityPreset } from '../src/WebForge';
+import { Scene } from '../src/scene/Scene';
+import { GameObject } from '../src/scene/GameObject';
+
+describe('WebForge Facade', () => {
+    it('should create engine with default config', () => {
+        const engine = new WebForge({ headless: true });
+        expect(engine).toBeDefined();
+        expect(engine.isInitialized).toBe(false);
+        expect(engine.isRunning).toBe(false);
+    });
+
+    it('should initialize all subsystems', async () => {
+        const engine = new WebForge({ headless: true });
+        await engine.initialize();
+        
+        expect(engine.isInitialized).toBe(true);
+        expect(engine.camera).not.toBeNull();
+        expect(engine.physics).not.toBeNull();
+        expect(engine.scene).not.toBeNull();
+    });
+
+    it('should create scene with real Scene class', async () => {
+        const engine = new WebForge({ headless: true });
+        await engine.initialize();
+        
+        const scene = engine.createScene('TestScene');
+        expect(scene).toBeInstanceOf(Scene);
+        expect(scene.name).toBe('TestScene');
+    });
+
+    it('should create game objects and add to scene', async () => {
+        const engine = new WebForge({ headless: true });
+        await engine.initialize();
+        
+        const player = engine.createGameObject('Player');
+        expect(player).toBeInstanceOf(GameObject);
+        expect(player.name).toBe('Player');
+        
+        // Player is queued for addition; process with an update tick
+        const scene = engine.getScene();
+        expect(scene).not.toBeNull();
+        scene!.update(0.016); // Process pending additions
+        
+        const found = scene!.findByName('Player');
+        expect(found).not.toBeNull();
+        expect(found!.name).toBe('Player');
+    });
+
+    it('should set game object position with real transform', async () => {
+        const engine = new WebForge({ headless: true });
+        await engine.initialize();
+        
+        const player = engine.createGameObject('Player');
+        player.transform.position.set(5, 10, -3);
+        
+        expect(player.transform.position.x).toBeCloseTo(5);
+        expect(player.transform.position.y).toBeCloseTo(10);
+        expect(player.transform.position.z).toBeCloseTo(-3);
+    });
+
+    it('should support parent-child hierarchy', async () => {
+        const engine = new WebForge({ headless: true });
+        await engine.initialize();
+        
+        const parent = engine.createGameObject('Parent');
+        const child = engine.createGameObject('Child');
+        child.setParent(parent);
+        
+        expect(parent.getChildren().length).toBe(1);
+    });
+
+    it('should start and stop engine lifecycle', async () => {
+        const engine = new WebForge({ headless: true });
+        await engine.initialize();
+        
+        await engine.start();
+        expect(engine.isRunning).toBe(true);
+        
+        engine.stop();
+        expect(engine.isRunning).toBe(false);
+    });
+
+    it('should pause and resume', async () => {
+        const engine = new WebForge({ headless: true });
+        await engine.initialize();
+        
+        await engine.start();
+        engine.pause();
+        expect(engine.isPaused).toBe(true);
+        
+        engine.resume();
+        expect(engine.isPaused).toBe(false);
+        
+        engine.stop();
+    });
+
+    it('should accept config options', () => {
+        const engine = new WebForge({
+            quality: QualityPreset.HIGH,
+            physics: true,
+            audio: false,
+            debug: true,
+            targetFPS: 120,
+            headless: true
+        });
+        expect(engine).toBeDefined();
+    });
+
+    it('should properly dispose all resources', async () => {
+        const engine = new WebForge({ headless: true });
+        await engine.initialize();
+        
+        const player = engine.createGameObject('Player');
+        await engine.start();
+        
+        engine.dispose();
+        expect(engine.isInitialized).toBe(false);
+        expect(engine.scene).toBeNull();
+        expect(engine.camera).toBeNull();
+        expect(engine.physics).toBeNull();
+    });
+
+    it('should auto-initialize on start if needed', async () => {
+        const engine = new WebForge({ headless: true });
+        expect(engine.isInitialized).toBe(false);
+        
+        await engine.start();
+        expect(engine.isInitialized).toBe(true);
+        expect(engine.isRunning).toBe(true);
+        
+        engine.stop();
+    });
+
+    it('should match the landing page example code', async () => {
+        // This is the exact code from the landing page
+        const engine = new WebForge({ headless: true, antialias: true });
+        await engine.initialize();
+        
+        const player = engine.createGameObject('Player');
+        player.transform.position = new Vector3(0, 1, 0);
+        
+        await engine.start();
+        
+        // Verify everything worked
+        expect(player.name).toBe('Player');
+        expect(player.transform.position.y).toBeCloseTo(1);
+        expect(engine.isRunning).toBe(true);
+        
+        engine.stop();
+        engine.dispose();
+    });
+});
