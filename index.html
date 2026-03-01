@@ -131,6 +131,60 @@
             color: var(--text-secondary);
         }
 
+        /* ── Stats Bar ── */
+        .stats-bar {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 20px; padding: 48px 24px; max-width: 1200px; margin: 0 auto;
+            text-align: center;
+        }
+        .stat-item .stat-number {
+            display: block; font-size: 2.5rem; font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-hover), var(--success-color));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .stat-item .stat-label { font-size: .85rem; color: var(--text-secondary); margin-top: 4px; }
+
+        /* ── Tech Stack ── */
+        .tech-grid {
+            display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+            margin-top: 24px;
+        }
+        .tech-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            padding: 8px 16px; border-radius: 20px; font-size: .85rem;
+            color: var(--text-primary); transition: border-color .2s, transform .15s;
+        }
+        .tech-badge:hover { border-color: var(--accent-color); transform: translateY(-2px); }
+
+        /* ── Comparison Table ── */
+        .comparison-table {
+            width: 100%; border-collapse: collapse; margin-top: 32px;
+            font-size: .9rem;
+        }
+        .comparison-table th, .comparison-table td {
+            padding: 12px 16px; text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .comparison-table th {
+            color: #fff; font-weight: 600;
+            background: var(--bg-secondary);
+        }
+        .comparison-table td { color: var(--text-secondary); }
+        .comparison-table tr:hover td { background: var(--bg-tertiary); }
+        .check { color: var(--success-color); }
+        .cross { color: #666; }
+
+        /* ── CTA Banner ── */
+        .cta-banner {
+            text-align: center; padding: 64px 24px;
+            background: linear-gradient(135deg, rgba(0,122,204,.12) 0%, rgba(78,201,176,.08) 100%);
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .cta-banner h2 { font-size: 2rem; color: #fff; margin-bottom: 12px; }
+        .cta-banner p { color: var(--text-secondary); margin-bottom: 24px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
         /* ── Footer ── */
         .site-footer {
             border-top: 1px solid var(--border-color);
@@ -181,6 +235,15 @@
     </div>
 </section>
 
+<!-- Stats Bar -->
+<div class="stats-bar">
+    <div class="stat-item"><span class="stat-number">30+</span><span class="stat-label">Engine Systems</span></div>
+    <div class="stat-item"><span class="stat-number">312+</span><span class="stat-label">Passing Tests</span></div>
+    <div class="stat-item"><span class="stat-number">200+</span><span class="stat-label">Source Files</span></div>
+    <div class="stat-item"><span class="stat-number">9</span><span class="stat-label">Export Platforms</span></div>
+    <div class="stat-item"><span class="stat-number">0</span><span class="stat-label">Install Required</span></div>
+</div>
+
 <!-- Features -->
 <section id="features" class="section">
     <h2 class="section-title">Everything You Need to Build Games</h2>
@@ -201,7 +264,55 @@
     </div>
 </section>
 
-<!-- Getting Started -->
+<!-- Technology Stack -->
+<section class="section">
+    <h2 class="section-title">Built with Modern Technology</h2>
+    <p class="section-subtitle">Production-grade TypeScript codebase with strict mode, comprehensive testing, and zero runtime dependencies.</p>
+    <div class="tech-grid">
+        <span class="tech-badge">🔷 TypeScript (Strict)</span>
+        <span class="tech-badge">🎨 WebGL 2.0</span>
+        <span class="tech-badge">⚡ Vite</span>
+        <span class="tech-badge">🧪 Vitest</span>
+        <span class="tech-badge">🔊 Web Audio API</span>
+        <span class="tech-badge">🌐 WebRTC</span>
+        <span class="tech-badge">📦 ES Modules</span>
+        <span class="tech-badge">🖼️ Canvas 2D</span>
+        <span class="tech-badge">🎮 Gamepad API</span>
+        <span class="tech-badge">🔮 WebGPU (Future)</span>
+        <span class="tech-badge">🥽 WebXR (Future)</span>
+        <span class="tech-badge">🤖 ML Integration (Future)</span>
+    </div>
+</section>
+
+<!-- Comparison -->
+<section class="section">
+    <h2 class="section-title">How WebForge Compares</h2>
+    <p class="section-subtitle">All the capabilities of desktop engines, delivered entirely in the browser.</p>
+    <table class="comparison-table">
+        <thead>
+            <tr>
+                <th>Feature</th>
+                <th>WebForge</th>
+                <th>Unity</th>
+                <th>Godot</th>
+                <th>PlayCanvas</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Browser-based editor</td><td class="check">✅</td><td class="cross">❌</td><td class="cross">❌</td><td class="check">✅</td></tr>
+            <tr><td>No installation needed</td><td class="check">✅</td><td class="cross">❌</td><td class="cross">❌</td><td class="check">✅</td></tr>
+            <tr><td>PBR rendering</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td></tr>
+            <tr><td>Physics engine</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td></tr>
+            <tr><td>Visual scripting</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="cross">❌</td></tr>
+            <tr><td>3D sculpting tools</td><td class="check">✅</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td></tr>
+            <tr><td>Terrain system</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="cross">❌</td></tr>
+            <tr><td>AI / NavMesh</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="cross">❌</td></tr>
+            <tr><td>Multi-platform export</td><td class="check">✅ 9 targets</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td></tr>
+            <tr><td>Open source</td><td class="check">✅</td><td class="cross">❌</td><td class="check">✅</td><td class="cross">❌</td></tr>
+            <tr><td>TypeScript-native</td><td class="check">✅</td><td class="cross">❌</td><td class="cross">❌</td><td class="check">✅</td></tr>
+        </tbody>
+    </table>
+</section>
 <section id="getting-started" class="section">
     <h2 class="section-title">Get Started in Seconds</h2>
     <p class="section-subtitle">Open the editor or drop a few lines of code — either way, you're building games.</p>
@@ -242,6 +353,13 @@ engine.<span class="code-fn">start</span>();</pre>
         <canvas id="demo-canvas" width="720" height="400" aria-label="Interactive 3D engine demonstration"></canvas>
         <div class="demo-stats" id="demo-stats"></div>
     </div>
+</section>
+
+<!-- CTA Banner -->
+<section class="cta-banner">
+    <h2>Ready to Build Your Game?</h2>
+    <p>No downloads. No setup. Just open the editor and start creating. WebForge gives you everything you need — right in your browser.</p>
+    <a href="editor.html" class="btn btn-primary">🚀 Launch the Editor</a>
 </section>
 
 <!-- Footer -->

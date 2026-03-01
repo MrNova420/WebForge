@@ -170,7 +170,9 @@ export class InstanceBatch {
   }
 
   /**
-   * Renders all instances
+   * Renders all instances using WebGL2 instanced drawing.
+   * Sets up per-instance matrix attribute divisors and issues a single
+   * instanced draw call for the entire batch.
    */
   render(): void {
     if (this.instances.length === 0) {
@@ -179,8 +181,54 @@ export class InstanceBatch {
     
     this.updateBuffers();
     
-    // TODO: Actual instanced rendering would be done by the renderer
-    // This is a placeholder for the rendering logic
+    const gl = this.gl;
+    const instanceCount = this.instances.length;
+    
+    // Bind the instance matrix buffer and set up per-instance attribute divisors.
+    // A mat4 requires 4 consecutive vec4 attribute slots (locations 4-7 by convention).
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
+    
+    const INSTANCE_ATTR_START = 4; // Attribute locations 4,5,6,7 for instance matrix
+    const FLOAT_SIZE = 4;
+    const MAT4_STRIDE = 16 * FLOAT_SIZE; // 64 bytes per mat4
+    
+    for (let col = 0; col < 4; col++) {
+      const loc = INSTANCE_ATTR_START + col;
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(
+        loc,
+        4,                           // 4 floats per column
+        gl.FLOAT,
+        false,
+        MAT4_STRIDE,                 // stride: full mat4
+        col * 4 * FLOAT_SIZE         // offset: column index * 16 bytes
+      );
+      gl.vertexAttribDivisor(loc, 1); // Advance once per instance
+    }
+    
+    // Issue the instanced draw call via the mesh
+    this.mesh.draw(instanceCount);
+    
+    // Clean up: disable instance attributes and reset divisors
+    for (let col = 0; col < 4; col++) {
+      const loc = INSTANCE_ATTR_START + col;
+      gl.vertexAttribDivisor(loc, 0);
+      gl.disableVertexAttribArray(loc);
+    }
+  }
+
+  /**
+   * Gets the WebGL instance buffer for external use
+   */
+  getInstanceBuffer(): WebGLBuffer | null {
+    return this.instanceBuffer;
+  }
+
+  /**
+   * Gets the instance matrix data
+   */
+  getInstanceMatrixData(): Float32Array {
+    return this.instanceMatrixBuffer.subarray(0, this.instances.length * 16);
   }
 
   /**
