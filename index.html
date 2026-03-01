@@ -3,238 +3,315 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebForge - Math Library Demo</title>
+    <title>WebForge — The Ultimate Web Game Development Platform</title>
     <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #252526;
+            --bg-tertiary: #2d2d30;
+            --bg-hover: #3e3e42;
+            --border-color: #3c3c3c;
+            --text-primary: #cccccc;
+            --text-secondary: #858585;
+            --accent-color: #007acc;
+            --accent-hover: #1c97ea;
+            --success-color: #4ec9b0;
+            --warning-color: #dcdcaa;
+            --info-color: #569cd6;
+        }
+
+        html { scroll-behavior: smooth; }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        h1 {
-            text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-        .subtitle {
-            text-align: center;
-            font-size: 1.2em;
-            margin-bottom: 30px;
-            opacity: 0.9;
-        }
-        .demo-section {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-        h2 {
-            margin-top: 0;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
-            padding-bottom: 10px;
-        }
-        .result {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-            font-family: 'Courier New', monospace;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             line-height: 1.6;
         }
-        .success {
-            color: #4ade80;
+
+        a { color: var(--accent-hover); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* ── Nav ── */
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 32px; height: 52px;
+            background: rgba(30,30,30,.85); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
         }
-        .info {
-            color: #60a5fa;
+        .navbar-brand { font-size: 1.25rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+        .navbar-links { display: flex; gap: 24px; }
+        .navbar-links a { color: var(--text-primary); font-size: .9rem; }
+        .navbar-links a:hover { color: #fff; text-decoration: none; }
+        .nav-toggle { display: none; background: none; border: 1px solid var(--border-color); color: var(--text-primary); font-size: 1.2rem; padding: 4px 10px; border-radius: 4px; cursor: pointer; }
+
+        /* ── Hero ── */
+        .hero {
+            min-height: 100vh; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+            padding: 100px 24px 60px;
+            background: radial-gradient(ellipse at 50% 0%, rgba(0,122,204,.18) 0%, transparent 70%),
+                        var(--bg-primary);
         }
-        canvas {
-            display: block;
-            margin: 20px auto;
-            border-radius: 8px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        .hero-logo { font-size: 5rem; line-height: 1; margin-bottom: 12px; }
+        .hero h1 { font-size: 3.2rem; color: #fff; font-weight: 800; letter-spacing: -1px; }
+        .hero .tagline { font-size: 1.35rem; color: var(--accent-hover); margin-top: 8px; font-weight: 600; }
+        .hero .subtitle { font-size: 1.05rem; color: var(--text-secondary); max-width: 640px; margin-top: 16px; }
+        .hero-buttons { display: flex; gap: 16px; margin-top: 36px; flex-wrap: wrap; justify-content: center; }
+
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 14px 32px; border-radius: 8px; font-size: 1rem; font-weight: 600;
+            border: none; cursor: pointer; transition: background .2s, transform .15s;
+        }
+        .btn:hover { transform: translateY(-2px); text-decoration: none; }
+        .btn-primary { background: var(--accent-color); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background: var(--bg-hover); color: #fff; }
+
+        /* ── Section shared ── */
+        .section { padding: 80px 24px; max-width: 1200px; margin: 0 auto; }
+        .section-title { font-size: 2rem; font-weight: 700; color: #fff; text-align: center; margin-bottom: 12px; }
+        .section-subtitle { text-align: center; color: var(--text-secondary); margin-bottom: 48px; max-width: 640px; margin-left: auto; margin-right: auto; }
+
+        /* ── Features ── */
+        .features-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+        }
+        .feature-card {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 24px;
+            transition: border-color .2s, transform .2s;
+        }
+        .feature-card:hover { border-color: var(--accent-color); transform: translateY(-4px); }
+        .feature-icon { font-size: 2rem; margin-bottom: 12px; }
+        .feature-card h3 { font-size: 1.05rem; color: #fff; margin-bottom: 6px; }
+        .feature-card p { font-size: .875rem; color: var(--text-secondary); }
+
+        /* ── Getting Started ── */
+        .getting-started-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+        .gs-card {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 28px;
+        }
+        .gs-card h3 { color: #fff; margin-bottom: 12px; font-size: 1.1rem; }
+        .gs-card p, .gs-card li { font-size: .9rem; color: var(--text-secondary); }
+        .gs-card ol { padding-left: 20px; }
+        .gs-card ol li { margin-bottom: 6px; }
+        pre.code-block {
+            background: var(--bg-primary); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 18px; margin-top: 12px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+            font-size: .85rem; line-height: 1.7; overflow-x: auto; color: var(--text-primary);
+        }
+        .code-kw { color: var(--info-color); }
+        .code-str { color: #ce9178; }
+        .code-fn { color: var(--warning-color); }
+        .code-cm { color: #6a9955; }
+        .code-num { color: #b5cea8; }
+
+        /* ── Live Demo ── */
+        .demo-wrap {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 28px; text-align: center;
+        }
+        .demo-wrap h3 { color: #fff; margin-bottom: 8px; }
+        .demo-wrap p { font-size: .9rem; color: var(--text-secondary); margin-bottom: 16px; }
+        #demo-canvas {
+            display: block; margin: 0 auto; border-radius: 8px; max-width: 100%;
+            background: #000;
+        }
+        .demo-stats {
+            margin-top: 12px; font-size: .8rem; font-family: monospace;
+            color: var(--text-secondary);
+        }
+
+        /* ── Footer ── */
+        .site-footer {
+            border-top: 1px solid var(--border-color);
+            padding: 32px 24px; text-align: center;
+            font-size: .85rem; color: var(--text-secondary);
+        }
+        .footer-links { display: flex; gap: 24px; justify-content: center; margin-bottom: 12px; }
+        .footer-links a { color: var(--text-primary); }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.2rem; }
+            .hero-logo { font-size: 3.5rem; }
+            .hero .tagline { font-size: 1.1rem; }
+            .getting-started-grid { grid-template-columns: 1fr; }
+            .nav-toggle { display: block; }
+            .navbar-links { display: none; position: absolute; top: 52px; right: 0; left: 0; flex-direction: column; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); padding: 12px 24px; gap: 12px; }
+            .navbar-links.open { display: flex; }
         }
     </style>
 </head>
 <body>
-    <h1>🚀 WebForge</h1>
-    <div class="subtitle">The Ultimate Web Game Development Platform</div>
 
-    <div class="demo-section">
-        <h2>📐 Vector2 Operations</h2>
-        <div id="vector2-results"></div>
+<!-- Nav -->
+<nav class="navbar">
+    <div class="navbar-brand">🔥 WebForge</div>
+    <button class="nav-toggle" aria-label="Toggle navigation" onclick="document.querySelector('.navbar-links').classList.toggle('open')">☰</button>
+    <div class="navbar-links">
+        <a href="#features">Features</a>
+        <a href="#getting-started">Get Started</a>
+        <a href="#demo">Live Demo</a>
+        <a href="editor.html">Editor</a>
     </div>
+</nav>
 
-    <div class="demo-section">
-        <h2>📊 Vector3 Operations</h2>
-        <div id="vector3-results"></div>
+<!-- Hero -->
+<section class="hero">
+    <div class="hero-logo">🔥</div>
+    <h1>WebForge</h1>
+    <div class="tagline">The Ultimate Web Game Development Platform</div>
+    <p class="subtitle">
+        Unreal&nbsp;+&nbsp;Unity&nbsp;+&nbsp;Blender — in the browser. A complete game engine,
+        visual editor, and 3D&nbsp;modeling toolkit built with TypeScript, WebGL, and modern web APIs.
+    </p>
+    <div class="hero-buttons">
+        <a href="editor.html" class="btn btn-primary">🚀 Launch Editor</a>
+        <a href="#features" class="btn btn-secondary">Explore Features</a>
     </div>
+</section>
 
-    <div class="demo-section">
-        <h2>🎨 Visual Demo - Rotating Vectors</h2>
-        <canvas id="demo-canvas" width="800" height="400"></canvas>
+<!-- Features -->
+<section id="features" class="section">
+    <h2 class="section-title">Everything You Need to Build Games</h2>
+    <p class="section-subtitle">AAA-quality game development capabilities — zero installs, fully in your browser.</p>
+    <div class="features-grid">
+        <div class="feature-card"><div class="feature-icon">🎮</div><h3>Game Engine</h3><p>WebGL/WebGPU rendering, PBR materials, shadow mapping, and a full forward-rendering pipeline.</p></div>
+        <div class="feature-card"><div class="feature-icon">🎨</div><h3>Visual Editor</h3><p>Unity-like editor with hierarchy, inspector, scene view, asset browser, and undo/redo.</p></div>
+        <div class="feature-card"><div class="feature-icon">🧊</div><h3>3D Modeling</h3><p>Geometry creation tools, sculpting brushes, modifiers, and UV editing right in the browser.</p></div>
+        <div class="feature-card"><div class="feature-icon">🌍</div><h3>Terrain System</h3><p>Heightmap terrain with multi-level LOD, texture painting, and procedural generation.</p></div>
+        <div class="feature-card"><div class="feature-icon">🤖</div><h3>AI &amp; Navigation</h3><p>NavMesh pathfinding, behavior trees, steering behaviors, and flocking algorithms.</p></div>
+        <div class="feature-card"><div class="feature-icon">🎭</div><h3>Animation</h3><p>Skeletal animation, inverse kinematics, blend trees, and state machine-driven transitions.</p></div>
+        <div class="feature-card"><div class="feature-icon">🔊</div><h3>Spatial Audio</h3><p>3D positional audio, real-time effects processing, and a dynamic music system.</p></div>
+        <div class="feature-card"><div class="feature-icon">⚡</div><h3>Physics Engine</h3><p>Rigid body dynamics, GJK collision detection, constraints, and broadphase sweep-and-prune.</p></div>
+        <div class="feature-card"><div class="feature-icon">🌐</div><h3>Multiplayer</h3><p>WebRTC peer-to-peer and WebSocket networking with state synchronization.</p></div>
+        <div class="feature-card"><div class="feature-icon">🎆</div><h3>Particle System</h3><p>CPU &amp; GPU particle emitters with forces, color gradients, and sub-emitter support.</p></div>
+        <div class="feature-card"><div class="feature-icon">📜</div><h3>Visual Scripting</h3><p>Node-based visual programming system — build game logic without writing code.</p></div>
+        <div class="feature-card"><div class="feature-icon">🛠️</div><h3>Dev Tools</h3><p>Live debugger, performance profiler, console overlay, and hot-reload dev center.</p></div>
     </div>
+</section>
 
-    <script type="module">
-        import { Vector2, Vector3 } from './src/index.ts';
+<!-- Getting Started -->
+<section id="getting-started" class="section">
+    <h2 class="section-title">Get Started in Seconds</h2>
+    <p class="section-subtitle">Open the editor or drop a few lines of code — either way, you're building games.</p>
+    <div class="getting-started-grid">
+        <div class="gs-card">
+            <h3>⚡ Quick Start</h3>
+            <ol>
+                <li>Clone the repo and run <code>npm install</code></li>
+                <li>Start the dev server with <code>npm run dev</code></li>
+                <li>Click <a href="editor.html"><strong>Launch Editor</strong></a> to open the visual editor</li>
+                <li>Add GameObjects, attach components, and hit <strong>Play</strong></li>
+            </ol>
+        </div>
+        <div class="gs-card">
+            <h3>📝 Code Example</h3>
+<pre class="code-block"><span class="code-kw">import</span> { WebForge, Vector3 } <span class="code-kw">from</span> <span class="code-str">'./src/index.ts'</span>;
 
-        // Vector2 Demos
-        const v2Results = document.getElementById('vector2-results');
-        
-        const v2a = new Vector2(3, 4);
-        const v2b = new Vector2(1, 2);
-        
-        v2Results.innerHTML = `
-            <div class="result">
-                <div class="info">Vector2 Creation:</div>
-                v2a = ${v2a.toString()}<br>
-                v2b = ${v2b.toString()}
-            </div>
-            <div class="result">
-                <div class="info">Basic Operations:</div>
-                v2a + v2b = ${v2a.add(v2b).toString()}<br>
-                v2a - v2b = ${v2a.subtract(v2b).toString()}<br>
-                v2a * 2 = ${v2a.multiplyScalar(2).toString()}
-            </div>
-            <div class="result">
-                <div class="info">Vector Properties:</div>
-                Length of v2a = ${v2a.length().toFixed(3)}<br>
-                Normalized v2a = ${v2a.normalize().toString()}<br>
-                Angle of v2a = ${(v2a.angle() * 180 / Math.PI).toFixed(2)}°
-            </div>
-            <div class="result">
-                <div class="info">Advanced Operations:</div>
-                Dot product = ${v2a.dot(v2b).toFixed(3)}<br>
-                Cross product = ${v2a.cross(v2b).toFixed(3)}<br>
-                Distance = ${v2a.distanceTo(v2b).toFixed(3)}
-            </div>
-        `;
+<span class="code-cm">// Create the engine</span>
+<span class="code-kw">const</span> engine = <span class="code-kw">new</span> <span class="code-fn">WebForge</span>({ <span class="code-fn">antialias</span>: <span class="code-kw">true</span> });
 
-        // Vector3 Demos
-        const v3Results = document.getElementById('vector3-results');
-        
-        const v3a = new Vector3(1, 2, 3);
-        const v3b = new Vector3(4, 5, 6);
-        
-        v3Results.innerHTML = `
-            <div class="result">
-                <div class="info">Vector3 Creation:</div>
-                v3a = ${v3a.toString()}<br>
-                v3b = ${v3b.toString()}
-            </div>
-            <div class="result">
-                <div class="info">Basic Operations:</div>
-                v3a + v3b = ${v3a.add(v3b).toString()}<br>
-                v3a - v3b = ${v3a.subtract(v3b).toString()}<br>
-                v3a * 3 = ${v3a.multiplyScalar(3).toString()}
-            </div>
-            <div class="result">
-                <div class="info">Vector Properties:</div>
-                Length of v3a = ${v3a.length().toFixed(3)}<br>
-                Normalized v3a = ${v3a.normalize().toString()}<br>
-                Distance = ${v3a.distanceTo(v3b).toFixed(3)}
-            </div>
-            <div class="result">
-                <div class="info">Advanced Operations:</div>
-                Dot product = ${v3a.dot(v3b).toFixed(3)}<br>
-                Cross product = ${v3a.cross(v3b).toString()}<br>
-                Lerp (t=0.5) = ${v3a.lerp(v3b, 0.5).toString()}
-            </div>
-            <div class="result success">
-                ✅ All Vector3 operations working correctly!
-            </div>
-        `;
+<span class="code-cm">// Add a game object</span>
+<span class="code-kw">const</span> player = engine.<span class="code-fn">createGameObject</span>(<span class="code-str">'Player'</span>);
+player.transform.position = <span class="code-kw">new</span> <span class="code-fn">Vector3</span>(<span class="code-num">0</span>, <span class="code-num">1</span>, <span class="code-num">0</span>);
 
-        // Visual Demo - Rotating Vectors
-        const canvas = document.getElementById('demo-canvas');
-        const ctx = canvas.getContext('2d');
-        
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        let angle = 0;
-        
-        function drawVector(v2, color, label) {
-            const scale = 50;
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-            ctx.lineTo(centerX + v2.x * scale, centerY - v2.y * scale);
-            ctx.stroke();
-            
-            // Arrowhead
-            const arrowSize = 10;
-            const angle = Math.atan2(-v2.y, v2.x);
-            ctx.beginPath();
-            ctx.moveTo(centerX + v2.x * scale, centerY - v2.y * scale);
-            ctx.lineTo(
-                centerX + v2.x * scale - arrowSize * Math.cos(angle - Math.PI / 6),
-                centerY - v2.y * scale + arrowSize * Math.sin(angle - Math.PI / 6)
-            );
-            ctx.lineTo(
-                centerX + v2.x * scale - arrowSize * Math.cos(angle + Math.PI / 6),
-                centerY - v2.y * scale + arrowSize * Math.sin(angle + Math.PI / 6)
-            );
-            ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.fill();
-            
-            // Label
-            ctx.fillStyle = color;
-            ctx.font = 'bold 14px sans-serif';
-            ctx.fillText(label, centerX + v2.x * scale + 15, centerY - v2.y * scale);
+<span class="code-cm">// Start the loop</span>
+engine.<span class="code-fn">start</span>();</pre>
+        </div>
+    </div>
+</section>
+
+<!-- Live Demo -->
+<section id="demo" class="section">
+    <h2 class="section-title">Live Math Demo</h2>
+    <p class="section-subtitle">WebForge's math library running right here — Vector2 addition visualized in real time.</p>
+    <div class="demo-wrap">
+        <h3>🎨 Rotating Vectors</h3>
+        <p>Three vectors computed each frame using <code>Vector2.fromAngle()</code></p>
+        <canvas id="demo-canvas" width="720" height="320"></canvas>
+        <div class="demo-stats" id="demo-stats"></div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <div class="footer-links">
+        <a href="editor.html">Editor</a>
+        <a href="docs/COMPLETE_REFERENCE.md">Docs</a>
+        <a href="docs/ARCHITECTURE_DESIGN.md">Architecture</a>
+        <a href="examples/">Examples</a>
+    </div>
+    <p>WebForge v1.0.0 — The Ultimate Web Game Development Platform</p>
+</footer>
+
+<!-- Module script — imports from src for Vite dev server -->
+<script type="module">
+    import { Vector2 } from './src/index.ts';
+
+    // ── Live Demo: Rotating Vectors ──
+    const canvas = document.getElementById('demo-canvas');
+    const ctx = canvas.getContext('2d');
+    const stats = document.getElementById('demo-stats');
+    const cw = canvas.width, ch = canvas.height;
+    const cx = cw / 2, cy = ch / 2;
+    let angle = 0, frames = 0, lastFps = 0, lastTime = performance.now();
+
+    function drawVec(v, color, label) {
+        const s = 50;
+        const ex = cx + v.x * s, ey = cy - v.y * s;
+        ctx.strokeStyle = color; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ex, ey); ctx.stroke();
+
+        const a = Math.atan2(-v.y, v.x), sz = 10;
+        ctx.beginPath(); ctx.moveTo(ex, ey);
+        ctx.lineTo(ex - sz * Math.cos(a - Math.PI / 6), ey + sz * Math.sin(a - Math.PI / 6));
+        ctx.lineTo(ex - sz * Math.cos(a + Math.PI / 6), ey + sz * Math.sin(a + Math.PI / 6));
+        ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+
+        ctx.fillStyle = color; ctx.font = 'bold 13px sans-serif';
+        ctx.fillText(label, ex + 12, ey - 4);
+    }
+
+    function tick() {
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cw, ch);
+
+        ctx.strokeStyle = 'rgba(255,255,255,.07)'; ctx.lineWidth = 1;
+        for (let i = -10; i <= 10; i++) {
+            ctx.beginPath(); ctx.moveTo(cx + i * 50, 0); ctx.lineTo(cx + i * 50, ch); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, cy + i * 50); ctx.lineTo(cw, cy + i * 50); ctx.stroke();
         }
-        
-        function animate() {
-            // Clear canvas
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw grid
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-            ctx.lineWidth = 1;
-            for (let i = -10; i <= 10; i++) {
-                ctx.beginPath();
-                ctx.moveTo(centerX + i * 50, 0);
-                ctx.lineTo(centerX + i * 50, canvas.height);
-                ctx.stroke();
-                
-                ctx.beginPath();
-                ctx.moveTo(0, centerY + i * 50);
-                ctx.lineTo(canvas.width, centerY + i * 50);
-                ctx.stroke();
-            }
-            
-            // Draw axes
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(0, centerY);
-            ctx.lineTo(canvas.width, centerY);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(centerX, 0);
-            ctx.lineTo(centerX, canvas.height);
-            ctx.stroke();
-            
-            // Create rotating vectors
-            const v1 = Vector2.fromAngle(angle, 3);
-            const v2 = Vector2.fromAngle(angle + Math.PI / 3, 2);
-            const v3 = v1.add(v2);
-            
-            // Draw vectors
-            drawVector(v1, '#60a5fa', 'v1');
-            drawVector(v2, '#4ade80', 'v2');
-            drawVector(v3, '#f59e0b', 'v1 + v2');
-            
-            angle += 0.02;
-            requestAnimationFrame(animate);
-        }
-        
-        animate();
-    </script>
+        ctx.strokeStyle = 'rgba(255,255,255,.2)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(cw, cy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, ch); ctx.stroke();
+
+        const v1 = Vector2.fromAngle(angle, 3);
+        const v2 = Vector2.fromAngle(angle + Math.PI / 3, 2);
+        const v3 = v1.add(v2);
+
+        drawVec(v1, '#60a5fa', 'v1');
+        drawVec(v2, '#4ec9b0', 'v2');
+        drawVec(v3, '#f59e0b', 'v1 + v2');
+
+        angle += 0.02; frames++;
+        const now = performance.now();
+        if (now - lastTime >= 1000) { lastFps = frames; frames = 0; lastTime = now; }
+        stats.textContent = `v1 = ${v1.toString()}  v2 = ${v2.toString()}  sum = ${v3.toString()}  |  ${lastFps} fps`;
+
+        requestAnimationFrame(tick);
+    }
+
+    tick();
+</script>
 </body>
 </html>
