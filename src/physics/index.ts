@@ -10,3 +10,5 @@ export * from './GJK';
 export * from './NarrowphaseCollision';
 export * from './PhysicsWorld';
 export * from './RigidBody';
+export * from './VehiclePhysics';
+export * from './SoftBody';

@@ -8,4 +8,5 @@ export * from './AnimationPlayer';
 export * from './AnimationStateMachine';
 export * from './BlendTree';
 export * from './IK';
+export * from './MorphTargets';
 export * from './Skeleton';
