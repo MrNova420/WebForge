@@ -258,30 +258,28 @@ export class PresenceIndicators {
         // Apply Y-axis rotation from viewport.rotation.y
         const cosY = Math.cos(viewport.rotation.y);
         const sinY = Math.sin(viewport.rotation.y);
-        const rotX = (lx: number, lz: number) => lx * cosY - lz * sinY;
-        const rotZ = (lx: number, lz: number) => lx * sinY + lz * cosY;
 
-        // Helper: rotate a local offset around Y-axis and add to position
-        const rx = (lx: number, lz: number) => px + rotX(lx, lz);
-        const rz = (lx: number, lz: number) => pz + rotZ(lx, lz);
+        // Rotate a local (x, z) offset around Y-axis and translate to world position
+        const toWorldX = (lx: number, lz: number) => px + lx * cosY - lz * sinY;
+        const toWorldZ = (lx: number, lz: number) => pz + lx * sinY + lz * cosY;
         
         // Frustum line vertices (near plane + far plane + connecting edges)
         const vertices = new Float32Array([
             // Near plane edges
-            rx(-nearW, -near), py - nearH, rz(-nearW, -near),  rx(nearW, -near), py - nearH, rz(nearW, -near),
-            rx(nearW, -near), py - nearH, rz(nearW, -near),  rx(nearW, -near), py + nearH, rz(nearW, -near),
-            rx(nearW, -near), py + nearH, rz(nearW, -near),  rx(-nearW, -near), py + nearH, rz(-nearW, -near),
-            rx(-nearW, -near), py + nearH, rz(-nearW, -near),  rx(-nearW, -near), py - nearH, rz(-nearW, -near),
+            toWorldX(-nearW, -near), py - nearH, toWorldZ(-nearW, -near),  toWorldX(nearW, -near), py - nearH, toWorldZ(nearW, -near),
+            toWorldX(nearW, -near), py - nearH, toWorldZ(nearW, -near),  toWorldX(nearW, -near), py + nearH, toWorldZ(nearW, -near),
+            toWorldX(nearW, -near), py + nearH, toWorldZ(nearW, -near),  toWorldX(-nearW, -near), py + nearH, toWorldZ(-nearW, -near),
+            toWorldX(-nearW, -near), py + nearH, toWorldZ(-nearW, -near),  toWorldX(-nearW, -near), py - nearH, toWorldZ(-nearW, -near),
             // Far plane edges
-            rx(-farW, -far), py - farH, rz(-farW, -far),  rx(farW, -far), py - farH, rz(farW, -far),
-            rx(farW, -far), py - farH, rz(farW, -far),  rx(farW, -far), py + farH, rz(farW, -far),
-            rx(farW, -far), py + farH, rz(farW, -far),  rx(-farW, -far), py + farH, rz(-farW, -far),
-            rx(-farW, -far), py + farH, rz(-farW, -far),  rx(-farW, -far), py - farH, rz(-farW, -far),
+            toWorldX(-farW, -far), py - farH, toWorldZ(-farW, -far),  toWorldX(farW, -far), py - farH, toWorldZ(farW, -far),
+            toWorldX(farW, -far), py - farH, toWorldZ(farW, -far),  toWorldX(farW, -far), py + farH, toWorldZ(farW, -far),
+            toWorldX(farW, -far), py + farH, toWorldZ(farW, -far),  toWorldX(-farW, -far), py + farH, toWorldZ(-farW, -far),
+            toWorldX(-farW, -far), py + farH, toWorldZ(-farW, -far),  toWorldX(-farW, -far), py - farH, toWorldZ(-farW, -far),
             // Connecting edges (near to far)
-            rx(-nearW, -near), py - nearH, rz(-nearW, -near),  rx(-farW, -far), py - farH, rz(-farW, -far),
-            rx(nearW, -near), py - nearH, rz(nearW, -near),  rx(farW, -far), py - farH, rz(farW, -far),
-            rx(nearW, -near), py + nearH, rz(nearW, -near),  rx(farW, -far), py + farH, rz(farW, -far),
-            rx(-nearW, -near), py + nearH, rz(-nearW, -near),  rx(-farW, -far), py + farH, rz(-farW, -far)
+            toWorldX(-nearW, -near), py - nearH, toWorldZ(-nearW, -near),  toWorldX(-farW, -far), py - farH, toWorldZ(-farW, -far),
+            toWorldX(nearW, -near), py - nearH, toWorldZ(nearW, -near),  toWorldX(farW, -far), py - farH, toWorldZ(farW, -far),
+            toWorldX(nearW, -near), py + nearH, toWorldZ(nearW, -near),  toWorldX(farW, -far), py + farH, toWorldZ(farW, -far),
+            toWorldX(-nearW, -near), py + nearH, toWorldZ(-nearW, -near),  toWorldX(-farW, -far), py + farH, toWorldZ(-farW, -far)
         ]);
         
         gl.bindBuffer(gl.ARRAY_BUFFER, this._viewportBuffer);

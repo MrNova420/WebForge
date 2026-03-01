@@ -265,8 +265,9 @@ export class AnimationPlayer {
 
           default:
             // PROPERTY tracks use compound keys "property:<path>".
-            if (typeof trackType === 'string' && trackType.startsWith('property:')) {
-              const propertyPath = trackType.substring('property:'.length);
+            // Only handle keys that start with the PROPERTY type prefix.
+            if (typeof trackType === 'string' && trackType.startsWith(TrackType.PROPERTY + ':')) {
+              const propertyPath = trackType.substring(TrackType.PROPERTY.length + 1);
               const parts = propertyPath.split('.');
               let obj: any = target;
               for (let i = 0; i < parts.length - 1; i++) {
