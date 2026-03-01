@@ -11,30 +11,40 @@
 
 ## ⚠️ Development Status — Honest Notes
 
-> **The landing page (`index.html`) describes the full planned vision of WebForge. Most of those features are NOT yet implemented in the editor.**
+> **The backend engine code is largely built. The gap is the editor frontend — most backend systems have TypeScript implementations in `src/` but are not yet wired into the editor UI.**
 
-### ✅ What actually works right now
-- Dev server, build pipeline, TypeScript compilation
-- Landing page / homepage
-- Basic editor shell (menubar, toolbar, panels layout)
-- Core math library (Vector2, Vector3, Matrix, etc.) — used in landing page live demo
-- Basic scene hierarchy UI
+### ✅ Backend — largely implemented (`src/`)
+- Core engine, event system, input, resource manager
+- Full WebGL rendering pipeline — PBR, shadow maps, post-processing (SSAO, DOF, motion blur)
+- Scene graph (GameObject, Scene)
+- Animation — skeletal animation, blend trees, state machines, IK
+- Physics — rigid bodies, collision shapes, constraints
+- Terrain, particles, VFX, water — infrastructure in place
+- AI — NavMesh, behavior trees, steering behaviors
+- Audio, networking (WebRTC/WebSocket), visual scripting graph
+- Debug tools, profiler, version control system
+- Export manager, marketplace manager
 
-### 🚧 Still missing / not wired up yet
-- Terrain system (UI placeholder only)
-- Animation system (no skeletal anim, blend trees, IK)
-- 3D mesh creation / modeling tools
-- Physics engine (no real simulation yet)
-- Particle system
-- AI / NavMesh pathfinding
-- Multiplayer / networking
-- Visual scripting (Blueprint-style nodes)
-- Audio system
-- Export system
-- Any Unity / Unreal / Blender-equivalent workflow
+### 🚧 Frontend — what's wired in the editor vs what isn't
+| System | Panel exists in `src/editor/`? | Mounted in `editor.html`? |
+|--------|-------------------------------|--------------------------|
+| Hierarchy, Inspector, Console | ✅ | ✅ wired |
+| Scene viewport + gizmos | ✅ | ✅ wired |
+| Animation timeline | ✅ AnimationPanel.ts | ❌ not mounted |
+| Audio controls | ✅ AudioPanel.ts | ❌ not mounted |
+| Terrain tools | ✅ TerrainPanel.ts | ❌ not mounted |
+| Particle editor | ✅ ParticlePanel.ts | ❌ not mounted |
+| Material editor | ✅ MaterialEditorPanel.ts | ❌ not mounted |
+| Visual scripting | ✅ VisualScriptingPanel.ts | ❌ not mounted |
+| Profiler | ✅ TimelineProfiler.ts | ❌ not wired to UI tab |
+| Network / multiplayer | ✅ NetworkManager.ts | ❌ not wired to UI tab |
+| Collaboration | ✅ ChatSystem, Presence | ❌ no UI at all |
+| Export | ✅ ExportManager.ts | ❌ menu item only |
+| Play mode | ✅ engine loop | ⚠️ buttons exist, wiring unclear |
+| Scene save/load | ✅ menu items | ❌ no actual implementation |
 
-### 📋 The plan
-Everything on the landing page is the **target** — it represents what WebForge is being built toward, not what's shipped today. Features will be checked off here as they're completed.
+### 📋 Next priority
+**Mount and wire the existing panel classes into `editor.html`** — the backend work is mostly done, the editor frontend just needs to expose it.
 
 ---
 
