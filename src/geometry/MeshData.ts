@@ -49,6 +49,10 @@ export class MeshData {
     public getUVs(): number[] | undefined { return this.attributes.uv; }
     public getColors(): number[] | undefined { return this.attributes.color; }
     public getIndices(): number[] { return this.indices; }
+    public setIndices(indices: number[]): void {
+        this.indices = indices;
+        this.faceCount = Math.floor(indices.length / 3);
+    }
     public getVertexCount(): number { return this.vertexCount; }
     public getFaceCount(): number { return this.faceCount; }
     

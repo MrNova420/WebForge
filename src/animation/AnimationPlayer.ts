@@ -31,6 +31,28 @@ export enum PlaybackState {
 }
 
 /**
+ * Animation event triggered at specific time
+ */
+export interface AnimationEvent {
+  /** Time in seconds when event triggers */
+  time: number;
+  /** Event name/identifier */
+  name: string;
+  /** Custom data payload */
+  data?: any;
+}
+
+/**
+ * Root motion data extracted from animation
+ */
+export interface RootMotionData {
+  /** Delta position since last frame */
+  deltaPosition: { x: number; y: number; z: number };
+  /** Delta rotation since last frame (euler angles) */
+  deltaRotation: { x: number; y: number; z: number };
+}
+
+/**
  * Animation player
  */
 export class AnimationPlayer {
@@ -42,6 +64,25 @@ export class AnimationPlayer {
   private targets: Map<string, any> = new Map();
   private events: EventSystem;
   private direction: number = 1; // 1 for forward, -1 for backward (ping-pong)
+  
+  /** Animation events */
+  private animationEvents: AnimationEvent[] = [];
+  private lastEventTime: number = 0;
+  
+  /** Root motion support */
+  private rootMotionEnabled: boolean = false;
+  private rootMotionTarget: string = '';
+  private lastRootPosition: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
+  private currentRootMotion: RootMotionData = {
+    deltaPosition: { x: 0, y: 0, z: 0 },
+    deltaRotation: { x: 0, y: 0, z: 0 }
+  };
+  
+  /** Blending support */
+  private blendWeight: number = 1.0;
+  private blendTarget: AnimationClip | null = null;
+  private blendDuration: number = 0;
+  private blendProgress: number = 0;
 
   constructor() {
     this.events = new EventSystem();
@@ -101,6 +142,21 @@ export class AnimationPlayer {
   update(deltaTime: number): void {
     if (this.state !== PlaybackState.PLAYING || !this.clip) return;
 
+    // Update blend progress if cross-fading
+    if (this.blendTarget && this.blendDuration > 0) {
+      this.blendProgress += deltaTime / this.blendDuration;
+      this.blendWeight = Math.max(0, 1.0 - this.blendProgress);
+      
+      if (this.blendProgress >= 1.0) {
+        // Transition complete - switch to new clip
+        this.clip = this.blendTarget;
+        this.blendTarget = null;
+        this.blendWeight = 1.0;
+        this.blendProgress = 0;
+        this.time = 0;
+      }
+    }
+
     // Update time
     this.time += deltaTime * this.speed * this.direction;
 
@@ -132,8 +188,39 @@ export class AnimationPlayer {
       }
     }
 
+    // Process animation events
+    this.processEvents();
+
     // Apply animation
     this.apply();
+
+    // Extract root motion if enabled
+    if (this.rootMotionEnabled) {
+      this.extractRootMotion();
+    }
+  }
+
+  /**
+   * Extracts root motion delta from the root target
+   */
+  private extractRootMotion(): void {
+    const rootTarget = this.targets.get(this.rootMotionTarget);
+    if (!rootTarget) return;
+
+    const currentPos = rootTarget.position || rootTarget;
+    const newPos = {
+      x: typeof currentPos.x === 'number' ? currentPos.x : 0,
+      y: typeof currentPos.y === 'number' ? currentPos.y : 0,
+      z: typeof currentPos.z === 'number' ? currentPos.z : 0
+    };
+
+    this.currentRootMotion.deltaPosition = {
+      x: newPos.x - this.lastRootPosition.x,
+      y: newPos.y - this.lastRootPosition.y,
+      z: newPos.z - this.lastRootPosition.z
+    };
+
+    this.lastRootPosition = { ...newPos };
   }
 
   /**
@@ -235,5 +322,143 @@ export class AnimationPlayer {
    */
   isPlaying(): boolean {
     return this.state === PlaybackState.PLAYING;
+  }
+
+  /**
+   * Adds an animation event at a specific time
+   * @param time - Time in seconds
+   * @param name - Event name
+   * @param data - Optional data payload
+   */
+  addEvent(time: number, name: string, data?: any): void {
+    this.animationEvents.push({ time, name, data });
+    // Keep events sorted by time
+    this.animationEvents.sort((a, b) => a.time - b.time);
+  }
+
+  /**
+   * Removes an animation event by name
+   * @param name - Event name to remove
+   */
+  removeEvent(name: string): void {
+    this.animationEvents = this.animationEvents.filter(e => e.name !== name);
+  }
+
+  /**
+   * Gets all animation events
+   * @returns Array of animation events
+   */
+  getAnimationEvents(): AnimationEvent[] {
+    return [...this.animationEvents];
+  }
+
+  /**
+   * Clears all animation events
+   */
+  clearEvents(): void {
+    this.animationEvents = [];
+  }
+
+  /**
+   * Processes animation events between lastTime and currentTime
+   */
+  private processEvents(): void {
+    const currentTime = this.time;
+    
+    for (const event of this.animationEvents) {
+      // Check if event falls between last update time and current time
+      if (this.direction > 0) {
+        if (event.time > this.lastEventTime && event.time <= currentTime) {
+          this.events.emit('animationEvent', { name: event.name, time: event.time, data: event.data });
+        }
+      } else {
+        if (event.time < this.lastEventTime && event.time >= currentTime) {
+          this.events.emit('animationEvent', { name: event.name, time: event.time, data: event.data });
+        }
+      }
+    }
+    
+    this.lastEventTime = currentTime;
+  }
+
+  /**
+   * Enables root motion extraction
+   * @param targetName - Name of the root bone/object
+   */
+  enableRootMotion(targetName: string): void {
+    this.rootMotionEnabled = true;
+    this.rootMotionTarget = targetName;
+    this.lastRootPosition = { x: 0, y: 0, z: 0 };
+  }
+
+  /**
+   * Disables root motion
+   */
+  disableRootMotion(): void {
+    this.rootMotionEnabled = false;
+    this.currentRootMotion = {
+      deltaPosition: { x: 0, y: 0, z: 0 },
+      deltaRotation: { x: 0, y: 0, z: 0 }
+    };
+  }
+
+  /**
+   * Gets the root motion delta for this frame
+   * @returns Root motion data
+   */
+  getRootMotion(): RootMotionData {
+    return { ...this.currentRootMotion };
+  }
+
+  /**
+   * Whether root motion is enabled
+   */
+  isRootMotionEnabled(): boolean {
+    return this.rootMotionEnabled;
+  }
+
+  /**
+   * Cross-fades to another animation clip over a duration
+   * @param clip - Target animation clip
+   * @param duration - Blend duration in seconds
+   */
+  crossFadeTo(clip: AnimationClip, duration: number): void {
+    this.blendTarget = clip;
+    this.blendDuration = Math.max(0.01, duration);
+    this.blendProgress = 0;
+    this.blendWeight = 1.0;
+  }
+
+  /**
+   * Gets current blend weight
+   * @returns Blend weight (0-1)
+   */
+  getBlendWeight(): number {
+    return this.blendWeight;
+  }
+
+  /**
+   * Gets the current clip
+   * @returns Current animation clip or null
+   */
+  getClip(): AnimationClip | null {
+    return this.clip;
+  }
+
+  /**
+   * Gets playback speed
+   * @returns Speed multiplier
+   */
+  getSpeed(): number {
+    return this.speed;
+  }
+
+  /**
+   * Gets the normalized time (0-1)
+   * @returns Normalized time
+   */
+  getNormalizedTime(): number {
+    if (!this.clip || this.clip.getDuration() === 0) return 0;
+    return this.time / this.clip.getDuration();
   }
 }

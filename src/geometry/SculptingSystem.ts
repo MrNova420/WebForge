@@ -297,13 +297,79 @@ export class SculptingSystem {
     }
     
     /**
-     * Apply dynamic topology (simple subdivision of affected triangles)
+     * Apply dynamic topology (subdivision of affected triangles where detail is needed)
+     * Subdivides triangles where edge length exceeds a threshold relative to brush detail
      */
-    private applyDynamicTopology(_affected: Map<number, number>): void {
-        // TODO: Implement dynamic tessellation
-        // This would subdivide triangles in high-detail areas
-        // For now, this is a placeholder
-        console.warn('Dynamic topology not yet implemented');
+    private applyDynamicTopology(affected: Map<number, number>): void {
+        const indices = this.mesh.getIndices();
+        const detailThreshold = this.settings.radius * 0.3; // Max edge length before subdivision
+        const newFaces: number[][] = [];
+        const facesToRemove: Set<number> = new Set();
+        
+        // Find triangles with affected vertices that need subdivision
+        for (let i = 0; i < indices.length; i += 3) {
+            const v0 = indices[i];
+            const v1 = indices[i + 1];
+            const v2 = indices[i + 2];
+            
+            // Check if any vertex is affected
+            const isAffected = affected.has(v0) || affected.has(v1) || affected.has(v2);
+            if (!isAffected) continue;
+            
+            // Check edge lengths
+            const p0 = this.mesh.getVertex(v0);
+            const p1 = this.mesh.getVertex(v1);
+            const p2 = this.mesh.getVertex(v2);
+            
+            const e01 = p0.distanceTo(p1);
+            const e12 = p1.distanceTo(p2);
+            const e20 = p2.distanceTo(p0);
+            
+            const maxEdge = Math.max(e01, e12, e20);
+            
+            if (maxEdge > detailThreshold) {
+                facesToRemove.add(i / 3);
+                
+                // Subdivide by adding midpoint of longest edge
+                let midIdx: number;
+                
+                if (maxEdge === e01) {
+                    const mid = p0.add(p1).divideScalar(2);
+                    const midNormal = this.getVertexNormal(v0).add(this.getVertexNormal(v1)).normalize();
+                    midIdx = this.mesh.addVertex(mid, midNormal, { x: 0.5, y: 0.5 } as any);
+                    newFaces.push([v0, midIdx, v2]);
+                    newFaces.push([midIdx, v1, v2]);
+                } else if (maxEdge === e12) {
+                    const mid = p1.add(p2).divideScalar(2);
+                    const midNormal = this.getVertexNormal(v1).add(this.getVertexNormal(v2)).normalize();
+                    midIdx = this.mesh.addVertex(mid, midNormal, { x: 0.5, y: 0.5 } as any);
+                    newFaces.push([v0, v1, midIdx]);
+                    newFaces.push([v0, midIdx, v2]);
+                } else {
+                    const mid = p2.add(p0).divideScalar(2);
+                    const midNormal = this.getVertexNormal(v2).add(this.getVertexNormal(v0)).normalize();
+                    midIdx = this.mesh.addVertex(mid, midNormal, { x: 0.5, y: 0.5 } as any);
+                    newFaces.push([v0, v1, midIdx]);
+                    newFaces.push([midIdx, v1, v2]);
+                }
+            }
+        }
+        
+        // Apply subdivisions if any were needed (rebuild face list)
+        if (facesToRemove.size > 0) {
+            // Keep faces that weren't removed, add new subdivided ones
+            const newIndices: number[] = [];
+            for (let i = 0; i < indices.length; i += 3) {
+                if (!facesToRemove.has(i / 3)) {
+                    newIndices.push(indices[i], indices[i + 1], indices[i + 2]);
+                }
+            }
+            for (const face of newFaces) {
+                newIndices.push(face[0], face[1], face[2]);
+            }
+            // Rebuild mesh faces
+            this.mesh.setIndices(newIndices);
+        }
     }
     
     /**

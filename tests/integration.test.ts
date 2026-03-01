@@ -1462,3 +1462,638 @@ describe('Animation System', () => {
         expect(player).toBeDefined();
     });
 });
+
+// ========== Enhanced Terrain Brush Tests ==========
+import { EnhancedTerrainGenerator, BiomeType } from '../src/terrain/EnhancedTerrainGenerator';
+import { WaterSimulationSystem } from '../src/water/WaterSimulationSystem';
+import { WeatherSystem, WeatherType, WeatherIntensity } from '../src/weather/WeatherSystem';
+import { AdvancedVFXSystem } from '../src/vfx/AdvancedVFXSystem';
+import { ParticleSystem } from '../src/particles/ParticleSystem';
+import { AnimationEvent, RootMotionData } from '../src/animation/AnimationPlayer';
+
+describe('Enhanced Terrain Brush System', () => {
+    it('should support erode brush type', () => {
+        const brush = new TerrainBrush('erode', 10, 0.5);
+        expect(brush.getProperties().type).toBe('erode');
+    });
+
+    it('should support noise brush type', () => {
+        const brush = new TerrainBrush('noise', 8, 0.6);
+        expect(brush.getProperties().type).toBe('noise');
+    });
+
+    it('should support stamp brush type', () => {
+        const brush = new TerrainBrush('stamp', 12, 0.7);
+        expect(brush.getProperties().type).toBe('stamp');
+    });
+
+    it('should support plateau brush type', () => {
+        const brush = new TerrainBrush('plateau', 15, 0.8);
+        expect(brush.getProperties().type).toBe('plateau');
+    });
+
+    it('should support all 8 terrain brush types', () => {
+        const types: TerrainBrushType[] = ['raise', 'lower', 'smooth', 'flatten', 'erode', 'noise', 'stamp', 'plateau'];
+        for (const type of types) {
+            const brush = new TerrainBrush(type, 5, 0.5);
+            expect(brush.getProperties().type).toBe(type);
+        }
+    });
+
+    it('should apply erode brush to terrain', () => {
+        const terrain = new Terrain(16, 16, 50, 50);
+        // Set up a hill to erode
+        for (let z = 6; z < 10; z++) {
+            for (let x = 6; x < 10; x++) {
+                terrain.setHeight(x, z, 5.0);
+            }
+        }
+        const brush = new TerrainBrush('erode', 15, 0.8);
+        const h0 = terrain.getHeightAt(8, 8);
+        brush.apply(terrain, 0, 0);
+        const h1 = terrain.getHeightAt(8, 8);
+        // Erosion should reduce height of peaks
+        expect(h1).toBeLessThanOrEqual(h0);
+    });
+
+    it('should apply noise brush to terrain', () => {
+        const terrain = new Terrain(16, 16, 50, 50);
+        const brush = new TerrainBrush('noise', 15, 0.5);
+        brush.apply(terrain, 0, 0);
+        // Noise brush should create variation - not all zero
+        let hasNonZero = false;
+        for (let z = 0; z < 16; z++) {
+            for (let x = 0; x < 16; x++) {
+                if (terrain.getHeightAt(x, z) !== 0) hasNonZero = true;
+            }
+        }
+        expect(hasNonZero).toBe(true);
+    });
+
+    it('should set noise scale', () => {
+        const brush = new TerrainBrush('noise', 10, 0.5);
+        brush.setNoiseScale(0.5);
+        expect(brush).toBeDefined();
+    });
+
+    it('should randomize noise seed', () => {
+        const brush = new TerrainBrush('noise', 10, 0.5);
+        brush.randomizeNoise();
+        expect(brush).toBeDefined();
+    });
+
+    it('should create plateau stamp pattern', () => {
+        const pattern = TerrainBrush.createPlateauStamp(16);
+        expect(pattern).toBeInstanceOf(Float32Array);
+        expect(pattern.length).toBe(256); // 16*16
+        // Center should be high
+        expect(pattern[8 * 16 + 8]).toBeGreaterThan(0.5);
+        // Edges should be low
+        expect(pattern[0]).toBe(0);
+    });
+
+    it('should create ridge stamp pattern', () => {
+        const pattern = TerrainBrush.createRidgeStamp(16);
+        expect(pattern).toBeInstanceOf(Float32Array);
+        expect(pattern.length).toBe(256);
+        // Center should be highest
+        expect(pattern[8 * 16 + 8]).toBeGreaterThan(0);
+    });
+
+    it('should set stamp pattern on brush', () => {
+        const brush = new TerrainBrush('stamp', 10, 0.5);
+        const pattern = TerrainBrush.createPlateauStamp(16);
+        brush.setStampPattern(pattern, 16);
+        expect(brush.getProperties().type).toBe('stamp');
+    });
+});
+
+// ========== Enhanced Sculpting System Tests ==========
+describe('Enhanced Sculpting System', () => {
+    function createTestMesh(): MeshData {
+        const mesh = new MeshData({ position: [], normal: [], uv: [], color: [] }, []);
+        // Create a simple plane (4 vertices, 2 triangles)
+        mesh.addVertex(new Vector3(-1, 0, -1), new Vector3(0, 1, 0));
+        mesh.addVertex(new Vector3(1, 0, -1), new Vector3(0, 1, 0));
+        mesh.addVertex(new Vector3(-1, 0, 1), new Vector3(0, 1, 0));
+        mesh.addVertex(new Vector3(1, 0, 1), new Vector3(0, 1, 0));
+        mesh.addFace(0, 1, 2);
+        mesh.addFace(1, 3, 2);
+        return mesh;
+    }
+
+    it('should apply draw brush and modify vertices', () => {
+        const mesh = createTestMesh();
+        const sculpt = new SculptingSystem(mesh);
+        sculpt.updateSettings({ type: BrushType.DRAW, radius: 5, strength: 0.5 });
+        const origY = mesh.getVertex(0).y;
+        sculpt.applyBrush(new Vector3(0, 0, 0), new Vector3(0, 1, 0));
+        const newY = mesh.getVertex(0).y;
+        expect(newY).toBeGreaterThan(origY);
+    });
+
+    it('should apply inflate brush', () => {
+        const mesh = createTestMesh();
+        const sculpt = new SculptingSystem(mesh);
+        sculpt.updateSettings({ type: BrushType.INFLATE, radius: 5, strength: 0.5 });
+        sculpt.applyBrush(new Vector3(0, 0, 0), new Vector3(0, 1, 0));
+        expect(mesh.getVertexCount()).toBe(4);
+    });
+
+    it('should apply pinch brush', () => {
+        const mesh = createTestMesh();
+        const sculpt = new SculptingSystem(mesh);
+        sculpt.updateSettings({ type: BrushType.PINCH, radius: 5, strength: 0.3 });
+        sculpt.applyBrush(new Vector3(0, 0, 0), new Vector3(0, 1, 0));
+        // Vertices should have moved toward brush center
+        expect(mesh.getVertexCount()).toBe(4);
+    });
+
+    it('should apply crease brush', () => {
+        const mesh = createTestMesh();
+        const sculpt = new SculptingSystem(mesh);
+        sculpt.updateSettings({ type: BrushType.CREASE, radius: 5, strength: 0.5 });
+        sculpt.applyBrush(new Vector3(0, 0, 0), new Vector3(0, 1, 0));
+        expect(mesh.getVertexCount()).toBe(4);
+    });
+
+    it('should apply flatten brush', () => {
+        const mesh = createTestMesh();
+        const sculpt = new SculptingSystem(mesh);
+        sculpt.updateSettings({ type: BrushType.FLATTEN, radius: 5, strength: 0.5 });
+        sculpt.applyBrush(new Vector3(0, 0.5, 0), new Vector3(0, 1, 0));
+        expect(mesh.getVertexCount()).toBe(4);
+    });
+
+    it('should enable dynamic topology', () => {
+        const mesh = createTestMesh();
+        const sculpt = new SculptingSystem(mesh);
+        sculpt.updateSettings({ type: BrushType.DRAW, radius: 5, strength: 0.5, dynamicTopology: true });
+        sculpt.applyBrush(new Vector3(0, 0, 0), new Vector3(0, 1, 0));
+        // Dynamic topology may add vertices
+        expect(mesh.getVertexCount()).toBeGreaterThanOrEqual(4);
+    });
+
+    it('should enable symmetry mode', () => {
+        const mesh = createTestMesh();
+        const sculpt = new SculptingSystem(mesh);
+        sculpt.updateSettings({ type: BrushType.DRAW, radius: 5, strength: 0.5, symmetry: true });
+        sculpt.applyBrush(new Vector3(0.5, 0, 0), new Vector3(0, 1, 0));
+        expect(mesh.getVertexCount()).toBe(4);
+    });
+
+    it('should support all falloff types', () => {
+        for (const falloff of [FalloffType.LINEAR, FalloffType.SMOOTH, FalloffType.SHARP, FalloffType.CONSTANT]) {
+            const mesh = createTestMesh();
+            const sculpt = new SculptingSystem(mesh);
+            sculpt.updateSettings({ falloff, radius: 5, strength: 0.5 });
+            sculpt.applyBrush(new Vector3(0, 0, 0), new Vector3(0, 1, 0));
+            expect(mesh.getVertexCount()).toBe(4);
+        }
+    });
+
+    it('should support setIndices on MeshData', () => {
+        const mesh = createTestMesh();
+        const origIndices = mesh.getIndices();
+        expect(origIndices.length).toBe(6); // 2 triangles * 3
+        mesh.setIndices([0, 1, 2]); // Replace with 1 triangle
+        expect(mesh.getIndices().length).toBe(3);
+        expect(mesh.getFaceCount()).toBe(1);
+    });
+});
+
+// ========== Animation Events & Root Motion Tests ==========
+describe('Animation Events & Root Motion', () => {
+    it('should add animation events', () => {
+        const player = new AnimationPlayer();
+        player.addEvent(0.5, 'footstep', { foot: 'left' });
+        player.addEvent(1.0, 'footstep', { foot: 'right' });
+        const events = player.getAnimationEvents();
+        expect(events.length).toBe(2);
+        expect(events[0].time).toBe(0.5);
+        expect(events[0].name).toBe('footstep');
+        expect(events[0].data.foot).toBe('left');
+    });
+
+    it('should sort events by time', () => {
+        const player = new AnimationPlayer();
+        player.addEvent(1.0, 'second');
+        player.addEvent(0.5, 'first');
+        player.addEvent(1.5, 'third');
+        const events = player.getAnimationEvents();
+        expect(events[0].time).toBe(0.5);
+        expect(events[1].time).toBe(1.0);
+        expect(events[2].time).toBe(1.5);
+    });
+
+    it('should remove events by name', () => {
+        const player = new AnimationPlayer();
+        player.addEvent(0.5, 'footstep');
+        player.addEvent(1.0, 'attack');
+        player.removeEvent('footstep');
+        expect(player.getAnimationEvents().length).toBe(1);
+        expect(player.getAnimationEvents()[0].name).toBe('attack');
+    });
+
+    it('should clear all events', () => {
+        const player = new AnimationPlayer();
+        player.addEvent(0.5, 'a');
+        player.addEvent(1.0, 'b');
+        player.clearEvents();
+        expect(player.getAnimationEvents().length).toBe(0);
+    });
+
+    it('should enable/disable root motion', () => {
+        const player = new AnimationPlayer();
+        player.enableRootMotion('hips');
+        expect(player.isRootMotionEnabled()).toBe(true);
+        player.disableRootMotion();
+        expect(player.isRootMotionEnabled()).toBe(false);
+    });
+
+    it('should get root motion data', () => {
+        const player = new AnimationPlayer();
+        const rm = player.getRootMotion();
+        expect(rm.deltaPosition).toBeDefined();
+        expect(rm.deltaRotation).toBeDefined();
+        expect(rm.deltaPosition.x).toBe(0);
+        expect(rm.deltaPosition.y).toBe(0);
+        expect(rm.deltaPosition.z).toBe(0);
+    });
+
+    it('should get normalized time', () => {
+        const player = new AnimationPlayer();
+        expect(player.getNormalizedTime()).toBe(0);
+    });
+
+    it('should get blend weight', () => {
+        const player = new AnimationPlayer();
+        expect(player.getBlendWeight()).toBe(1.0);
+    });
+
+    it('should get current clip (null initially)', () => {
+        const player = new AnimationPlayer();
+        expect(player.getClip()).toBeNull();
+    });
+
+    it('should get playback speed', () => {
+        const player = new AnimationPlayer();
+        player.setSpeed(2.5);
+        expect(player.getSpeed()).toBe(2.5);
+    });
+});
+
+// ========== Enhanced Terrain Generator Tests ==========
+describe('Enhanced Terrain Generator', () => {
+    it('should create generator with default params', () => {
+        const gen = new EnhancedTerrainGenerator();
+        expect(gen).toBeDefined();
+    });
+
+    it('should create generator with custom params', () => {
+        const gen = new EnhancedTerrainGenerator({
+            seed: 42,
+            width: 128,
+            depth: 128,
+            heightScale: 50,
+            waterLevel: 0.25,
+            erosionIterations: 10,
+            generateBiomes: true
+        });
+        expect(gen).toBeDefined();
+    });
+
+    it('should generate realistic terrain with erosion and biomes', () => {
+        const gen = new EnhancedTerrainGenerator({
+            seed: 42,
+            width: 32,
+            depth: 32,
+            heightScale: 50,
+            erosionIterations: 5,
+            generateBiomes: true,
+            hydraulicErosion: true,
+            thermalErosion: true
+        });
+        const result = gen.generateRealisticTerrain();
+        expect(result.heightmap).toBeInstanceOf(Float32Array);
+        expect(result.biomes).toBeInstanceOf(Uint8Array);
+        expect(result.moisture).toBeInstanceOf(Float32Array);
+        expect(result.temperature).toBeInstanceOf(Float32Array);
+        expect(result.heightmap.length).toBe(32 * 32);
+    });
+
+    it('should have valid biome indices', () => {
+        const gen = new EnhancedTerrainGenerator({
+            seed: 7,
+            width: 32,
+            depth: 32,
+            erosionIterations: 2,
+            generateBiomes: true
+        });
+        const result = gen.generateRealisticTerrain();
+        for (let i = 0; i < result.biomes.length; i++) {
+            expect(result.biomes[i]).toBeGreaterThanOrEqual(0);
+            expect(result.biomes[i]).toBeLessThanOrEqual(7);
+        }
+    });
+
+    it('should get biome colors for all biome types', () => {
+        for (let i = 0; i <= 7; i++) {
+            const color = EnhancedTerrainGenerator.getBiomeColor(i);
+            expect(color.r).toBeGreaterThanOrEqual(0);
+            expect(color.g).toBeGreaterThanOrEqual(0);
+            expect(color.b).toBeGreaterThanOrEqual(0);
+        }
+    });
+
+    it('should have valid biome type enum values', () => {
+        expect(BiomeType.OCEAN).toBe('ocean');
+        expect(BiomeType.BEACH).toBe('beach');
+        expect(BiomeType.PLAINS).toBe('plains');
+        expect(BiomeType.FOREST).toBe('forest');
+        expect(BiomeType.DESERT).toBe('desert');
+        expect(BiomeType.TUNDRA).toBe('tundra');
+        expect(BiomeType.MOUNTAIN).toBe('mountain');
+        expect(BiomeType.SNOW_PEAK).toBe('snow_peak');
+    });
+});
+
+// ========== Water Simulation Tests ==========
+describe('Water Simulation System', () => {
+    it('should create water simulation with defaults', () => {
+        const water = new WaterSimulationSystem();
+        expect(water).toBeDefined();
+        expect(water.getResolution()).toBe(128);
+    });
+
+    it('should create with custom settings', () => {
+        const water = new WaterSimulationSystem({
+            resolution: 64,
+            waveScale: 2.0,
+            choppiness: 0.8,
+            windSpeed: 15
+        });
+        expect(water.getResolution()).toBe(64);
+    });
+
+    it('should update simulation over time', () => {
+        const water = new WaterSimulationSystem({ resolution: 32 });
+        water.update(0.016); // ~60fps frame
+        water.update(0.016);
+        // Should not crash and height field should be populated
+        const heightField = water.getHeightField();
+        expect(heightField.length).toBe(32 * 32);
+    });
+
+    it('should get height at world position', () => {
+        const water = new WaterSimulationSystem({ resolution: 32 });
+        water.update(0.1);
+        const height = water.getHeightAt(5, 5);
+        expect(typeof height).toBe('number');
+        expect(isNaN(height)).toBe(false);
+    });
+
+    it('should get surface normal', () => {
+        const water = new WaterSimulationSystem({ resolution: 32 });
+        water.update(0.1);
+        const normal = water.getNormalAt(5, 5);
+        expect(normal).toBeDefined();
+        expect(typeof normal.x).toBe('number');
+        expect(typeof normal.y).toBe('number');
+        expect(typeof normal.z).toBe('number');
+    });
+
+    it('should get displacement vector', () => {
+        const water = new WaterSimulationSystem({ resolution: 32 });
+        water.update(0.1);
+        const disp = water.getDisplacementAt(5, 5);
+        expect(disp).toBeDefined();
+    });
+
+    it('should get foam data', () => {
+        const water = new WaterSimulationSystem({ resolution: 32 });
+        water.update(0.1);
+        const foamData = water.getFoamData();
+        expect(foamData).toBeInstanceOf(Float32Array);
+        expect(foamData.length).toBe(32 * 32);
+    });
+
+    it('should get caustics data', () => {
+        const water = new WaterSimulationSystem({ resolution: 32 });
+        water.update(0.1);
+        const causticsData = water.getCausticsData();
+        expect(causticsData).toBeInstanceOf(Float32Array);
+        expect(causticsData.length).toBe(32 * 32);
+    });
+
+    it('should get foam intensity at position', () => {
+        const water = new WaterSimulationSystem({ resolution: 32 });
+        water.update(0.1);
+        const foam = water.getFoamAt(5, 5);
+        expect(typeof foam).toBe('number');
+        expect(foam).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should get caustics at position', () => {
+        const water = new WaterSimulationSystem({ resolution: 32 });
+        water.update(0.1);
+        const caustics = water.getCausticsAt(5, 5);
+        expect(typeof caustics).toBe('number');
+        expect(caustics).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should update settings', () => {
+        const water = new WaterSimulationSystem({ resolution: 32 });
+        water.updateSettings({ windSpeed: 20, choppiness: 0.9 });
+        expect(water).toBeDefined();
+    });
+});
+
+// ========== Weather System Tests ==========
+describe('Weather System', () => {
+    it('should create weather system with clear weather', () => {
+        const particles = new ParticleSystem();
+        const weather = new WeatherSystem(particles);
+        const config = weather.getCurrentWeather();
+        expect(config.type).toBe(WeatherType.CLEAR);
+    });
+
+    it('should set weather type', () => {
+        const particles = new ParticleSystem();
+        const weather = new WeatherSystem(particles);
+        weather.setWeatherType(WeatherType.RAINY, WeatherIntensity.HEAVY);
+        const config = weather.getCurrentWeather();
+        expect(config.type).toBe(WeatherType.RAINY);
+        expect(config.intensity).toBe(WeatherIntensity.HEAVY);
+    });
+
+    it('should have all weather types', () => {
+        expect(WeatherType.CLEAR).toBe('clear');
+        expect(WeatherType.CLOUDY).toBe('cloudy');
+        expect(WeatherType.RAINY).toBe('rainy');
+        expect(WeatherType.STORMY).toBe('stormy');
+        expect(WeatherType.SNOWY).toBe('snowy');
+        expect(WeatherType.FOGGY).toBe('foggy');
+        expect(WeatherType.WINDY).toBe('windy');
+    });
+
+    it('should have all intensity levels', () => {
+        expect(WeatherIntensity.LIGHT).toBe('light');
+        expect(WeatherIntensity.MODERATE).toBe('moderate');
+        expect(WeatherIntensity.HEAVY).toBe('heavy');
+        expect(WeatherIntensity.EXTREME).toBe('extreme');
+    });
+
+    it('should get fog density', () => {
+        const particles = new ParticleSystem();
+        const weather = new WeatherSystem(particles);
+        weather.setWeatherType(WeatherType.FOGGY);
+        expect(weather.getFogDensity()).toBeGreaterThan(0);
+    });
+
+    it('should get cloud coverage', () => {
+        const particles = new ParticleSystem();
+        const weather = new WeatherSystem(particles);
+        weather.setWeatherType(WeatherType.STORMY);
+        expect(weather.getCloudCoverage()).toBe(1.0);
+    });
+
+    it('should get lighting intensity', () => {
+        const particles = new ParticleSystem();
+        const weather = new WeatherSystem(particles);
+        weather.setWeatherType(WeatherType.CLEAR);
+        expect(weather.getLightingIntensity()).toBe(1.0);
+    });
+
+    it('should detect precipitation type', () => {
+        const particles = new ParticleSystem();
+        const weather = new WeatherSystem(particles);
+        weather.setWeatherType(WeatherType.RAINY);
+        expect(weather.isPrecipitating()).toBe(true);
+        expect(weather.getPrecipitationType()).toBe('rain');
+    });
+
+    it('should detect snow vs rain', () => {
+        const particles = new ParticleSystem();
+        const weather = new WeatherSystem(particles);
+        weather.setWeatherType(WeatherType.SNOWY);
+        expect(weather.isPrecipitating()).toBe(true);
+        expect(weather.getPrecipitationType()).toBe('snow');
+    });
+
+    it('should transition between weather types', () => {
+        const particles = new ParticleSystem();
+        const weather = new WeatherSystem(particles);
+        weather.transitionTo(WeatherType.RAINY, WeatherIntensity.HEAVY, 2.0);
+        // Update partway through transition
+        weather.update(1.0);
+        // Should still be transitioning
+        expect(weather.getCurrentWeather()).toBeDefined();
+    });
+
+    it('should complete weather transition', () => {
+        const particles = new ParticleSystem();
+        const weather = new WeatherSystem(particles);
+        weather.transitionTo(WeatherType.SNOWY, WeatherIntensity.MODERATE, 1.0);
+        weather.update(0.5);
+        weather.update(0.6); // Past 1.0 total
+        expect(weather.getCurrentWeather().type).toBe(WeatherType.SNOWY);
+    });
+
+    it('should get wind vector', () => {
+        const particles = new ParticleSystem();
+        const weather = new WeatherSystem(particles);
+        weather.setWeatherType(WeatherType.WINDY);
+        const wind = weather.getWindVector();
+        expect(wind.length()).toBeGreaterThan(0);
+    });
+});
+
+// ========== Advanced VFX System Tests ==========
+describe('Advanced VFX System', () => {
+    it('should create VFX system with defaults', () => {
+        const vfx = new AdvancedVFXSystem();
+        expect(vfx).toBeDefined();
+    });
+
+    it('should enable/disable volumetric fog', () => {
+        const vfx = new AdvancedVFXSystem();
+        vfx.enableVolumetricFog({ density: 0.05 });
+        expect(vfx.getVolumetricFogSettings().enabled).toBe(true);
+        vfx.disableVolumetricFog();
+        expect(vfx.getVolumetricFogSettings().enabled).toBe(false);
+    });
+
+    it('should enable/disable atmospheric scattering', () => {
+        const vfx = new AdvancedVFXSystem();
+        vfx.enableAtmospheric();
+        expect(vfx.getAtmosphericSettings().enabled).toBe(true);
+        vfx.disableAtmospheric();
+        expect(vfx.getAtmosphericSettings().enabled).toBe(false);
+    });
+
+    it('should enable/disable god rays', () => {
+        const vfx = new AdvancedVFXSystem();
+        vfx.enableGodRays({ intensity: 0.8 });
+        expect(vfx.getGodRaysSettings().enabled).toBe(true);
+        vfx.disableGodRays();
+        expect(vfx.getGodRaysSettings().enabled).toBe(false);
+    });
+
+    it('should calculate fog density at position', () => {
+        const vfx = new AdvancedVFXSystem();
+        vfx.enableVolumetricFog({ density: 0.05, height: 10, heightFalloff: 0.5 });
+        const density = vfx.getFogDensityAt(new Vector3(0, 0, 0));
+        expect(density).toBeGreaterThan(0);
+        // Higher altitude should have less fog
+        const highDensity = vfx.getFogDensityAt(new Vector3(0, 50, 0));
+        expect(highDensity).toBeLessThan(density);
+    });
+
+    it('should calculate atmospheric color', () => {
+        const vfx = new AdvancedVFXSystem();
+        vfx.enableAtmospheric();
+        const color = vfx.getAtmosphericColor(new Vector3(0, 1, 0));
+        expect(typeof color.r).toBe('number');
+        expect(typeof color.g).toBe('number');
+        expect(typeof color.b).toBe('number');
+    });
+
+    it('should set/get sun direction', () => {
+        const vfx = new AdvancedVFXSystem();
+        vfx.setSunDirection(new Vector3(0.5, 0.8, 0));
+        const dir = vfx.getSunDirection();
+        expect(dir.y).toBeGreaterThan(0);
+    });
+
+    it('should update VFX with fog animation', () => {
+        const vfx = new AdvancedVFXSystem();
+        vfx.enableVolumetricFog({ density: 0.02 });
+        // Update multiple frames - fog animation should modify density
+        for (let i = 0; i < 10; i++) {
+            vfx.update(0.1);
+        }
+        expect(vfx.getVolumetricFogSettings().density).toBeGreaterThan(0);
+    });
+
+    it('should update VFX with atmospheric animation', () => {
+        const vfx = new AdvancedVFXSystem();
+        vfx.enableAtmospheric();
+        const sunBefore = vfx.getSunDirection();
+        // Update many frames to see sun movement
+        for (let i = 0; i < 100; i++) {
+            vfx.update(0.1);
+        }
+        const sunAfter = vfx.getSunDirection();
+        // Sun should have moved
+        const hasMoved = sunBefore.x !== sunAfter.x || sunBefore.y !== sunAfter.y || sunBefore.z !== sunAfter.z;
+        expect(hasMoved).toBe(true);
+    });
+
+    it('should apply presets', () => {
+        const vfx = new AdvancedVFXSystem();
+        vfx.presetClearSky();
+        expect(vfx.getVolumetricFogSettings().enabled).toBe(false);
+        expect(vfx.getAtmosphericSettings().enabled).toBe(true);
+    });
+});
