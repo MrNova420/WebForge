@@ -156,7 +156,7 @@ export class Terrain {
         
         // Normalize
         const normal = new Vector3(nx, 1, nz);
-        normal.normalize();
+        normal.normalizeSelf();
         
         return normal;
     }

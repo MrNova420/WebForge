@@ -255,7 +255,7 @@ export class RigidBody {
     
     // Apply rotation
     const rotationMatrix = this.rotation.toMatrix4();
-    matrix.multiply(rotationMatrix);
+    matrix.multiplySelf(rotationMatrix);
     
     // Apply translation
     const translationMatrix = Matrix4.translation(this.position);

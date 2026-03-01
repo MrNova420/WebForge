@@ -81,7 +81,7 @@ class ContactConstraint {
     const tangentLength = tangent.length();
     if (tangentLength < 0.001) return;
     
-    tangent.divideScalar(tangentLength);
+    tangent.divideScalarSelf(tangentLength);
     
     // Friction coefficient
     const friction = Math.sqrt(

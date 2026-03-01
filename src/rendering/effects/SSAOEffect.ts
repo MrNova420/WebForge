@@ -86,7 +86,7 @@ export class SSAOEffect extends BasePostEffect {
         Math.random() * 2.0 - 1.0,
         Math.random()
       );
-      sample.normalize();
+      sample.normalizeSelf();
       
       // Scale samples
       let scale = i / this._samples;

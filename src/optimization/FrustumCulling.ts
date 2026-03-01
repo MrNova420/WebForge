@@ -36,7 +36,7 @@ export class Plane {
   normalize(): this {
     const length = this.normal.length();
     if (length > 0) {
-      this.normal.divideScalar(length);
+      this.normal.divideScalarSelf(length);
       this.distance /= length;
     }
     return this;

@@ -159,7 +159,7 @@ export class AnimationBlender {
     if (v0 instanceof Vector3) {
       const result = new Vector3();
       for (const { value, weight } of values) {
-        result.add(value.clone().multiplyScalar(weight / totalWeight));
+        result.addSelf(value.clone().multiplyScalar(weight / totalWeight));
       }
       return result;
     }

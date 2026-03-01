@@ -1988,7 +1988,7 @@ export class EditorRenderer {
         
         const center = new Vector3();
         for (const obj of objects) {
-            center.add(obj.transform.position);
+            center.addSelf(obj.transform.position);
         }
         return center.multiplyScalar(1 / objects.length);
     }
