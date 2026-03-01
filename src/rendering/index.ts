@@ -23,3 +23,4 @@ export * from './effects/SSAOEffect';
 export * from './effects/ToneMappingEffect';
 export * from './shaders/PBRShaders';
 export * from './shaders/ShadowShaders';
+export * from './Sprite2D';
