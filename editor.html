@@ -1577,8 +1577,12 @@
                     case 'save-scene': {
                         const json = editor.saveScene();
                         if (json) {
-                            try { localStorage.setItem('webforge-scene', json); } catch (_e) { /* ignore */ }
-                            ui.log('Scene saved to browser storage', 'success');
+                            try {
+                                localStorage.setItem('webforge-scene', json);
+                                ui.log('Scene saved to browser storage', 'success');
+                            } catch (storageErr) {
+                                ui.log('Failed to save: browser storage quota exceeded', 'error');
+                            }
                         }
                         break;
                     }
@@ -1653,11 +1657,9 @@
                         } else {
                             const compName = action.replace('add-', '');
                             selected.forEach(obj => {
-                                if (!obj._components) obj._components = [];
-                                obj._components.push({ type: compName, enabled: true });
+                                ui.addComponentToObject(obj, compName);
                             });
                             ui.log(`Added ${compName} component to ${selected.length} object(s)`, 'success');
-                            // Refresh inspector
                             editor.getEvents().emit('selectionChanged', selected);
                         }
                         break;
@@ -1718,30 +1720,44 @@
                 this.currentDragType = null;
             }
 
+            // Helper: convert [r,g,b] (0-1 range) to #rrggbb hex string
+            rgbToHex(color) {
+                if (!color || color.length < 3) return '#ffffff';
+                return '#' + color.map(c => Math.round(c * 255).toString(16).padStart(2, '0')).join('');
+            }
+
+            // Helper: add a component to a GameObject
+            addComponentToObject(obj, type) {
+                if (!obj._components) obj._components = [];
+                obj._components.push({ type, enabled: true });
+            }
+
             async initialize() {
                 // Get canvas
                 const canvas = document.getElementById('scene-canvas');
                 
                 // Check if we have a saved scene in localStorage
                 const savedScene = localStorage.getItem('webforge-scene');
-                const hasSavedScene = savedScene && savedScene.length > 10;
+                const hasValidSavedScene = savedScene && savedScene.length > 10;
 
                 // Create editor application
                 this.editor = new EditorApplication({
                     canvas: canvas,
                     debug: true,
-                    createDemoScene: !hasSavedScene
+                    createDemoScene: !hasValidSavedScene
                 });
 
                 // Initialize editor
                 await this.editor.initialize();
 
                 // Load saved scene if available
-                if (hasSavedScene) {
+                let restoredSavedScene = false;
+                if (hasValidSavedScene) {
                     try {
                         this.editor.loadScene(savedScene);
+                        restoredSavedScene = true;
                     } catch (_e) {
-                        // Fall back to demo scene on load failure
+                        console.warn('Failed to restore saved scene, loading demo instead');
                         this.editor.getScene()?.createDemoScene();
                     }
                 }
@@ -1762,8 +1778,10 @@
                 // Initial UI update
                 this.updateHierarchy();
                 this.log('WebForge Editor initialized', 'success');
-                if (hasSavedScene) {
+                if (restoredSavedScene) {
                     this.log('Restored scene from browser storage', 'info');
+                } else if (hasValidSavedScene) {
+                    this.log('Saved scene failed to load — loaded demo scene', 'warn');
                 } else {
                     this.log('Loading demo scene...', 'info');
                 }
@@ -2245,7 +2263,7 @@
                             <div class="property-row">
                                 <span class="property-label">Color</span>
                                 <div class="property-input">
-                                    <input type="color" value="${obj.lightColor ? '#' + obj.lightColor.map(c => Math.round(c * 255).toString(16).padStart(2, '0')).join('') : '#ffffff'}"
+                                    <input type="color" value="${this.rgbToHex(obj.lightColor)}"
                                            style="width: 50px; height: 24px; border: none; background: none; cursor: pointer;">
                                 </div>
                             </div>
@@ -2389,8 +2407,7 @@
                     item.onmouseenter = () => item.style.background = '#094771';
                     item.onmouseleave = () => item.style.background = '';
                     item.onclick = () => {
-                        if (!obj._components) obj._components = [];
-                        obj._components.push({ type: comp.type, enabled: true });
+                        this.addComponentToObject(obj, comp.type);
                         this.log(`Added ${comp.label} to ${obj.name}`, 'success');
                         dropdown.remove();
                         this.editor.getEvents().emit('selectionChanged', [obj]);
@@ -2648,8 +2665,12 @@
                         e.preventDefault();
                         const json = this.editor.saveScene();
                         if (json) {
-                            try { localStorage.setItem('webforge-scene', json); } catch (_err) { /* ignore */ }
-                            this.log('Scene saved to browser storage', 'success');
+                            try {
+                                localStorage.setItem('webforge-scene', json);
+                                this.log('Scene saved to browser storage', 'success');
+                            } catch (_err) {
+                                this.log('Failed to save: browser storage quota exceeded', 'error');
+                            }
                         }
                     }
                     // Ctrl+Shift+S = Save As (download file)
