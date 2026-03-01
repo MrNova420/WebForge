@@ -2,16 +2,16 @@
 
 **The Ultimate Web Game Development Platform**
 
-[![Status](https://img.shields.io/badge/status-alpha-green)]()
+[![Status](https://img.shields.io/badge/status-beta-green)]()
 [![Version](https://img.shields.io/badge/version-1.0.0-blue)]()
-[![Tests](https://img.shields.io/badge/tests-476%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-538%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ---
 
 ## ⚠️ Development Status — Honest Notes
 
-> **The engine is feature-complete for game development.** 221 TypeScript source files, 215 compiled modules, 476 passing tests. The `WebForge` facade creates real `Scene`, `GameObject`, `Camera`, and `PhysicsWorld` instances. All editor panels are wired and interactive. Full game runtime systems are in place.
+> **The engine is feature-complete for game development.** 224 TypeScript source files, 230 compiled modules, 538 passing tests. The `WebForge` facade creates real `Scene`, `GameObject`, `Camera`, and `PhysicsWorld` instances. All editor panels are wired and interactive. Full game runtime systems are in place.
 
 ### ✅ Engine API — fully wired
 - `WebForge` facade uses real `Engine`, `Scene`, `GameObject`, `Camera`, `PhysicsWorld` classes
@@ -20,12 +20,12 @@
 - Physics runs on fixed-update loop with GJK collision detection
 - Landing page code example is a working, tested code path (see tests)
 
-### ✅ Backend — fully implemented (`src/`, 221 files across 33 modules)
+### ✅ Backend — fully implemented (`src/`, 224 files across 33 modules)
 - **Core engine** — event system, input (rebindable action maps), resource manager, game state machine
 - **Rendering** — WebGL pipeline, PBR, shadow maps, post-processing (SSAO, DOF, motion blur), 2D sprites/tilemaps
 - **Scene graph** — GameObject, Scene, world streaming (chunk-based open world), scene serialization
-- **Animation** — skeletal animation, blend trees, state machines, IK, root motion, events
-- **Physics** — rigid bodies, collision shapes (GJK), constraints, raycasting (single + all)
+- **Animation** — skeletal animation, blend trees, state machines, IK, root motion, events, morph targets/facial animation
+- **Physics** — rigid bodies, collision shapes (GJK), constraints, raycasting, vehicle physics, soft body simulation, compound shapes, trigger volumes
 - **Terrain** — heightmaps, 8 brush types, noise generation, layer painting, import/export
 - **Particles, VFX, Water, Weather** — GPU particles, atmospheric fog, day/night cycle, presets
 - **AI** — NavMesh pathfinding, behavior trees, steering behaviors

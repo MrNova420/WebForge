@@ -175,7 +175,7 @@ export class VehiclePhysics {
   /**
    * Steps the vehicle simulation
    * @param dt - Delta time in seconds
-   * @param groundHeight - Function returning ground height at a position
+   * @param groundHeight - Function returning ground height at a world (x,z) position. Defaults to flat ground at y=0.
    */
   update(dt: number, groundHeight: (x: number, z: number) => number = () => 0): void {
     if (dt <= 0) return;

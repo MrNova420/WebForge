@@ -313,9 +313,15 @@ export class MorphTargetSystem {
 
   /**
    * Updates the morph target system
+   * Resets weights before applying active clips to prevent accumulation.
    * @param dt - Delta time in seconds
    */
   update(dt: number): void {
+    // Reset weights before applying clips to prevent additive accumulation
+    if (this.activeClips.length > 0) {
+      this.resetWeights();
+    }
+    
     // Update clip playback
     const finishedClips: number[] = [];
     
