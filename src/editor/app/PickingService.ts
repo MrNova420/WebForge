@@ -309,7 +309,7 @@ export class PickingService implements IPickingService {
         const normal = Vector3.zero();
         if (tminAxis === 0) normal.x = tminSign;
         else if (tminAxis === 1) normal.y = tminSign;
-        else normal.z = tminAxis === 2 ? tminSign : 1;
+        else normal.z = tminSign;
 
         return { t, normal };
     }

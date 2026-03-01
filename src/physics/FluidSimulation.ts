@@ -91,11 +91,15 @@ export class SpatialHashGrid {
 
   /**
    * Inserts a particle index at the given world-space position.
+   * @param index - Particle index
+   * @param x - World X coordinate
+   * @param y - World Y coordinate
+   * @param z - World Z coordinate
    */
-  insert(index: number, position: Vector3): void {
-    const cx = Math.floor(position.x * this._inverseCellSize);
-    const cy = Math.floor(position.y * this._inverseCellSize);
-    const cz = Math.floor(position.z * this._inverseCellSize);
+  insert(index: number, x: number, y: number, z: number): void {
+    const cx = Math.floor(x * this._inverseCellSize);
+    const cy = Math.floor(y * this._inverseCellSize);
+    const cz = Math.floor(z * this._inverseCellSize);
     const key = this._hash(cx, cy, cz);
     const bucket = this._cells.get(key);
     if (bucket) {
@@ -107,11 +111,15 @@ export class SpatialHashGrid {
 
   /**
    * Returns indices of all particles in neighboring cells (3×3×3 block).
+   * @param x - World X coordinate
+   * @param y - World Y coordinate
+   * @param z - World Z coordinate
+   * @param _radius - Unused (kept for API compatibility with tests)
    */
-  query(position: Vector3): number[] {
-    const cx = Math.floor(position.x * this._inverseCellSize);
-    const cy = Math.floor(position.y * this._inverseCellSize);
-    const cz = Math.floor(position.z * this._inverseCellSize);
+  query(x: number, y: number, z: number, _radius?: number): number[] {
+    const cx = Math.floor(x * this._inverseCellSize);
+    const cy = Math.floor(y * this._inverseCellSize);
+    const cz = Math.floor(z * this._inverseCellSize);
     const result: number[] = [];
 
     for (let dx = -1; dx <= 1; dx++) {
@@ -308,14 +316,15 @@ export class FluidSimulation {
     // 1. Build spatial hash grid
     this._grid.clear();
     for (let i = 0; i < count; i++) {
-      this._grid.insert(i, particles[i].position);
+      const pos = particles[i].position;
+      this._grid.insert(i, pos.x, pos.y, pos.z);
     }
 
     // 2. Compute density and pressure
     for (let i = 0; i < count; i++) {
       const pi = particles[i];
       let density = 0;
-      const neighbors = this._grid.query(pi.position);
+      const neighbors = this._grid.query(pi.position.x, pi.position.y, pi.position.z);
 
       for (let n = 0; n < neighbors.length; n++) {
         const pj = particles[neighbors[n]];
@@ -337,7 +346,7 @@ export class FluidSimulation {
     for (let i = 0; i < count; i++) {
       const pi = particles[i];
       let fx = 0, fy = 0, fz = 0;
-      const neighbors = this._grid.query(pi.position);
+      const neighbors = this._grid.query(pi.position.x, pi.position.y, pi.position.z);
 
       for (let n = 0; n < neighbors.length; n++) {
         const j = neighbors[n];
@@ -541,7 +550,7 @@ export class FluidSimulation {
   /**
    * Creates a spherical droplet of fluid particles centred at the given position.
    *
-   * @param center - Centre of the droplet
+   * @param center - Center of the droplet
    * @param radius - Radius of the droplet
    * @param spacing - Distance between particles (defaults to particleRadius * 2)
    */

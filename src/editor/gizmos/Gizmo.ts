@@ -141,13 +141,14 @@ export abstract class Gizmo {
     
     /**
      * Renders the gizmo using batched draw calls.
-     * Refreshes the VP matrix cache, collects all draw primitives,
+     * Marks VP cache dirty (camera may have moved), collects all draw primitives,
      * then flushes them in a single canvas pass.
      */
     public render(): void {
         if (!this.target || !this.camera || !this.ctx || !this.canvas) return;
         
-        // Refresh VP cache
+        // Always refresh VP cache on render (camera may have moved)
+        this.vpMatrixDirty = true;
         this.refreshVPCache();
         
         // Clear batch
@@ -165,10 +166,11 @@ export abstract class Gizmo {
     }
     
     /**
-     * Refreshes the cached view-projection matrix from the camera
+     * Refreshes the cached view-projection matrix from the camera (only when dirty)
      */
     private refreshVPCache(): void {
         if (!this.camera) return;
+        if (!this.vpMatrixDirty && this.cachedVPMatrix) return;
         this.cachedVPMatrix = this.camera.getViewProjectionMatrix();
         this.cachedInvVPMatrix = null; // Invalidate inverse
         this.vpMatrixDirty = false;
