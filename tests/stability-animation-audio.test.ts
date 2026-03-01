@@ -733,10 +733,11 @@ describe('Audio – AudioManager', () => {
     expect(mgr.getMasterVolume()).toBeCloseTo(0.4, 2);
   });
 
-  it('documents AudioManager constructor bug with default groups', () => {
-    // This test documents the bug: constructing AudioManager with default
-    // groups throws because getMasterGain() is called before initialize().
-    expect(() => new AudioManager()).toThrow('Audio context not initialized');
+  it('creates AudioManager with default groups without crashing', () => {
+    // Previously this threw because getMasterGain() was called before initialize().
+    // Fixed: default groups are now deferred until initialize() is called.
+    const mgr = new AudioManager();
+    expect(mgr).toBeDefined();
   });
 });
 
