@@ -4,7 +4,7 @@
 
 [![Status](https://img.shields.io/badge/status-alpha-green)]()
 [![Version](https://img.shields.io/badge/version-1.0.0-blue)]()
-[![Tests](https://img.shields.io/badge/tests-117%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-137%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ---
@@ -82,7 +82,7 @@ npm run build
 | `npm run dev` | Start development server with hot reload |
 | `npm run build` | Build for production (TypeScript + Vite) |
 | `npm run compile` | TypeScript compile only |
-| `npm test` | Run all tests (117 tests) |
+| `npm test` | Run all tests (137 tests) |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run lint` | Type-check without emit |
 

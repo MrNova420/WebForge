@@ -17,6 +17,7 @@ import { GameObject } from '../../scene/GameObject';
 import { EditorContext } from '../EditorContext';
 import { Logger } from '../../core/Logger';
 import { EventSystem } from '../../core/EventSystem';
+import { PhysicsWorld } from '../../physics/PhysicsWorld';
 
 /**
  * Primitive types
@@ -71,6 +72,9 @@ export class EditorScene {
     
     // Saved state for play mode
     private savedState: SceneSnapshot | null = null;
+
+    // Physics world for play mode
+    private physics: PhysicsWorld | null = null;
 
     constructor(context: EditorContext) {
         this.scene = new Scene('EditorScene');
@@ -257,7 +261,35 @@ export class EditorScene {
      * Update scene (called during play mode)
      */
     update(deltaTime: number): void {
+        // Step physics during play mode
+        if (this.physics) {
+            this.physics.step(deltaTime);
+        }
         this.scene.update(deltaTime);
+    }
+
+    /**
+     * Initialize physics world for play mode
+     */
+    initPhysics(): void {
+        if (!this.physics) {
+            this.physics = new PhysicsWorld();
+            this.logger.info('Physics world initialized for play mode');
+        }
+    }
+
+    /**
+     * Dispose physics world
+     */
+    disposePhysics(): void {
+        this.physics = null;
+    }
+
+    /**
+     * Get physics world
+     */
+    getPhysics(): PhysicsWorld | null {
+        return this.physics;
     }
 
     /**

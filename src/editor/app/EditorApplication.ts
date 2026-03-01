@@ -688,8 +688,9 @@ export class EditorApplication {
         
         this.isPlaying = true;
         this.scene?.saveState();
+        this.scene?.initPhysics();
         this.events.emit('playStarted');
-        this.log('Play mode started', 'success');
+        this.log('Play mode started (physics active)', 'success');
     }
 
     /**
@@ -711,6 +712,7 @@ export class EditorApplication {
         
         this.isPlaying = false;
         this.isPaused = false;
+        this.scene?.disposePhysics();
         this.scene?.restoreState();
         this.events.emit('playStopped');
         this.log('Play mode stopped', 'info');

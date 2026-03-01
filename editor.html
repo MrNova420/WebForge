@@ -1124,6 +1124,19 @@
                                 <div style="color: #666; font-style: italic; font-size: 10px;">No breakpoints set</div>
                             </div>
                         </div>
+                        <!-- Undo/Redo History -->
+                        <div style="background: #252525; border-radius: 4px; padding: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="font-size: 11px; color: #aaa; font-weight: bold;">↩ Undo/Redo History</span>
+                                <div style="display: flex; gap: 4px;">
+                                    <span id="debug-undo-count" style="font-size: 10px; color: #569cd6; background: #1e1e1e; padding: 1px 6px; border-radius: 3px;">0 undo</span>
+                                    <span id="debug-redo-count" style="font-size: 10px; color: #4ec9b0; background: #1e1e1e; padding: 1px 6px; border-radius: 3px;">0 redo</span>
+                                </div>
+                            </div>
+                            <div id="debug-undo-history" style="font-family: monospace; font-size: 10px; max-height: 60px; overflow-y: auto;">
+                                <div style="color: #666; font-style: italic;">No actions recorded</div>
+                            </div>
+                        </div>
                         <!-- Error Log -->
                         <div style="background: #252525; border-radius: 4px; padding: 8px;">
                             <span style="font-size: 11px; color: #aaa; font-weight: bold;">⚠ Error Log</span>
@@ -2755,12 +2768,31 @@
                 events.on('playStarted', () => {
                     document.getElementById('btn-play').classList.add('active');
                     document.getElementById('status-text').textContent = 'Playing';
+                    document.getElementById('status-indicator').style.color = '#4ec9b0';
+                    this.log('Play mode active — physics simulation running', 'success');
                 });
 
                 events.on('playStopped', () => {
                     document.getElementById('btn-play').classList.remove('active');
                     document.getElementById('status-text').textContent = 'Ready';
+                    document.getElementById('status-indicator').style.color = '#4ec9b0';
                 });
+
+                events.on('playPaused', (isPaused) => {
+                    document.getElementById('status-text').textContent = isPaused ? 'Paused' : 'Playing';
+                    document.getElementById('status-indicator').style.color = isPaused ? '#dcdcaa' : '#4ec9b0';
+                });
+
+                // Wire undo history display
+                const undoMgr = this.editor.getUndoManager();
+                if (undoMgr) {
+                    undoMgr.getEvents().on('historyChanged', (data) => {
+                        const undoCount = document.getElementById('debug-undo-count');
+                        const redoCount = document.getElementById('debug-redo-count');
+                        if (undoCount) undoCount.textContent = undoMgr.getUndoCount() + ' undo';
+                        if (redoCount) redoCount.textContent = undoMgr.getRedoCount() + ' redo';
+                    });
+                }
             }
 
             // =============== TOOLBAR EVENTS ===============
@@ -3968,20 +4000,27 @@
                             const toRad = (deg) => deg * Math.PI / 180;
                             euler[axis] = toRad(value);
                             transform.rotation = Quaternion.fromEuler(euler.x, euler.y, euler.z);
-                        } else {
-                            // Position and scale - directly set
-                            transform[prop][axis] = value;
+                            transform.markLocalDirty();
+                        } else if (prop === 'position') {
+                            // Use undo-backed position change
+                            const newPos = transform.position.clone();
+                            newPos[axis] = value;
+                            this.editor.setObjectPosition(obj, newPos.x, newPos.y, newPos.z);
+                        } else if (prop === 'scale') {
+                            // Use undo-backed scale change
+                            const newScale = transform.scale.clone();
+                            newScale[axis] = value;
+                            this.editor.setObjectScale(obj, newScale.x, newScale.y, newScale.z);
                         }
-                        
-                        // Mark transform as dirty to update rendering
-                        transform.markLocalDirty();
                     };
                 });
 
-                // Bind name editing
+                // Bind name editing (undo-backed)
                 const nameInput = document.getElementById('inspector-name');
                 if (nameInput) {
-                    nameInput.onchange = (e) => { obj.name = e.target.value; this.updateHierarchy(); };
+                    nameInput.onchange = (e) => {
+                        this.editor.renameObject(obj, e.target.value);
+                    };
                 }
 
                 // Bind active checkbox
