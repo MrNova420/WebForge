@@ -51,6 +51,8 @@ export class PresenceIndicators {
     private _cursorSize: number;
     private _selectionThickness: number;
     private _viewportOpacity: number;
+    private _selectionBuffer: WebGLBuffer | null = null;
+    private _viewportBuffer: WebGLBuffer | null = null;
 
     constructor() {
         this.cursors = new Map();
@@ -172,10 +174,20 @@ export class PresenceIndicators {
     }
 
     /**
-     * Render selection box
+     * Render selection box.
+     *
+     * Uses a persistent VBO to avoid per-frame buffer allocation churn.
+     * Note: A proper line shader with color uniform matching `selection.color`
+     * must be bound by the caller for visible output.
      */
     public renderSelection(selection: SelectionBox, _context: WebGLRenderingContext, gl: WebGLRenderingContext): void {
-        if (!selection.visible) return;
+        if (!selection.visible || selection.objectIds.length === 0) return;
+
+        // Lazily allocate a reusable selection buffer
+        if (!this._selectionBuffer) {
+            this._selectionBuffer = gl.createBuffer();
+        }
+        if (!this._selectionBuffer) return;
 
         // Render colored outlines around selected objects using WebGL line drawing
         for (const _objectId of selection.objectIds) {
@@ -199,25 +211,33 @@ export class PresenceIndicators {
                 -half,  half, -half, -half,  half,  half
             ]);
             
-            const buffer = gl.createBuffer();
-            if (!buffer) continue;
-            
-            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this._selectionBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
             
-            // Note: Full implementation would use a line shader with color uniform
-            // matching selection.color. Currently renders with whatever shader is active.
+            // Note: Caller must bind a line shader with position attrib at location 0
+            // and set a color uniform matching selection.color before calling this method.
             gl.drawArrays(gl.LINES, 0, vertices.length / 3);
-            
-            gl.deleteBuffer(buffer);
         }
     }
 
     /**
-     * Render viewport frustum
+     * Render viewport frustum.
+     *
+     * Uses a persistent VBO to avoid per-frame buffer allocation churn.
+     * Applies `viewport.rotation` as a simple Y-axis rotation to the frustum corners
+     * and documents color/opacity requirements for the caller.
+     *
+     * Note: A line shader with a color uniform set to `viewport.color` and opacity
+     * set to `this._viewportOpacity` must be bound by the caller for correct rendering.
      */
     public renderViewport(viewport: ViewportFrustum, _context: WebGLRenderingContext, gl: WebGLRenderingContext): void {
         if (!viewport.visible) return;
+
+        // Lazily allocate a reusable viewport buffer
+        if (!this._viewportBuffer) {
+            this._viewportBuffer = gl.createBuffer();
+        }
+        if (!this._viewportBuffer) return;
 
         // Render a wireframe frustum showing where another user is looking
         const fov = 60 * (Math.PI / 180);
@@ -234,37 +254,42 @@ export class PresenceIndicators {
         const px = viewport.position.x;
         const py = viewport.position.y;
         const pz = viewport.position.z;
+
+        // Apply Y-axis rotation from viewport.rotation.y
+        const cosY = Math.cos(viewport.rotation.y);
+        const sinY = Math.sin(viewport.rotation.y);
+        const rotX = (lx: number, lz: number) => lx * cosY - lz * sinY;
+        const rotZ = (lx: number, lz: number) => lx * sinY + lz * cosY;
+
+        // Helper: rotate a local offset around Y-axis and add to position
+        const rx = (lx: number, lz: number) => px + rotX(lx, lz);
+        const rz = (lx: number, lz: number) => pz + rotZ(lx, lz);
         
         // Frustum line vertices (near plane + far plane + connecting edges)
         const vertices = new Float32Array([
             // Near plane edges
-            px - nearW, py - nearH, pz - near,  px + nearW, py - nearH, pz - near,
-            px + nearW, py - nearH, pz - near,  px + nearW, py + nearH, pz - near,
-            px + nearW, py + nearH, pz - near,  px - nearW, py + nearH, pz - near,
-            px - nearW, py + nearH, pz - near,  px - nearW, py - nearH, pz - near,
+            rx(-nearW, -near), py - nearH, rz(-nearW, -near),  rx(nearW, -near), py - nearH, rz(nearW, -near),
+            rx(nearW, -near), py - nearH, rz(nearW, -near),  rx(nearW, -near), py + nearH, rz(nearW, -near),
+            rx(nearW, -near), py + nearH, rz(nearW, -near),  rx(-nearW, -near), py + nearH, rz(-nearW, -near),
+            rx(-nearW, -near), py + nearH, rz(-nearW, -near),  rx(-nearW, -near), py - nearH, rz(-nearW, -near),
             // Far plane edges
-            px - farW, py - farH, pz - far,  px + farW, py - farH, pz - far,
-            px + farW, py - farH, pz - far,  px + farW, py + farH, pz - far,
-            px + farW, py + farH, pz - far,  px - farW, py + farH, pz - far,
-            px - farW, py + farH, pz - far,  px - farW, py - farH, pz - far,
+            rx(-farW, -far), py - farH, rz(-farW, -far),  rx(farW, -far), py - farH, rz(farW, -far),
+            rx(farW, -far), py - farH, rz(farW, -far),  rx(farW, -far), py + farH, rz(farW, -far),
+            rx(farW, -far), py + farH, rz(farW, -far),  rx(-farW, -far), py + farH, rz(-farW, -far),
+            rx(-farW, -far), py + farH, rz(-farW, -far),  rx(-farW, -far), py - farH, rz(-farW, -far),
             // Connecting edges (near to far)
-            px - nearW, py - nearH, pz - near,  px - farW, py - farH, pz - far,
-            px + nearW, py - nearH, pz - near,  px + farW, py - farH, pz - far,
-            px + nearW, py + nearH, pz - near,  px + farW, py + farH, pz - far,
-            px - nearW, py + nearH, pz - near,  px - farW, py + farH, pz - far
+            rx(-nearW, -near), py - nearH, rz(-nearW, -near),  rx(-farW, -far), py - farH, rz(-farW, -far),
+            rx(nearW, -near), py - nearH, rz(nearW, -near),  rx(farW, -far), py - farH, rz(farW, -far),
+            rx(nearW, -near), py + nearH, rz(nearW, -near),  rx(farW, -far), py + farH, rz(farW, -far),
+            rx(-nearW, -near), py + nearH, rz(-nearW, -near),  rx(-farW, -far), py + farH, rz(-farW, -far)
         ]);
         
-        const buffer = gl.createBuffer();
-        if (!buffer) return;
-        
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._viewportBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
         
-        // Note: Full implementation would use a line shader with color uniform
-        // matching viewport.color and opacity set to this._viewportOpacity
+        // Note: Caller must bind a line shader with color uniform set to
+        // viewport.color and opacity set to this._viewportOpacity.
         gl.drawArrays(gl.LINES, 0, vertices.length / 3);
-        
-        gl.deleteBuffer(buffer);
     }
 
     /**
@@ -349,5 +374,21 @@ export class PresenceIndicators {
         this.cursors.clear();
         this.selections.clear();
         this.viewports.clear();
+    }
+
+    /**
+     * Dispose of GPU resources (persistent buffers).
+     * @param gl - WebGL context used to delete the buffers.
+     */
+    public dispose(gl: WebGLRenderingContext): void {
+        if (this._selectionBuffer) {
+            gl.deleteBuffer(this._selectionBuffer);
+            this._selectionBuffer = null;
+        }
+        if (this._viewportBuffer) {
+            gl.deleteBuffer(this._viewportBuffer);
+            this._viewportBuffer = null;
+        }
+        this.clear();
     }
 }

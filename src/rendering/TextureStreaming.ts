@@ -157,6 +157,7 @@ export class TextureStreamingManager {
     private _cameraPosition: Vector3 = new Vector3();
     private _texturePositions: Map<string, Vector3> = new Map();
     private _cachedDistances: Map<string, number> = new Map();
+    private _priorityOverrides: Map<string, number> = new Map();
 
     private _events: EventSystem;
     private _logger: Logger;
@@ -173,13 +174,15 @@ export class TextureStreamingManager {
         this._events = new EventSystem();
         this._logger = new Logger('TextureStreaming');
 
-        // Validate mipDistances length matches maxMipLevels
+        // Normalize mipDistances length to exactly maxMipLevels
         if (this._config.mipDistances.length < this._config.maxMipLevels) {
             const last = this._config.mipDistances[this._config.mipDistances.length - 1] ?? 0;
             const needed = this._config.maxMipLevels - this._config.mipDistances.length;
             for (let i = 1; i <= needed; i++) {
                 this._config.mipDistances.push(last + 100 * i);
             }
+        } else if (this._config.mipDistances.length > this._config.maxMipLevels) {
+            this._config.mipDistances.length = this._config.maxMipLevels;
         }
     }
 
@@ -352,6 +355,7 @@ export class TextureStreamingManager {
             return;
         }
         entry.priority = priority;
+        this._priorityOverrides.set(url, priority);
         this._sortLoadQueue();
     }
 
@@ -435,6 +439,7 @@ export class TextureStreamingManager {
         this._entries.clear();
         this._texturePositions.clear();
         this._cachedDistances.clear();
+        this._priorityOverrides.clear();
         this._loadQueue.length = 0;
         this._activeLoads = 0;
         this._memoryUsed = 0;
@@ -466,6 +471,12 @@ export class TextureStreamingManager {
      */
     private _updatePriorities(): void {
         this._entries.forEach((entry, url) => {
+            // Respect manual priority overrides
+            const override = this._priorityOverrides.get(url);
+            if (override !== undefined) {
+                entry.priority = override;
+                return;
+            }
             const distance = this._cachedDistances.get(url);
             if (distance !== undefined) {
                 // Textures with more refs are given a slight priority boost
@@ -507,10 +518,11 @@ export class TextureStreamingManager {
      */
     private _computeMipLevel(distance: number): number {
         const distances = this._config.mipDistances;
+        const maxMip = this._config.maxMipLevels - 1;
         // Walk from highest mip (lowest detail) backward; return the first
         // level whose threshold the distance meets or exceeds.
         for (let i = distances.length - 1; i > 0; i--) {
-            if (distance >= distances[i]) return i;
+            if (distance >= distances[i]) return Math.min(i, maxMip);
         }
         return 0;
     }
@@ -543,8 +555,8 @@ export class TextureStreamingManager {
             const entry = this._entries.get(url);
             if (!entry || entry.loading) continue;
 
-            // Skip if already at or better than target mip
-            if (entry.loaded && entry.currentMip <= entry.targetMip) continue;
+            // Skip if already at target mip
+            if (entry.loaded && entry.currentMip === entry.targetMip) continue;
 
             this._loadTextureAsync(entry);
         }

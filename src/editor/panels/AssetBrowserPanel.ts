@@ -554,13 +554,14 @@ export class AssetBrowserPanel extends Panel {
      */
     private loadAssets(): void {
         // Mock asset loading - in a real implementation, this would load from file system
+        const base = this.currentPath.endsWith('/') ? this.currentPath.slice(0, -1) : this.currentPath;
         this.allAssets = [
-            { name: 'Models', type: AssetType.FOLDER, path: this.currentPath + '/Models' },
-            { name: 'Textures', type: AssetType.FOLDER, path: this.currentPath + '/Textures' },
-            { name: 'Materials', type: AssetType.FOLDER, path: this.currentPath + '/Materials' },
-            { name: 'Audio', type: AssetType.FOLDER, path: this.currentPath + '/Audio' },
-            { name: 'Scripts', type: AssetType.FOLDER, path: this.currentPath + '/Scripts' },
-            { name: 'Scenes', type: AssetType.FOLDER, path: this.currentPath + '/Scenes' }
+            { name: 'Models', type: AssetType.FOLDER, path: base + '/Models' },
+            { name: 'Textures', type: AssetType.FOLDER, path: base + '/Textures' },
+            { name: 'Materials', type: AssetType.FOLDER, path: base + '/Materials' },
+            { name: 'Audio', type: AssetType.FOLDER, path: base + '/Audio' },
+            { name: 'Scripts', type: AssetType.FOLDER, path: base + '/Scripts' },
+            { name: 'Scenes', type: AssetType.FOLDER, path: base + '/Scenes' }
         ];
         this.assets = [...this.allAssets];
     }

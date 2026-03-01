@@ -344,6 +344,20 @@ export class HalfEdgeMesh {
         
         // Set center vertex's half-edge
         centerVertex.halfEdge = he0cIdx;
+
+        // Ensure original corner vertices point to valid outgoing half-edges
+        if (v0 >= 0 && v0 < this.vertices.length) {
+            // he2b is the half-edge from v0 to the new center vertex
+            this.vertices[v0].halfEdge = he2bIdx;
+        }
+        if (v1 >= 0 && v1 < this.vertices.length) {
+            // he0b is the half-edge from v1 to the new center vertex
+            this.vertices[v1].halfEdge = he0bIdx;
+        }
+        if (v2 >= 0 && v2 < this.vertices.length) {
+            // he1b is the half-edge from v2 to the new center vertex
+            this.vertices[v2].halfEdge = he1bIdx;
+        }
     }
     
     public getVertexCount(): number { return this.vertices.length; }

@@ -287,15 +287,25 @@ export class ScriptGraph {
             }
         }
         
-        // Restore connections
+        // Restore connections via connectNodes() to update port state
         if (data.connections) {
             for (const conn of data.connections) {
-                graph.connections.push({
-                    sourceNodeId: conn.sourceNodeId,
-                    sourcePort: conn.sourcePort,
-                    targetNodeId: conn.targetNodeId,
-                    targetPort: conn.targetPort
-                });
+                const connected = graph.connectNodes(
+                    conn.sourceNodeId,
+                    conn.sourcePort,
+                    conn.targetNodeId,
+                    conn.targetPort
+                );
+                if (!connected) {
+                    // Fallback: add the raw connection if connectNodes fails
+                    // (e.g. type mismatch), so the graph structure is preserved
+                    graph.connections.push({
+                        sourceNodeId: conn.sourceNodeId,
+                        sourcePort: conn.sourcePort,
+                        targetNodeId: conn.targetNodeId,
+                        targetPort: conn.targetPort
+                    });
+                }
             }
         }
         

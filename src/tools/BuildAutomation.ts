@@ -322,7 +322,7 @@ export class BuildAutomation {
         // Simulate file analysis
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Count TypeScript source files by scanning known source directories
+        // Known source directories in the WebForge project
         const sourceDirectories = [
             'core', 'math', 'scene', 'rendering', 'physics', 'animation',
             'audio', 'editor', 'geometry', 'terrain', 'particles', 'ai',
@@ -332,7 +332,9 @@ export class BuildAutomation {
             'profiling', 'documentation', 'versioncontrol'
         ];
         
-        // Estimate file count from known module structure
+        // Estimate file count from known module structure.
+        // NOTE: This is a heuristic (~5 files per module + 2 root files).
+        // For an authoritative count, use an actual file-system scan or glob.
         let fileCount = 0;
         for (const _dir of sourceDirectories) {
             // Each directory has an index.ts plus module files
@@ -344,7 +346,7 @@ export class BuildAutomation {
         
         this.stats!.fileCount = fileCount;
         
-        console.log(`[BuildAutomation] Found ${this.stats!.fileCount} files`);
+        console.log(`[BuildAutomation] Estimated ~${this.stats!.fileCount} source files`);
     }
     
     /**

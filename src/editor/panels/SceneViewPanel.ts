@@ -620,7 +620,7 @@ export class SceneViewPanel extends Panel {
         // Get camera position and projection for grid mapping
         const camPos = this.camera.getTransform().position;
         const distance = Math.sqrt(camPos.x ** 2 + camPos.y ** 2 + camPos.z ** 2);
-        const scale = Math.max(0.1, 10 / distance);
+        const scale = Math.max(0.1, 10 / Math.max(distance, 0.001));
         
         const centerX = width / 2;
         const centerY = height / 2;
