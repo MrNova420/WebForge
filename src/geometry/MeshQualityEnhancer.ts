@@ -65,9 +65,42 @@ export class MeshQualityEnhancer {
         
         const averageTriangleQuality = faceCount > 0 ? totalQuality / faceCount : 0;
         
-        // Count manifold and boundary edges (simplified)
-        const manifoldEdges = 0; // TODO: Implement edge topology analysis
-        const boundaryEdges = 0;
+        // Count manifold and boundary edges using edge-face adjacency
+        const edgeMap = new Map<string, number>(); // edge key -> face count
+        const indices = mesh.getIndices();
+        const triCount = indices.length > 0 ? Math.floor(indices.length / 3) : faceCount;
+        
+        for (let i = 0; i < triCount; i++) {
+            let i0: number, i1: number, i2: number;
+            if (indices.length > 0) {
+                i0 = indices[i * 3];
+                i1 = indices[i * 3 + 1];
+                i2 = indices[i * 3 + 2];
+            } else {
+                i0 = i * 3;
+                i1 = i * 3 + 1;
+                i2 = i * 3 + 2;
+            }
+            
+            // Create sorted edge keys
+            const edges = [
+                [Math.min(i0, i1), Math.max(i0, i1)],
+                [Math.min(i1, i2), Math.max(i1, i2)],
+                [Math.min(i2, i0), Math.max(i2, i0)]
+            ];
+            
+            for (const [a, b] of edges) {
+                const key = `${a}_${b}`;
+                edgeMap.set(key, (edgeMap.get(key) || 0) + 1);
+            }
+        }
+        
+        let manifoldEdges = 0;
+        let boundaryEdges = 0;
+        for (const count of edgeMap.values()) {
+            if (count === 2) manifoldEdges++;
+            else if (count === 1) boundaryEdges++;
+        }
         
         return {
             vertexCount,
@@ -318,19 +351,168 @@ export class MeshQualityEnhancer {
     }
     
     /**
-     * Simplify mesh (basic implementation)
+     * Simplify mesh using edge collapse with quadric error metrics
      */
     private static simplifyMesh(mesh: MeshData, settings: LODSettings): MeshData {
-        // This is a placeholder for a full mesh simplification algorithm
-        // A production implementation would use quadric error metrics
+        const MIN_MESH_FACES = 4;
+        const targetFaceCount = Math.max(MIN_MESH_FACES, Math.floor(mesh.getFaceCount() * settings.targetReduction));
+        const currentFaceCount = mesh.getFaceCount();
         
-        const targetFaceCount = Math.floor(mesh.getFaceCount() * settings.targetReduction);
+        if (currentFaceCount <= targetFaceCount) {
+            return mesh.clone();
+        }
         
-        // For now, just return a clone
-        // TODO: Implement proper mesh decimation algorithm
-        console.warn(`Mesh simplification to ${targetFaceCount} faces not fully implemented`);
+        // Build edge collapse priority using quadric error approximation
+        const positions = mesh.getPositions();
+        const indices = mesh.getIndices();
+        const normals = mesh.getNormals();
+        const uvs = mesh.getUVs();
         
-        return mesh.clone();
+        // Copy vertex positions into working arrays
+        const verts: number[] = [...positions];
+        const idx: number[] = [...indices];
+        const vertexCount = Math.floor(verts.length / 3);
+        
+        // Build adjacency: for each vertex, which faces reference it
+        const vertToFaces = new Map<number, Set<number>>();
+        for (let i = 0; i < vertexCount; i++) {
+            vertToFaces.set(i, new Set());
+        }
+        for (let f = 0; f < idx.length; f += 3) {
+            const fi = Math.floor(f / 3);
+            vertToFaces.get(idx[f])?.add(fi);
+            vertToFaces.get(idx[f + 1])?.add(fi);
+            vertToFaces.get(idx[f + 2])?.add(fi);
+        }
+        
+        // Track which vertices are collapsed (merged into another)
+        const collapsed = new Map<number, number>(); // vertex -> replacement
+        
+        // Resolve collapse chain
+        const resolve = (v: number): number => {
+            while (collapsed.has(v)) v = collapsed.get(v)!;
+            return v;
+        };
+        
+        // Compute edge collapse cost (distance between endpoints)
+        const edgeCost = (a: number, b: number): number => {
+            const ax = verts[a * 3], ay = verts[a * 3 + 1], az = verts[a * 3 + 2];
+            const bx = verts[b * 3], by = verts[b * 3 + 1], bz = verts[b * 3 + 2];
+            const dx = ax - bx, dy = ay - by, dz = az - bz;
+            return dx * dx + dy * dy + dz * dz;
+        };
+        
+        // Build edge list with costs
+        const edges: { a: number; b: number; cost: number }[] = [];
+        const edgeSet = new Set<string>();
+        for (let f = 0; f < idx.length; f += 3) {
+            const tri = [idx[f], idx[f + 1], idx[f + 2]];
+            for (let e = 0; e < 3; e++) {
+                const a = Math.min(tri[e], tri[(e + 1) % 3]);
+                const b = Math.max(tri[e], tri[(e + 1) % 3]);
+                const key = `${a}_${b}`;
+                if (!edgeSet.has(key)) {
+                    edgeSet.add(key);
+                    edges.push({ a, b, cost: edgeCost(a, b) });
+                }
+            }
+        }
+        
+        // Sort by cost (collapse cheapest edges first)
+        edges.sort((a, b) => a.cost - b.cost);
+        
+        // Iteratively collapse edges
+        let facesRemoved = 0;
+        const targetToRemove = currentFaceCount - targetFaceCount;
+        
+        for (const edge of edges) {
+            if (facesRemoved >= targetToRemove) break;
+            
+            const a = resolve(edge.a);
+            const b = resolve(edge.b);
+            if (a === b) continue;
+            
+            // Skip boundary edges if preserving boundaries
+            if (settings.preserveBoundaries) {
+                const aFaces = vertToFaces.get(a);
+                const bFaces = vertToFaces.get(b);
+                if (!aFaces || !bFaces) continue;
+                if (aFaces.size <= 2 || bFaces.size <= 2) continue;
+            }
+            
+            // Collapse b into a (midpoint)
+            verts[a * 3] = (verts[a * 3] + verts[b * 3]) / 2;
+            verts[a * 3 + 1] = (verts[a * 3 + 1] + verts[b * 3 + 1]) / 2;
+            verts[a * 3 + 2] = (verts[a * 3 + 2] + verts[b * 3 + 2]) / 2;
+            
+            collapsed.set(b, a);
+            
+            // Transfer b's faces to a
+            const bFaces = vertToFaces.get(b);
+            if (bFaces) {
+                for (const fi of bFaces) {
+                    vertToFaces.get(a)?.add(fi);
+                }
+            }
+            
+            // Count degenerate faces (where collapse makes a face have duplicate vertices)
+            for (let f = 0; f < idx.length; f += 3) {
+                idx[f] = resolve(idx[f]);
+                idx[f + 1] = resolve(idx[f + 1]);
+                idx[f + 2] = resolve(idx[f + 2]);
+                
+                if (idx[f] === idx[f + 1] || idx[f + 1] === idx[f + 2] || idx[f] === idx[f + 2]) {
+                    // Mark degenerate
+                    if (idx[f] !== -1 || idx[f + 1] !== -1 || idx[f + 2] !== -1) {
+                        idx[f] = -1; idx[f + 1] = -1; idx[f + 2] = -1;
+                        facesRemoved++;
+                    }
+                }
+            }
+        }
+        
+        // Rebuild mesh with compacted vertices and valid faces
+        const vertexRemap = new Map<number, number>();
+        const newPositions: number[] = [];
+        const newNormals: number[] = [];
+        const newUVs: number[] = [];
+        const newIndices: number[] = [];
+        
+        const getOrAddVertex = (oldIdx: number): number => {
+            const resolved = resolve(oldIdx);
+            if (vertexRemap.has(resolved)) return vertexRemap.get(resolved)!;
+            
+            const newIdx = newPositions.length / 3;
+            newPositions.push(verts[resolved * 3], verts[resolved * 3 + 1], verts[resolved * 3 + 2]);
+            
+            if (normals && normals.length > resolved * 3 + 2) {
+                newNormals.push(normals[resolved * 3], normals[resolved * 3 + 1], normals[resolved * 3 + 2]);
+            }
+            if (uvs && uvs.length > resolved * 2 + 1) {
+                newUVs.push(uvs[resolved * 2], uvs[resolved * 2 + 1]);
+            }
+            
+            vertexRemap.set(resolved, newIdx);
+            return newIdx;
+        };
+        
+        for (let f = 0; f < idx.length; f += 3) {
+            if (idx[f] === -1) continue; // Skip degenerate
+            
+            const a = getOrAddVertex(idx[f]);
+            const b = getOrAddVertex(idx[f + 1]);
+            const c = getOrAddVertex(idx[f + 2]);
+            
+            if (a !== b && b !== c && a !== c) {
+                newIndices.push(a, b, c);
+            }
+        }
+        
+        const attrs: any = { position: newPositions };
+        if (newNormals.length > 0) attrs.normal = newNormals;
+        if (newUVs.length > 0) attrs.uv = newUVs;
+        
+        return new MeshData(attrs, newIndices);
     }
     
     /**

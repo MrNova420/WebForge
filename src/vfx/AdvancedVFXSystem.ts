@@ -56,6 +56,7 @@ export class AdvancedVFXSystem {
     private godRays: GodRaysSettings;
     
     private time: number = 0;
+    private baseFogDensity: number = 0.01;
     
     constructor() {
         // Default volumetric fog
@@ -111,17 +112,44 @@ export class AdvancedVFXSystem {
     }
     
     /**
-     * Animate volumetric fog
+     * Animate volumetric fog - simulates wind-driven density variation (frame-rate independent)
      */
     private animateVolumetricFog(_deltaTime: number): void {
-        // Fog can be animated here (e.g., density pulsing, movement)
+        // Compute fog density from base + wind offset (not cumulative addition)
+        const windEffect = Math.sin(this.time * 0.3) * 0.002 + Math.sin(this.time * 0.7) * 0.001;
+        this.volumetricFog.density = Math.max(0.001, this.baseFogDensity + windEffect);
+        
+        // Animate fog color based on time-of-day approximation
+        const dayProgress = (Math.sin(this.time * 0.01) + 1) * 0.5; // 0 = night, 1 = day
+        this.volumetricFog.color = {
+            r: 0.6 + dayProgress * 0.3,
+            g: 0.65 + dayProgress * 0.25,
+            b: 0.7 + dayProgress * 0.25
+        };
     }
     
     /**
-     * Animate atmospheric scattering
+     * Animate atmospheric scattering - sun movement simulation
      */
     private animateAtmospheric(_deltaTime: number): void {
-        // Sun movement can be updated here
+        // Smoothly rotate sun direction to simulate day/night cycle
+        const sunAngle = this.time * 0.02; // Very slow rotation
+        const elevation = Math.sin(sunAngle) * 0.8 + 0.1; // -0.7 to 0.9
+        const azimuth = Math.cos(sunAngle * 0.5);
+        
+        this.atmospheric.sunDirection = new Vector3(
+            azimuth,
+            Math.max(0.01, elevation), // Keep sun slightly above horizon minimum
+            Math.sin(sunAngle * 0.3)
+        ).normalize();
+        
+        // Adjust Mie scattering intensity based on sun elevation (more at sunset/sunrise)
+        const sunHeight = this.atmospheric.sunDirection.y;
+        if (sunHeight < 0.3) {
+            this.atmospheric.mieScale = 1.2 + (0.3 - sunHeight) * 5; // Stronger at horizon
+        } else {
+            this.atmospheric.mieScale = 1.2;
+        }
     }
     
     /**
@@ -129,6 +157,7 @@ export class AdvancedVFXSystem {
      */
     public enableVolumetricFog(settings: Partial<VolumetricFogSettings> = {}): void {
         this.volumetricFog = { ...this.volumetricFog, enabled: true, ...settings };
+        this.baseFogDensity = this.volumetricFog.density;
     }
     
     /**
@@ -143,6 +172,9 @@ export class AdvancedVFXSystem {
      */
     public updateVolumetricFog(settings: Partial<VolumetricFogSettings>): void {
         this.volumetricFog = { ...this.volumetricFog, ...settings };
+        if (settings.density !== undefined) {
+            this.baseFogDensity = settings.density;
+        }
     }
     
     /**

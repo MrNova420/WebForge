@@ -6,6 +6,7 @@
 import { BoundingBox, BoundingSphere } from './FrustumCulling';
 import { Camera } from '../rendering/Camera';
 import { Logger } from '../core/Logger';
+import { Vector3 } from '../math/Vector3';
 
 /**
  * Occlusion query result
@@ -67,6 +68,10 @@ export class OcclusionCullingSystem {
   
   private occludedCount: number = 0;
   private totalCount: number = 0;
+  
+  // Reusable buffers for bounding box rendering (avoids per-frame allocation)
+  private boxVBO: WebGLBuffer | null = null;
+  private boxIBO: WebGLBuffer | null = null;
 
   /**
    * Creates a new occlusion culling system
@@ -86,6 +91,24 @@ export class OcclusionCullingSystem {
     if (!this.gl.getExtension('EXT_occlusion_query_boolean')) {
       this.logger.warn('Occlusion queries not supported, disabling occlusion culling');
       this.enabled = false;
+    }
+    
+    // Pre-allocate reusable buffers for bounding box rendering
+    this.boxVBO = this.gl.createBuffer();
+    this.boxIBO = this.gl.createBuffer();
+    if (this.boxIBO) {
+      // Index data is the same for all boxes — upload once
+      const indices = new Uint16Array([
+        0, 1, 2,  0, 2, 3,  // Front
+        4, 6, 5,  4, 7, 6,  // Back
+        0, 4, 5,  0, 5, 1,  // Bottom
+        2, 6, 7,  2, 7, 3,  // Top
+        0, 3, 7,  0, 7, 4,  // Left
+        1, 5, 6,  1, 6, 2   // Right
+      ]);
+      this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.boxIBO);
+      this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, indices, this.gl.STATIC_DRAW);
+      this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
     }
   }
 
@@ -192,12 +215,72 @@ export class OcclusionCullingSystem {
 
   /**
    * Renders a bounding volume for occlusion testing
+   * Uses minimal vertex/index buffers to draw a simple box or sphere proxy
    * @param bounds - Bounding volume to render
    */
-  private renderBoundingVolume(_bounds: BoundingBox | BoundingSphere): void {
-    // TODO: Render simplified bounding geometry
-    // This would typically render a box or sphere using the existing rendering pipeline
-    // For now, this is a placeholder
+  private renderBoundingVolume(bounds: BoundingBox | BoundingSphere): void {
+    const gl = this.gl;
+    
+    // Disable color writes - we only need depth/stencil for occlusion
+    gl.colorMask(false, false, false, false);
+    gl.depthMask(false);
+    
+    if (bounds instanceof BoundingBox) {
+      this.renderBoundingBox(bounds);
+    } else {
+      // BoundingSphere - approximate as cube for simplicity in occlusion testing
+      const radius = bounds.radius;
+      const center = bounds.center;
+      const boxBounds = new BoundingBox(
+        new Vector3(center.x - radius, center.y - radius, center.z - radius),
+        new Vector3(center.x + radius, center.y + radius, center.z + radius)
+      );
+      this.renderBoundingBox(boxBounds);
+    }
+    
+    // Restore color and depth writes
+    gl.colorMask(true, true, true, true);
+    gl.depthMask(true);
+  }
+  
+  /**
+   * Renders a bounding box using reusable vertex/index buffers
+   */
+  private renderBoundingBox(bounds: BoundingBox): void {
+    const gl = this.gl;
+    const min = bounds.min;
+    const max = bounds.max;
+    
+    if (!this.boxVBO || !this.boxIBO) return;
+    
+    // 8 vertices of the bounding box — update the reusable VBO
+    const vertices = new Float32Array([
+      min.x, min.y, min.z,
+      max.x, min.y, min.z,
+      max.x, max.y, min.z,
+      min.x, max.y, min.z,
+      min.x, min.y, max.z,
+      max.x, min.y, max.z,
+      max.x, max.y, max.z,
+      min.x, max.y, max.z
+    ]);
+    
+    // Update vertex data in reusable buffer
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.boxVBO);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STREAM_DRAW);
+    
+    // Enable position attribute (location 0)
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+    
+    // Bind reusable index buffer
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.boxIBO);
+    
+    // Draw
+    gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+    
+    // Disable vertex attribute
+    gl.disableVertexAttribArray(0);
   }
 
   /**
@@ -279,6 +362,16 @@ export class OcclusionCullingSystem {
       this.gl.deleteQuery(query);
     }
     this.queryPool = [];
+    
+    // Delete reusable buffers
+    if (this.boxVBO) {
+      this.gl.deleteBuffer(this.boxVBO);
+      this.boxVBO = null;
+    }
+    if (this.boxIBO) {
+      this.gl.deleteBuffer(this.boxIBO);
+      this.boxIBO = null;
+    }
     
     this.logger.info('Disposed occlusion culling system');
   }

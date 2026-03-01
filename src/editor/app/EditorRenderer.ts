@@ -21,6 +21,8 @@ import { Vector3 } from '../../math/Vector3';
 import { Matrix4 } from '../../math/Matrix4';
 import { Quaternion } from '../../math/Quaternion';
 import { Logger } from '../../core/Logger';
+import { PostProcessing, PostProcessingConfig } from '../../rendering/PostProcessing';
+import { Framebuffer } from '../../rendering/Framebuffer';
 import type { EditorScene } from './EditorScene';
 
 /**
@@ -92,6 +94,11 @@ export class EditorRenderer {
     
     // Statistics
     private stats: RenderStats = { drawCalls: 0, triangles: 0, vertices: 0 };
+    
+    // Post-processing pipeline
+    private postProcessing: PostProcessing | null = null;
+    private sceneFramebuffer: Framebuffer | null = null;
+    private postProcessEnabled: boolean = false;
     
     // Input state
     private isDragging: boolean = false;
@@ -1419,6 +1426,12 @@ export class EditorRenderer {
         // Reset stats
         this.stats = { drawCalls: 0, triangles: 0, vertices: 0 };
         
+        // If post-processing is enabled, render to offscreen framebuffer
+        const usePostProcess = this.postProcessEnabled && this.postProcessing && this.sceneFramebuffer;
+        if (usePostProcess && this.sceneFramebuffer) {
+            this.sceneFramebuffer.bind();
+        }
+        
         // Clear
         gl.clearColor(...this.backgroundColor);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -1450,6 +1463,15 @@ export class EditorRenderer {
         const transformMode = this.context.getTransformMode();
         if (selected.length > 0 && transformMode !== TransformMode.SELECT) {
             this.renderGizmos(gl, viewProj, selected);
+        }
+        
+        // Apply post-processing if enabled
+        if (usePostProcess && this.sceneFramebuffer && this.postProcessing) {
+            this.sceneFramebuffer.unbind();
+            const sceneTex = this.sceneFramebuffer.getColorTexture();
+            if (sceneTex) {
+                this.postProcessing.process(sceneTex, null);
+            }
         }
     }
 
@@ -1612,6 +1634,8 @@ export class EditorRenderer {
             case 'cylinder': vao = this.cylinderVAO; break;
             case 'cone': vao = this.coneVAO; break;
             case 'capsule': vao = this.cylinderVAO; break; // Use cylinder for capsule
+            case 'terrain': vao = this.planeVAO; break; // Terrain uses plane VAO (heightmap applied via shader later)
+            case 'light': vao = this.sphereVAO; break; // Lights render as small spheres
             default: vao = this.cubeVAO;
         }
         
@@ -1993,6 +2017,21 @@ export class EditorRenderer {
      */
     resize(width: number, height: number): void {
         this.camera.setAspect(width / height);
+        if (this.postProcessing) {
+            this.postProcessing.resize(width, height);
+        }
+
+        // Ensure the scene framebuffer matches the new dimensions when post-processing is enabled
+        if (this.sceneFramebuffer) {
+            this.sceneFramebuffer.destroy();
+            const gl = this.glContext.getGL() as WebGL2RenderingContext;
+            this.sceneFramebuffer = new Framebuffer(gl, {
+                width,
+                height,
+                colorAttachments: 1,
+                depthAttachment: true
+            });
+        }
     }
 
     /**
@@ -2000,6 +2039,47 @@ export class EditorRenderer {
      */
     getStats(): RenderStats {
         return { ...this.stats };
+    }
+
+    /**
+     * Enable post-processing pipeline
+     */
+    enablePostProcessing(config?: PostProcessingConfig): void {
+        if (this.postProcessing) {
+            this.postProcessing.enable();
+            this.postProcessEnabled = true;
+            return;
+        }
+        
+        const width = this.glContext.getWidth();
+        const height = this.glContext.getHeight();
+        
+        this.postProcessing = new PostProcessing(this.glContext, width, height, config);
+        this.sceneFramebuffer = new Framebuffer(this.glContext.getGL() as WebGL2RenderingContext, {
+            width,
+            height,
+            colorAttachments: 1,
+            depthAttachment: true
+        });
+        this.postProcessEnabled = true;
+        this.logger.info('Post-processing enabled');
+    }
+
+    /**
+     * Disable post-processing pipeline
+     */
+    disablePostProcessing(): void {
+        if (this.postProcessing) {
+            this.postProcessing.disable();
+        }
+        this.postProcessEnabled = false;
+    }
+
+    /**
+     * Get post-processing pipeline
+     */
+    getPostProcessing(): PostProcessing | null {
+        return this.postProcessing;
     }
 
     /**
@@ -2012,6 +2092,16 @@ export class EditorRenderer {
             canvas.removeEventListener('mousemove', this.onMouseMove);
             canvas.removeEventListener('mouseup', this.onMouseUp);
             canvas.removeEventListener('wheel', this.onWheel);
+        }
+        
+        if (this.postProcessing) {
+            this.postProcessing.dispose();
+            this.postProcessing = null;
+        }
+
+        if (this.sceneFramebuffer) {
+            this.sceneFramebuffer.destroy();
+            this.sceneFramebuffer = null;
         }
         
         this.logger.info('EditorRenderer disposed');

@@ -3,20 +3,19 @@
  * @module WebForge
  * 
  * Main entry point for WebForge game engine.
- * Provides a unified API similar to Three.js or Babylon.js
- * for easy integration and usage.
+ * Provides a unified API wrapping the real Engine, Scene, Camera,
+ * Renderer, PhysicsWorld, and other subsystems.
  * 
  * @example
  * ```typescript
  * import { WebForge } from '@webforge/platform';
  * 
- * const engine = new WebForge('#canvas', {
- *     quality: 'high',
- *     physics: true,
- *     audio: true
- * });
- * 
+ * const engine = new WebForge({ antialias: true });
  * await engine.initialize();
+ * 
+ * const player = engine.createGameObject('Player');
+ * player.transform.position.set(0, 1, 0);
+ * 
  * engine.start();
  * ```
  * 
@@ -24,18 +23,15 @@
  * @license MIT
  */
 
-// @ts-nocheck - Placeholder types until full implementation
-// Type imports - will be available when modules are implemented
-type Scene = any;
-type Camera = any;
-type Renderer = any;
-type PhysicsWorld = any;
-type AudioEngine = any;
-type ParticleSystem = any;
-type InputManager = any;
-type TimeManager = any;
-type AssetManager = any;
-type AnimationSystem = any;
+import { Engine, EngineConfig } from './core/Engine';
+import { Scene } from './scene/Scene';
+import { GameObject } from './scene/GameObject';
+import { Camera } from './rendering/Camera';
+import { PhysicsWorld, PhysicsWorldConfig } from './physics/PhysicsWorld';
+import { Vector3 } from './math/Vector3';
+import { Time } from './core/Time';
+import { Input } from './core/Input';
+import { EventSystem } from './core/EventSystem';
 
 /**
  * Quality presets for automatic configuration
@@ -78,62 +74,36 @@ export interface WebForgeConfig {
     fixedTimestep?: number;
     /** Headless mode (no rendering, server-side) */
     headless?: boolean;
+    /** Enable anti-aliasing */
+    antialias?: boolean;
+    /** Gravity vector for physics */
+    gravity?: Vector3;
 }
 
 /**
  * Main WebForge Engine class
  * 
  * Provides unified access to all engine subsystems and lifecycle management.
- * Can be used in several modes:
- * 
- * 1. Complete Engine Mode (recommended)
- * 2. Modular Mode (like Three.js)
- * 3. Headless Mode (server-side)
+ * Wraps the real Engine, Scene, Camera, Renderer, and PhysicsWorld implementations.
  * 
  * @example Complete Engine Mode
  * ```typescript
  * const engine = new WebForge();
  * await engine.initialize();
- * const scene = engine.createScene();
+ * const scene = engine.createScene('MyScene');
+ * const player = engine.createGameObject('Player');
+ * player.transform.position.set(0, 1, 0);
  * engine.start();
- * ```
- * 
- * @example Modular Mode
- * ```typescript
- * const engine = new WebForge({ headless: true });
- * const renderer = engine.renderer;
- * const scene = engine.createScene();
- * // Manual render loop
  * ```
  */
 export class WebForge {
-    private canvas: HTMLCanvasElement | null = null;
+    private _engine: Engine;
     private config: WebForgeConfig;
     private _isInitialized: boolean = false;
-    private _isRunning: boolean = false;
-    private _isPaused: boolean = false;
-    private animationFrameId: number | null = null;
-
-    // Core systems (placeholder implementations)
-    public readonly time: any;
-    public readonly input: any;
-    public readonly assets: any;
-
-    // Rendering
-    public renderer: any = null;
-    public scene: any = null;
-    public camera: any = null;
-
-    // Subsystems
-    public physics: any = null;
-    public audio: any = null;
-    public particles: any = null;
-    public animations: any = null;
-
-    // Performance tracking
-    private frameCount: number = 0;
-    private lastFPSUpdate: number = 0;
-    private currentFPS: number = 0;
+    private _camera: Camera | null = null;
+    private _physics: PhysicsWorld | null = null;
+    private _scene: Scene | null = null;
+    private _events: EventSystem;
 
     /**
      * Creates a new WebForge engine instance
@@ -160,17 +130,27 @@ export class WebForge {
             particles: true,
             animations: true,
             debug: false,
-            targetFPS: 0,
+            targetFPS: 60,
             fixedTimestep: 1/60,
             headless: false,
             hotReload: false,
+            antialias: true,
             ...this.config
         };
 
-        // Initialize core systems (placeholders for now)
-        this.time = { update: () => {}, deltaTime: 0.016 } as any;
-        this.input = { initialize: () => {}, update: () => {}, isKeyPressed: () => false, isKeyDown: () => false } as any;
-        this.assets = {} as any;
+        // Build EngineConfig from WebForgeConfig
+        const engineConfig: EngineConfig = {
+            canvas: this.config.canvas,
+            width: this.config.width,
+            height: this.config.height,
+            antialias: this.config.antialias,
+            fixedTimestep: this.config.fixedTimestep,
+            targetFPS: this.config.targetFPS,
+            enableProfiling: this.config.debug,
+        };
+
+        this._engine = new Engine(engineConfig);
+        this._events = new EventSystem();
 
         console.log('🔥 WebForge Engine Created');
     }
@@ -189,65 +169,34 @@ export class WebForge {
 
         console.log('🚀 Initializing WebForge Engine...');
 
-        // Get or create canvas
-        if (!this.config.headless) {
-            this.canvas = this.getCanvas();
-            if (!this.canvas) {
-                throw new Error('Failed to get canvas element');
-            }
-        }
-
-        // Initialize renderer (placeholder)
-        if (!this.config.headless && this.canvas) {
-            this.renderer = {
-                render: () => {},
-                dispose: () => {},
-                setSize: () => {}
-            } as any;
-            console.log('✅ Renderer initialized');
-        }
-
-        // Initialize subsystems (placeholders)
+        // Initialize physics
         if (this.config.physics) {
-            this.physics = {
-                update: () => {},
-                dispose: () => {},
-                addRigidBody: () => {}
-            } as any;
+            const physicsConfig: PhysicsWorldConfig = {
+                fixedTimestep: this.config.fixedTimestep,
+            };
+            if (this.config.gravity) {
+                physicsConfig.gravity = this.config.gravity;
+            }
+            this._physics = new PhysicsWorld(physicsConfig);
             console.log('✅ Physics initialized');
         }
 
-        if (this.config.audio) {
-            this.audio = {
-                initialize: async () => {},
-                update: () => {},
-                dispose: () => {},
-                playSound: () => {}
-            } as any;
-            await this.audio.initialize();
-            console.log('✅ Audio initialized');
-        }
+        // Create default camera
+        this._camera = new Camera();
+        this._camera.setPosition(new Vector3(0, 5, 10));
+        this._camera.lookAt(new Vector3(0, 0, 0));
+        console.log('✅ Camera initialized');
 
-        if (this.config.particles) {
-            this.particles = {
-                update: () => {},
-                dispose: () => {},
-                createEmitter: () => {}
-            } as any;
-            console.log('✅ Particles initialized');
-        }
+        // Create default scene
+        this._scene = new Scene('Default');
+        this._engine.setScene(this._scene);
+        console.log('✅ Default scene created');
 
-        if (this.config.animations) {
-            this.animations = {
-                update: () => {}
-            } as any;
-            console.log('✅ Animations initialized');
-        }
-
-        // Initialize input
-        if (this.canvas) {
-            this.input.initialize(this.canvas);
-            console.log('✅ Input initialized');
+        // Wire physics into engine fixed update
+        if (this._physics) {
+            this._engine.getEvents().on('engine:fixed-update', (data: { deltaTime: number }) => {
+                this._physics!.step(data.deltaTime);
+            });
         }
 
         this._isInitialized = true;
@@ -258,194 +207,134 @@ export class WebForge {
      * Create a new scene
      * 
      * @param name - Optional scene name
-     * @returns The created scene
+     * @returns The created Scene instance
      */
-    createScene(name?: string): any {
-        this.scene = {
-            name: name || 'Scene',
-            update: () => {},
-            createMesh: () => ({ position: { set: () => {}, x: 0, y: 0, z: 0 }, rotation: { y: 0 }, material: {} }),
-            createLight: () => ({}),
-            createCamera: () => ({})
-        } as any;
-        
-        // Create default camera if in normal mode
-        if (!this.config.headless && !this.camera) {
-            this.camera = {
-                position: { set: () => {}, x: 0, y: 5, z: 10 },
-                lookAt: () => {},
-                aspect: 16/9,
-                updateProjectionMatrix: () => {}
-            } as any;
-        }
+    createScene(name?: string): Scene {
+        const scene = new Scene(name || 'Scene');
+        this._scene = scene;
+        this._engine.setScene(scene);
+        return scene;
+    }
 
-        return this.scene;
+    /**
+     * Get the active scene
+     */
+    getScene(): Scene | null {
+        return this._scene;
+    }
+
+    /**
+     * Create a new GameObject and add it to the active scene
+     * 
+     * @param name - Optional object name
+     * @returns The created GameObject instance
+     */
+    createGameObject(name?: string): GameObject {
+        const obj = new GameObject(name);
+        if (this._scene) {
+            this._scene.add(obj);
+        }
+        return obj;
     }
 
     /**
      * Start the engine render loop
      */
-    start(): void {
+    async start(): Promise<void> {
         if (!this._isInitialized) {
-            throw new Error('Engine not initialized. Call initialize() first.');
+            // Auto-initialize if not done
+            await this.initialize();
         }
 
-        if (this._isRunning) {
-            console.warn('Engine already running');
-            return;
-        }
-
-        this._isRunning = true;
-        this._isPaused = false;
-        this.lastFPSUpdate = performance.now();
-        this.loop();
-
-        console.log('▶️  Engine started');
+        await this._engine.start();
+        console.log('▶️  WebForge started');
     }
 
     /**
      * Stop the engine
      */
     stop(): void {
-        if (!this._isRunning) return;
-
-        this._isRunning = false;
-        if (this.animationFrameId !== null) {
-            cancelAnimationFrame(this.animationFrameId);
-            this.animationFrameId = null;
-        }
-
-        console.log('⏸️  Engine stopped');
+        this._engine.stop();
+        console.log('⏸️  WebForge stopped');
     }
 
     /**
      * Pause the engine (rendering continues, updates stop)
      */
     pause(): void {
-        this._isPaused = true;
-        console.log('⏸️  Engine paused');
+        this._engine.pause();
     }
 
     /**
      * Resume the engine from pause
      */
     resume(): void {
-        this._isPaused = false;
-        console.log('▶️  Engine resumed');
+        this._engine.resume();
+    }
+
+    // ========== Accessors ==========
+
+    /**
+     * Get the underlying Engine instance
+     */
+    get engine(): Engine {
+        return this._engine;
     }
 
     /**
-     * Main render loop
-     * @private
+     * Get the Time system
      */
-    private loop = (): void => {
-        if (!this._isRunning) return;
-
-        // Schedule next frame
-        this.animationFrameId = requestAnimationFrame(this.loop);
-
-        // Update time
-        this.time.update();
-        const deltaTime = this.time.deltaTime;
-
-        // Update FPS counter
-        this.updateFPS();
-
-        // Skip updates if paused
-        if (this._isPaused) {
-            return;
-        }
-
-        // Update physics (fixed timestep)
-        if (this.physics && this.config.fixedTimestep) {
-            this.physics.update(this.config.fixedTimestep);
-        } else if (this.physics) {
-            this.physics.update(deltaTime);
-        }
-
-        // Update animations
-        if (this.animations) {
-            this.animations.update(deltaTime);
-        }
-
-        // Update particles
-        if (this.particles) {
-            this.particles.update(deltaTime);
-        }
-
-        // Update audio
-        if (this.audio) {
-            this.audio.update(deltaTime);
-        }
-
-        // Update scene
-        if (this.scene) {
-            this.scene.update(deltaTime);
-        }
-
-        // Render
-        if (this.renderer && this.scene && this.camera) {
-            this.renderer.render(this.scene, this.camera);
-        }
-
-        // Update input (clear frame events)
-        this.input.update();
-    };
-
-    /**
-     * Update FPS counter
-     * @private
-     */
-    private updateFPS(): void {
-        this.frameCount++;
-        const now = performance.now();
-        if (now - this.lastFPSUpdate >= 1000) {
-            this.currentFPS = this.frameCount;
-            this.frameCount = 0;
-            this.lastFPSUpdate = now;
-
-            if (this.config.debug) {
-                console.log(`FPS: ${this.currentFPS}`);
-            }
-        }
+    get time(): Time {
+        return this._engine.time;
     }
 
     /**
-     * Get canvas element from config
-     * @private
+     * Get the Input system
      */
-    private getCanvas(): HTMLCanvasElement | null {
-        const canvasOption = this.config.canvas;
+    get input(): Input {
+        return this._engine.input;
+    }
 
-        if (!canvasOption) {
-            // Create default canvas
-            const canvas = document.createElement('canvas');
-            canvas.id = 'webforge-canvas';
-            canvas.width = this.config.width || window.innerWidth;
-            canvas.height = this.config.height || window.innerHeight;
-            document.body.appendChild(canvas);
-            return canvas;
-        }
+    /**
+     * Get the camera
+     */
+    get camera(): Camera | null {
+        return this._camera;
+    }
 
-        if (canvasOption instanceof HTMLCanvasElement) {
-            return canvasOption;
-        }
+    /**
+     * Set the camera
+     */
+    set camera(cam: Camera | null) {
+        this._camera = cam;
+    }
 
-        if (typeof canvasOption === 'string') {
-            const element = document.querySelector(canvasOption);
-            if (element instanceof HTMLCanvasElement) {
-                return element;
-            }
-        }
+    /**
+     * Get the active scene
+     */
+    get scene(): Scene | null {
+        return this._scene;
+    }
 
-        return null;
+    /**
+     * Get the physics world
+     */
+    get physics(): PhysicsWorld | null {
+        return this._physics;
+    }
+
+    /**
+     * Get the event system
+     */
+    get events(): EventSystem {
+        return this._events;
     }
 
     /**
      * Get current FPS
      */
     get fps(): number {
-        return this.currentFPS;
+        return this._engine.time.fps;
     }
 
     /**
@@ -459,31 +348,26 @@ export class WebForge {
      * Check if engine is running
      */
     get isRunning(): boolean {
-        return this._isRunning;
+        return this._engine.isRunning();
     }
 
     /**
      * Check if engine is paused
      */
     get isPaused(): boolean {
-        return this._isPaused;
+        return this._engine.isPaused();
     }
 
     /**
-     * Resize the renderer
+     * Resize the canvas
      * 
      * @param width - New width
      * @param height - New height
      */
     resize(width: number, height: number): void {
-        if (this.renderer && this.renderer.setSize) {
-            this.renderer.setSize(width, height);
-        }
-        if (this.camera) {
-            this.camera.aspect = width / height;
-            if (this.camera.updateProjectionMatrix) {
-                this.camera.updateProjectionMatrix();
-            }
+        this._engine.resize(width, height);
+        if (this._camera) {
+            this._camera.setPerspective(Math.PI / 4, width / height, 0.1, 1000);
         }
     }
 
@@ -491,23 +375,15 @@ export class WebForge {
      * Dispose of all resources and cleanup
      */
     dispose(): void {
-        this.stop();
-
-        if (this.renderer) {
-            this.renderer.dispose();
+        this._engine.destroy();
+        if (this._physics) {
+            this._physics.dispose();
         }
-        if (this.physics) {
-            this.physics.dispose();
-        }
-        if (this.audio) {
-            this.audio.dispose();
-        }
-        if (this.particles) {
-            this.particles.dispose();
-        }
-
+        this._scene = null;
+        this._camera = null;
+        this._physics = null;
         this._isInitialized = false;
-        console.log('🗑️  Engine disposed');
+        console.log('🗑️  WebForge disposed');
     }
 }
 

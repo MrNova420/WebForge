@@ -54,7 +54,7 @@ export class StateSyncManager {
             timestamp: now
         };
 
-        const message = this.network['createMessage'](
+        const message = this.network.createMessage(
             MessageType.TRANSFORM_UPDATE,
             snapshot,
             false // Not reliable for performance

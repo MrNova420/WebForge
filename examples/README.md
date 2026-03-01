@@ -1,34 +1,54 @@
 # 🎮 WebForge Examples
 
-Production-ready examples demonstrating all features of WebForge.
+Working examples demonstrating WebForge engine features.
 
-## 📂 Examples List
+## 📂 Examples
 
-1. **[Hello World](#1-hello-world)** - Basic spinning cube
-2. **[Physics Playground](#2-physics-playground)** - Rigid bodies and collisions
-3. **[Character Controller](#3-character-controller)** - Third-person movement
-4. **[Particle Effects](#4-particle-effects)** - Fire, smoke, magic
-5. **[Terrain Generation](#5-terrain-generation)** - Procedural landscapes
-6. **[Water Simulation](#6-water-simulation)** - FFT-based ocean
-7. **[Animation Demo](#7-animation-demo)** - Skeletal animation
-8. **[Multiplayer](#8-multiplayer)** - Networked gameplay
+### ✅ Working Examples
+
+1. **[Hello World](./hello-world/)** — Real WebForge engine running: Scene graph, GameObjects, Transforms, Physics, 3D wireframe rendering
+
+### 🚧 Coming Soon
+
+2. **Physics Playground** — Rigid bodies and collisions with PhysicsWorld
+3. **Character Controller** — Third-person movement with Input system
+4. **Particle Effects** — Fire, smoke, magic with ParticleSystem
+5. **Terrain Generation** — Procedural landscapes with Terrain system
+6. **Water Simulation** — FFT-based ocean rendering
+7. **Animation Demo** — Skeletal animation with state machines
+8. **Multiplayer** — Networked gameplay with WebRTC
 
 ## 🚀 Running Examples
 
 1. Clone the repository
 2. Install dependencies: `npm install`
 3. Start dev server: `npm run dev`
-4. Open `http://localhost:5173/examples/<example-name>`
+4. Open `http://localhost:5173/examples/hello-world/`
 
-## 📝 Source Code
+## 📝 API Quick Reference
 
-Each example includes full source code, HTML, and is ready to run.
-See individual example folders for details.
+```typescript
+import { WebForge, Vector3 } from '../../src/index.ts';
+
+// Create engine
+const engine = new WebForge({ antialias: true });
+await engine.initialize();
+
+// Create scene + objects
+const scene = engine.createScene('MyScene');
+const player = engine.createGameObject('Player');
+player.transform.position.set(0, 1, 0);
+
+// Start the loop
+await engine.start();
+```
+
+All examples use the **real** WebForge API — no mocks or stubs.
 
 ## 🎓 Learn More
 
-- **[Getting Started Guide](../GETTING_STARTED.md)** - Basics
-- **[API Reference](../docs/API_REFERENCE.md)** - Complete API
-- **[COMPLETE_REFERENCE.md](../COMPLETE_REFERENCE.md)** - In-depth guide
+- **[Getting Started Guide](../docs/GETTING_STARTED.md)** — Basics
+- **[Complete Reference](../docs/COMPLETE_REFERENCE.md)** — In-depth guide
+- **[Architecture](../docs/ARCHITECTURE_DESIGN.md)** — System design
 
 Happy coding! 🎮

@@ -64,8 +64,7 @@ export interface PaintBrushSettings {
  * Texture painting system
  */
 export class TexturePaintingSystem {
-    // @ts-expect-error - Will be used for 3D painting (findUVAtPosition implementation)
-    private _mesh: MeshData;
+    private mesh: MeshData;
     private layers: TextureLayer[] = [];
     private activeLayerIndex: number = 0;
     private textureWidth: number;
@@ -74,9 +73,10 @@ export class TexturePaintingSystem {
     private compositeCanvas: HTMLCanvasElement;
     private compositeContext: CanvasRenderingContext2D;
     private previousPosition: Vector2 | null = null;
+    private cloneSource: Vector2 | null = null;
     
     constructor(mesh: MeshData, width: number = 1024, height: number = 1024) {
-        this._mesh = mesh;
+        this.mesh = mesh;
         this.textureWidth = width;
         this.textureHeight = height;
         
@@ -288,27 +288,203 @@ export class TexturePaintingSystem {
     }
     
     /**
-     * Blur brush (simple box blur)
+     * Blur brush (box blur within brush radius)
      */
-    private blurBrush(_ctx: CanvasRenderingContext2D, _position: Vector2): void {
-        // TODO: Implement blur brush
-        console.warn('Blur brush not yet implemented');
+    private blurBrush(ctx: CanvasRenderingContext2D, position: Vector2): void {
+        const radius = Math.floor(this.settings.size / 2);
+        const x = Math.floor(position.x - radius);
+        const y = Math.floor(position.y - radius);
+        const diameter = radius * 2;
+        
+        // Clamp to canvas bounds
+        const sx = Math.max(0, x);
+        const sy = Math.max(0, y);
+        const sw = Math.min(diameter, this.textureWidth - sx);
+        const sh = Math.min(diameter, this.textureHeight - sy);
+        
+        if (sw <= 0 || sh <= 0) return;
+        
+        // Read pixels from the area
+        const imageData = ctx.getImageData(sx, sy, sw, sh);
+        const data = imageData.data;
+        // Blur kernel radius: ranges from 1 (hard brush) to 4 (soft brush)
+        // based on inverse of hardness setting
+        const blurRadius = Math.max(1, Math.floor(3 * (1 - this.settings.hardness) + 1));
+        
+        // Create output buffer
+        const output = new Uint8ClampedArray(data.length);
+        
+        // Box blur pass
+        for (let py = 0; py < sh; py++) {
+            for (let px = 0; px < sw; px++) {
+                // Check if pixel is within circular brush
+                const dx = (sx + px) - position.x;
+                const dy = (sy + py) - position.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist > radius) {
+                    // Outside brush - copy original pixel
+                    const idx = (py * sw + px) * 4;
+                    output[idx] = data[idx];
+                    output[idx + 1] = data[idx + 1];
+                    output[idx + 2] = data[idx + 2];
+                    output[idx + 3] = data[idx + 3];
+                    continue;
+                }
+                
+                let r = 0, g = 0, b = 0, a = 0, count = 0;
+                
+                for (let ky = -blurRadius; ky <= blurRadius; ky++) {
+                    for (let kx = -blurRadius; kx <= blurRadius; kx++) {
+                        const nx = px + kx;
+                        const ny = py + ky;
+                        if (nx >= 0 && nx < sw && ny >= 0 && ny < sh) {
+                            const idx = (ny * sw + nx) * 4;
+                            r += data[idx];
+                            g += data[idx + 1];
+                            b += data[idx + 2];
+                            a += data[idx + 3];
+                            count++;
+                        }
+                    }
+                }
+                
+                const outIdx = (py * sw + px) * 4;
+                const strength = this.settings.opacity * (1 - dist / radius);
+                output[outIdx] = Math.round(data[outIdx] * (1 - strength) + (r / count) * strength);
+                output[outIdx + 1] = Math.round(data[outIdx + 1] * (1 - strength) + (g / count) * strength);
+                output[outIdx + 2] = Math.round(data[outIdx + 2] * (1 - strength) + (b / count) * strength);
+                output[outIdx + 3] = Math.round(data[outIdx + 3] * (1 - strength) + (a / count) * strength);
+            }
+        }
+        
+        imageData.data.set(output);
+        ctx.putImageData(imageData, sx, sy);
     }
     
     /**
-     * Smudge brush
+     * Smudge brush - picks up color from previous position and paints it forward
      */
-    private smudgeBrush(_ctx: CanvasRenderingContext2D, _position: Vector2): void {
-        // TODO: Implement smudge brush
-        console.warn('Smudge brush not yet implemented');
+    private smudgeBrush(ctx: CanvasRenderingContext2D, position: Vector2): void {
+        if (!this.previousPosition) {
+            this.previousPosition = position;
+            return;
+        }
+        
+        const radius = Math.floor(this.settings.size / 2);
+        const prevX = Math.floor(this.previousPosition.x - radius);
+        const prevY = Math.floor(this.previousPosition.y - radius);
+        const diameter = radius * 2;
+        
+        // Clamp source region
+        const srcX = Math.max(0, prevX);
+        const srcY = Math.max(0, prevY);
+        const srcW = Math.min(diameter, this.textureWidth - srcX);
+        const srcH = Math.min(diameter, this.textureHeight - srcY);
+        
+        if (srcW <= 0 || srcH <= 0) return;
+        
+        // Read source pixels from previous position
+        const srcData = ctx.getImageData(srcX, srcY, srcW, srcH);
+        
+        // Read destination pixels at current position
+        const dstX = Math.max(0, Math.floor(position.x - radius));
+        const dstY = Math.max(0, Math.floor(position.y - radius));
+        const dstW = Math.min(diameter, this.textureWidth - dstX);
+        const dstH = Math.min(diameter, this.textureHeight - dstY);
+        
+        if (dstW <= 0 || dstH <= 0) return;
+        
+        const dstData = ctx.getImageData(dstX, dstY, dstW, dstH);
+        const strength = this.settings.opacity * this.settings.flow;
+        
+        // Blend source into destination within circular brush shape
+        const minW = Math.min(srcW, dstW);
+        const minH = Math.min(srcH, dstH);
+        
+        for (let py = 0; py < minH; py++) {
+            for (let px = 0; px < minW; px++) {
+                const dx = (dstX + px) - position.x;
+                const dy = (dstY + py) - position.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist > radius) continue;
+                
+                const falloff = 1 - (dist / radius);
+                const blend = strength * falloff;
+                
+                const srcIdx = (py * srcW + px) * 4;
+                const dstIdx = (py * dstW + px) * 4;
+                
+                dstData.data[dstIdx] = Math.round(dstData.data[dstIdx] * (1 - blend) + srcData.data[srcIdx] * blend);
+                dstData.data[dstIdx + 1] = Math.round(dstData.data[dstIdx + 1] * (1 - blend) + srcData.data[srcIdx + 1] * blend);
+                dstData.data[dstIdx + 2] = Math.round(dstData.data[dstIdx + 2] * (1 - blend) + srcData.data[srcIdx + 2] * blend);
+                dstData.data[dstIdx + 3] = Math.round(dstData.data[dstIdx + 3] * (1 - blend) + srcData.data[srcIdx + 3] * blend);
+            }
+        }
+        
+        ctx.putImageData(dstData, dstX, dstY);
     }
     
     /**
-     * Clone brush
+     * Clone brush - stamps pixels from a source position offset
      */
-    private cloneBrush(_ctx: CanvasRenderingContext2D, _position: Vector2): void {
-        // TODO: Implement clone brush
-        console.warn('Clone brush not yet implemented');
+    private cloneBrush(ctx: CanvasRenderingContext2D, position: Vector2): void {
+        if (!this.cloneSource) return;
+        
+        const radius = Math.floor(this.settings.size / 2);
+        const offset = new Vector2(
+            this.cloneSource.x - position.x,
+            this.cloneSource.y - position.y
+        );
+        
+        // Read source pixels (from offset position)
+        const srcX = Math.max(0, Math.floor(position.x + offset.x - radius));
+        const srcY = Math.max(0, Math.floor(position.y + offset.y - radius));
+        const diameter = radius * 2;
+        const srcW = Math.min(diameter, this.textureWidth - srcX);
+        const srcH = Math.min(diameter, this.textureHeight - srcY);
+        
+        if (srcW <= 0 || srcH <= 0) return;
+        
+        const srcData = ctx.getImageData(srcX, srcY, srcW, srcH);
+        
+        // Read destination pixels
+        const dstX = Math.max(0, Math.floor(position.x - radius));
+        const dstY = Math.max(0, Math.floor(position.y - radius));
+        const dstW = Math.min(diameter, this.textureWidth - dstX);
+        const dstH = Math.min(diameter, this.textureHeight - dstY);
+        
+        if (dstW <= 0 || dstH <= 0) return;
+        
+        const dstData = ctx.getImageData(dstX, dstY, dstW, dstH);
+        const strength = this.settings.opacity * this.settings.flow;
+        
+        const minW = Math.min(srcW, dstW);
+        const minH = Math.min(srcH, dstH);
+        
+        for (let py = 0; py < minH; py++) {
+            for (let px = 0; px < minW; px++) {
+                const dx = (dstX + px) - position.x;
+                const dy = (dstY + py) - position.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist > radius) continue;
+                
+                const falloff = 1 - (dist / radius) * (1 - this.settings.hardness);
+                const blend = strength * Math.min(1, falloff);
+                
+                const srcIdx = (py * srcW + px) * 4;
+                const dstIdx = (py * dstW + px) * 4;
+                
+                dstData.data[dstIdx] = Math.round(dstData.data[dstIdx] * (1 - blend) + srcData.data[srcIdx] * blend);
+                dstData.data[dstIdx + 1] = Math.round(dstData.data[dstIdx + 1] * (1 - blend) + srcData.data[srcIdx + 1] * blend);
+                dstData.data[dstIdx + 2] = Math.round(dstData.data[dstIdx + 2] * (1 - blend) + srcData.data[srcIdx + 2] * blend);
+                dstData.data[dstIdx + 3] = Math.round(dstData.data[dstIdx + 3] * (1 - blend) + srcData.data[srcIdx + 3] * blend);
+            }
+        }
+        
+        ctx.putImageData(dstData, dstX, dstY);
     }
     
     /**
@@ -382,13 +558,144 @@ export class TexturePaintingSystem {
     }
     
     /**
-     * Find UV coordinates at 3D position
+     * Find UV coordinates at 3D position by testing against mesh triangles
+     * Uses closest-point-on-triangle to find the UV at the nearest mesh surface point
      */
-    private findUVAtPosition(_position: Vector3): Vector2 | null {
-        // TODO: Implement ray-mesh intersection to find UV at position
-        // This requires raycasting against the mesh
-        console.warn('3D position to UV mapping not yet implemented');
-        return null;
+    private findUVAtPosition(position: Vector3): Vector2 | null {
+        const positions = this.mesh.getPositions();
+        const uvs = this.mesh.getUVs();
+        const indices = this.mesh.getIndices();
+        
+        if (!positions || !uvs || positions.length < 9 || uvs.length < 6) {
+            return null;
+        }
+        
+        let closestDist = Infinity;
+        let closestUV: Vector2 | null = null;
+        
+        // Iterate through triangles
+        const triCount = indices.length > 0 ? Math.floor(indices.length / 3) : Math.floor(positions.length / 9);
+        
+        for (let i = 0; i < triCount; i++) {
+            // Get vertex indices
+            let i0: number, i1: number, i2: number;
+            if (indices.length > 0) {
+                i0 = indices[i * 3];
+                i1 = indices[i * 3 + 1];
+                i2 = indices[i * 3 + 2];
+            } else {
+                i0 = i * 3;
+                i1 = i * 3 + 1;
+                i2 = i * 3 + 2;
+            }
+            
+            // Get positions
+            const v0 = new Vector3(positions[i0 * 3], positions[i0 * 3 + 1], positions[i0 * 3 + 2]);
+            const v1 = new Vector3(positions[i1 * 3], positions[i1 * 3 + 1], positions[i1 * 3 + 2]);
+            const v2 = new Vector3(positions[i2 * 3], positions[i2 * 3 + 1], positions[i2 * 3 + 2]);
+            
+            // Compute barycentric coordinates of closest point on triangle
+            const bary = this.closestPointBarycentric(position, v0, v1, v2);
+            if (!bary) continue;
+            
+            // Compute closest point
+            const closest = v0.clone().multiplyScalar(bary.u)
+                .add(v1.clone().multiplyScalar(bary.v))
+                .add(v2.clone().multiplyScalar(bary.w));
+            
+            const dist = position.clone().subtract(closest).lengthSquared();
+            
+            if (dist < closestDist) {
+                closestDist = dist;
+                
+                // Interpolate UVs using barycentric coordinates
+                const uv0x = uvs[i0 * 2], uv0y = uvs[i0 * 2 + 1];
+                const uv1x = uvs[i1 * 2], uv1y = uvs[i1 * 2 + 1];
+                const uv2x = uvs[i2 * 2], uv2y = uvs[i2 * 2 + 1];
+                
+                closestUV = new Vector2(
+                    uv0x * bary.u + uv1x * bary.v + uv2x * bary.w,
+                    uv0y * bary.u + uv1y * bary.v + uv2y * bary.w
+                );
+            }
+        }
+        
+        return closestUV;
+    }
+    
+    /**
+     * Compute barycentric coordinates for closest point on triangle to point P
+     */
+    private closestPointBarycentric(
+        p: Vector3, a: Vector3, b: Vector3, c: Vector3
+    ): { u: number; v: number; w: number } | null {
+        const ab = b.clone().subtract(a);
+        const ac = c.clone().subtract(a);
+        const ap = p.clone().subtract(a);
+        
+        const d1 = ab.dot(ap);
+        const d2 = ac.dot(ap);
+        
+        // Vertex region A
+        if (d1 <= 0 && d2 <= 0) return { u: 1, v: 0, w: 0 };
+        
+        const bp = p.clone().subtract(b);
+        const d3 = ab.dot(bp);
+        const d4 = ac.dot(bp);
+        
+        // Vertex region B
+        if (d3 >= 0 && d4 <= d3) return { u: 0, v: 1, w: 0 };
+        
+        // Edge region AB
+        const vc = d1 * d4 - d3 * d2;
+        if (vc <= 0 && d1 >= 0 && d3 <= 0) {
+            const v = d1 / (d1 - d3);
+            return { u: 1 - v, v: v, w: 0 };
+        }
+        
+        const cp = p.clone().subtract(c);
+        const d5 = ab.dot(cp);
+        const d6 = ac.dot(cp);
+        
+        // Vertex region C
+        if (d6 >= 0 && d5 <= d6) return { u: 0, v: 0, w: 1 };
+        
+        // Edge region AC
+        const vb = d5 * d2 - d1 * d6;
+        if (vb <= 0 && d2 >= 0 && d6 <= 0) {
+            const w = d2 / (d2 - d6);
+            return { u: 1 - w, v: 0, w: w };
+        }
+        
+        // Edge region BC
+        const va = d3 * d6 - d5 * d4;
+        if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) {
+            const w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+            return { u: 0, v: 1 - w, w: w };
+        }
+        
+        // Inside face
+        const denominator = va + vb + vc;
+        if (Math.abs(denominator) < 1e-10) return { u: 1/3, v: 1/3, w: 1/3 }; // Degenerate triangle
+        const denom = 1.0 / denominator;
+        const v = vb * denom;
+        const w = vc * denom;
+        return { u: 1 - v - w, v: v, w: w };
+    }
+    
+    /**
+     * Set clone source position for clone brush
+     * @param position - Source position in texture coordinates
+     */
+    public setCloneSource(position: Vector2): void {
+        this.cloneSource = position;
+    }
+    
+    /**
+     * Get clone source position
+     */
+    public getCloneSource(): Vector2 | null {
+        return this.cloneSource;
     }
     
     /**

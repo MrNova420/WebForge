@@ -110,6 +110,7 @@ export class BloomEffect extends BasePostEffect {
     `;
     
     this.brightnessShader = new Shader(this.gl, brightnessVertexShader, brightnessFragmentShader);
+    this.brightnessShader.compile().catch(() => { this.brightnessShader = null; });
     
     // Gaussian blur shader
     const blurFragmentShader = `#version 300 es
@@ -139,6 +140,7 @@ export class BloomEffect extends BasePostEffect {
     `;
     
     this.blurShader = new Shader(this.gl, brightnessVertexShader, blurFragmentShader);
+    this.blurShader.compile().catch(() => { this.blurShader = null; });
     
     // Combine shader
     const combineFragmentShader = `#version 300 es
@@ -161,6 +163,7 @@ export class BloomEffect extends BasePostEffect {
     `;
     
     this.combineShader = new Shader(this.gl, brightnessVertexShader, combineFragmentShader);
+    this.combineShader.compile().catch(() => { this.combineShader = null; });
   }
 
   /**
@@ -195,25 +198,74 @@ export class BloomEffect extends BasePostEffect {
 
   /**
    * Renders the bloom effect
-   * @param _input - Input texture (unused for now)
-   * @param output - Output framebuffer
+   * @param input - Input scene texture
+   * @param output - Output framebuffer (null for screen)
    */
-  render(_input: Texture, output: Framebuffer | null): void {
+  render(input: Texture, output: Framebuffer | null): void {
     if (!this.brightnessShader || !this.blurShader || !this.combineShader || !this.brightnessBuffer) {
       return;
     }
     
-    // Extract bright areas would go here
-    // Blur would go here
-    // Combine would go here
+    const halfW = Math.floor(this.width / 2);
+    const halfH = Math.floor(this.height / 2);
     
-    // For now, just pass through
+    // Step 1: Extract bright areas into brightnessBuffer
+    this.brightnessBuffer.bind();
+    this.gl.viewport(0, 0, halfW, halfH);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    
+    this.brightnessShader.use();
+    this.brightnessShader.setUniform('u_texture', 0);
+    this.brightnessShader.setUniform('u_threshold', this._threshold);
+    input.bind(0);
+    this.renderQuad();
+    
+    // Step 2: Blur the bright areas (horizontal + vertical passes)
+    if (this.blurBuffers.length >= 2) {
+      for (let pass = 0; pass < this.blurPasses; pass++) {
+        const srcBuffer = pass === 0 ? this.brightnessBuffer : this.blurBuffers[(pass - 1) % 2];
+        const dstBuffer = this.blurBuffers[pass % 2];
+        const srcTex = srcBuffer.getColorTexture();
+        if (!srcTex) continue;
+        
+        dstBuffer.bind();
+        const bw = Math.max(1, Math.floor(halfW / Math.pow(2, Math.floor(pass / 2))));
+        const bh = Math.max(1, Math.floor(halfH / Math.pow(2, Math.floor(pass / 2))));
+        this.gl.viewport(0, 0, bw, bh);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+        
+        this.blurShader.use();
+        this.blurShader.setUniform('u_texture', 0);
+        // Alternate horizontal/vertical
+        const dir = pass % 2 === 0 ? [this._blurRadius, 0] : [0, this._blurRadius];
+        this.blurShader.setUniform('u_direction', dir);
+        srcTex.bind(0);
+        this.renderQuad();
+      }
+    }
+    
+    // Step 3: Combine bloom with original scene
     if (output) {
       output.bind();
     } else {
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     }
     this.gl.viewport(0, 0, this.width, this.height);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    
+    this.combineShader.use();
+    this.combineShader.setUniform('u_sceneTexture', 0);
+    this.combineShader.setUniform('u_bloomTexture', 1);
+    this.combineShader.setUniform('u_intensity', this._intensity);
+    
+    input.bind(0);
+    // Bind the last blur result (guard against empty blur buffer array)
+    const lastBlurIdx = this.blurBuffers.length > 0 ? Math.min(this.blurPasses - 1, this.blurBuffers.length - 1) : -1;
+    const bloomTex = lastBlurIdx >= 0 ? this.blurBuffers[lastBlurIdx].getColorTexture() : null;
+    if (bloomTex) {
+      bloomTex.bind(1);
+    }
+    this.renderQuad();
   }
 
   /**

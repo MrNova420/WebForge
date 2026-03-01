@@ -47,6 +47,7 @@ export interface PostProcessingConfig {
  */
 export class PostProcessing {
   private gl: WebGL2RenderingContext;
+  private glContext: WebGLContext;
   private logger: Logger;
   
   private effects: PostEffect[] = [];
@@ -55,6 +56,11 @@ export class PostProcessing {
   // Ping-pong buffers for multi-pass effects
   private bufferA: Framebuffer;
   private bufferB: Framebuffer;
+  
+  // Copy shader for pass-through
+  private copyShader: Shader | null = null;
+  private copyQuadVAO: WebGLVertexArrayObject | null = null;
+  private copyQuadVBO: WebGLBuffer | null = null;
   
   private width: number;
   private height: number;
@@ -73,6 +79,7 @@ export class PostProcessing {
     config: PostProcessingConfig = {}
   ) {
     this.gl = context.gl as WebGL2RenderingContext;
+    this.glContext = context;
     this.logger = new Logger('PostProcessing');
     
     this.width = width;
@@ -94,7 +101,67 @@ export class PostProcessing {
       depthAttachment: false
     });
     
+    this.initCopyShader();
+    
     this.logger.info(`Post-processing pipeline created (${width}x${height})`);
+  }
+
+  /**
+   * Initializes the copy shader and quad for pass-through
+   */
+  private initCopyShader(): void {
+    const vertSrc = `#version 300 es
+      in vec2 a_position;
+      in vec2 a_texcoord;
+      out vec2 v_texcoord;
+      void main() {
+        v_texcoord = a_texcoord;
+        gl_Position = vec4(a_position, 0.0, 1.0);
+      }
+    `;
+    const fragSrc = `#version 300 es
+      precision highp float;
+      in vec2 v_texcoord;
+      out vec4 fragColor;
+      uniform sampler2D u_texture;
+      void main() {
+        fragColor = texture(u_texture, v_texcoord);
+      }
+    `;
+    
+    this.copyShader = new Shader(this.gl, vertSrc, fragSrc);
+    
+    // Compile shader so copyTexture() can call use() without throwing
+    this.copyShader.compile().catch(err => {
+      this.logger.warn('Failed to compile copy shader: ' + err);
+      this.copyShader = null;
+    });
+    
+    // Create full-screen quad
+    const verts = new Float32Array([
+      -1, -1, 0, 0,
+       1, -1, 1, 0,
+      -1,  1, 0, 1,
+       1,  1, 1, 1
+    ]);
+    
+    this.copyQuadVAO = this.glContext.createVertexArray();
+    if (!this.copyQuadVAO) {
+      this.logger.warn('Failed to create copy quad VAO');
+      return;
+    }
+    this.glContext.bindVertexArray(this.copyQuadVAO);
+    
+    this.copyQuadVBO = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.copyQuadVBO);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, verts, this.gl.STATIC_DRAW);
+    
+    this.gl.enableVertexAttribArray(0);
+    this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 16, 0);
+    this.gl.enableVertexAttribArray(1);
+    this.gl.vertexAttribPointer(1, 2, this.gl.FLOAT, false, 16, 8);
+    
+    this.glContext.bindVertexArray(null);
   }
 
   /**
@@ -189,11 +256,11 @@ export class PostProcessing {
   }
 
   /**
-   * Copies texture to output
-   * @param _input - Input texture (unused for now)
+   * Copies texture to output using the copy shader
+   * @param input - Input texture
    * @param output - Output framebuffer (null for screen)
    */
-  private copyTexture(_input: Texture, output: Framebuffer | null): void {
+  private copyTexture(input: Texture, output: Framebuffer | null): void {
     // Bind output
     if (output) {
       output.bind();
@@ -204,9 +271,18 @@ export class PostProcessing {
     // Set viewport
     this.gl.viewport(0, 0, this.width, this.height);
     
-    // TODO: Implement simple copy shader
-    // For now, just clear
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    if (this.copyShader && this.copyQuadVAO) {
+      this.copyShader.use();
+      this.copyShader.setUniform('u_texture', 0);
+      input.bind(0);
+      
+      this.glContext.bindVertexArray(this.copyQuadVAO);
+      this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+      this.glContext.bindVertexArray(null);
+    } else {
+      // Fallback: just clear
+      this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    }
   }
 
   /**
@@ -275,6 +351,15 @@ export class PostProcessing {
     
     this.bufferA.unbind();
     this.bufferB.unbind();
+    
+    if (this.copyQuadVAO) {
+      this.glContext.deleteVertexArray(this.copyQuadVAO);
+      this.copyQuadVAO = null;
+    }
+    if (this.copyQuadVBO) {
+      this.gl.deleteBuffer(this.copyQuadVBO);
+      this.copyQuadVBO = null;
+    }
   }
 }
 

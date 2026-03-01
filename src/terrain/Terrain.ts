@@ -4,6 +4,7 @@
  */
 
 import { Vector3 } from '../math/Vector3';
+import { Vector2 } from '../math/Vector2';
 import { MeshData } from '../geometry/MeshData';
 
 /**
@@ -189,7 +190,7 @@ export class Terrain {
                 const vertexIndex = mesh.addVertex(
                     new Vector3(worldX, height, worldZ),
                     normal,
-                    { x: u, y: v } as any
+                    new Vector2(u, v)
                 );
                 
                 vertexMap.set(`${x},${z}`, vertexIndex);

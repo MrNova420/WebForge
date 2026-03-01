@@ -807,7 +807,8 @@
         <div class="menu-dropdown-item" data-action="save-scene">Save Scene <span class="shortcut">Ctrl+S</span></div>
         <div class="menu-dropdown-item" data-action="save-scene-as">Save Scene As... <span class="shortcut">Ctrl+Shift+S</span></div>
         <div class="menu-separator"></div>
-        <div class="menu-dropdown-item" data-action="export-scene">Export Scene</div>
+        <div class="menu-dropdown-item" data-action="export-scene">Export Scene (JSON)</div>
+        <div class="menu-dropdown-item" data-action="open-export">Export Project... <span class="shortcut">Ctrl+Shift+E</span></div>
         <div class="menu-separator"></div>
         <div class="menu-dropdown-item" data-action="home">Home Page</div>
     </div>
@@ -820,6 +821,8 @@
         <div class="menu-separator"></div>
         <div class="menu-dropdown-item" data-action="select-all">Select All <span class="shortcut">Ctrl+A</span></div>
         <div class="menu-dropdown-item" data-action="deselect-all">Deselect All</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="open-settings">Preferences…</div>
     </div>
     <div id="menu-dropdown-view" class="menu-dropdown">
         <div class="menu-dropdown-item" data-action="view-perspective">Perspective</div>
@@ -860,11 +863,26 @@
         <div class="menu-dropdown-item" data-action="show-debug">Debug</div>
         <div class="menu-dropdown-item" data-action="show-network">Network</div>
         <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="show-inspector">Inspector</div>
+        <div class="menu-dropdown-item" data-action="show-animation">Animation</div>
+        <div class="menu-dropdown-item" data-action="show-material">Material Editor</div>
+        <div class="menu-dropdown-item" data-action="show-terrain">Terrain Tools</div>
+        <div class="menu-dropdown-item" data-action="show-audio">Audio</div>
+        <div class="menu-dropdown-item" data-action="show-particles">Particle System</div>
+        <div class="menu-dropdown-item" data-action="show-scripting">Visual Scripting</div>
+        <div class="menu-separator"></div>
         <div class="menu-dropdown-item" data-action="show-keybinds">Keyboard Shortcuts</div>
     </div>
     <div id="menu-dropdown-help" class="menu-dropdown">
         <div class="menu-dropdown-item" data-action="show-keybinds">⌨️ Keyboard Shortcuts</div>
         <div class="menu-dropdown-item" data-action="open-docs">📖 Documentation</div>
+        <div class="menu-dropdown-item" data-action="open-getting-started">🚀 Getting Started Guide</div>
+        <div class="menu-dropdown-item" data-action="open-architecture">🏗️ Architecture Docs</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="open-changelog">📋 Changelog</div>
+        <div class="menu-dropdown-item" data-action="report-bug">🐛 Report a Bug</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" data-action="show-welcome">👋 Welcome Screen</div>
         <div class="menu-dropdown-item" data-action="about">ℹ️ About WebForge</div>
     </div>
 
@@ -971,6 +989,25 @@
                             <div style="font-size: 10px; margin-top: 4px;">Light</div>
                         </div>
                     </div>
+                    <div style="margin: 12px 0 8px; font-size: 11px; color: #888; text-transform: uppercase;">Cameras & Audio</div>
+                    <div class="asset-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                        <div class="asset-item" data-type="cube" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
+                            <div style="font-size: 24px;">📷</div>
+                            <div style="font-size: 10px; margin-top: 4px;">Camera</div>
+                        </div>
+                        <div class="asset-item" data-type="sphere" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
+                            <div style="font-size: 24px;">🔊</div>
+                            <div style="font-size: 10px; margin-top: 4px;">Audio</div>
+                        </div>
+                        <div class="asset-item" data-type="cube" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
+                            <div style="font-size: 24px;">✨</div>
+                            <div style="font-size: 10px; margin-top: 4px;">Particles</div>
+                        </div>
+                    </div>
+                    <div style="margin: 12px 0 8px; font-size: 11px; color: #888; text-transform: uppercase;">Project Files</div>
+                    <div style="padding: 10px; background: #1a1a1a; border-radius: 4px; text-align: center; color: #555; font-size: 11px; border: 1px dashed #444; cursor: pointer;" id="import-drop-zone">
+                        Drop files here or click 📁 Import
+                    </div>
                 </div>
             </div>
         </div>
@@ -1041,10 +1078,71 @@
                 </div>
                 <div class="console-content" id="debug-content" style="display: none;">
                     <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px;">
-                        <div style="color: #888; font-size: 11px; border-bottom: 1px solid #333; padding-bottom: 8px;">
-                            Debug Log - Real-time debugging information
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px;">
+                            <span style="color: #888; font-size: 11px;">Debug Tools — Real-time inspection</span>
+                            <div style="display: flex; gap: 4px;">
+                                <button class="toolbar-btn" id="debug-btn-clear" title="Clear" style="font-size: 10px; padding: 2px 6px;">🗑 Clear</button>
+                                <button class="toolbar-btn" id="debug-btn-pause" title="Pause" style="font-size: 10px; padding: 2px 6px;">⏸ Pause</button>
+                            </div>
                         </div>
-                        <div id="debug-log" style="font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto;">
+                        <!-- Watch Expressions -->
+                        <div style="background: #252525; border-radius: 4px; padding: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="font-size: 11px; color: #aaa; font-weight: bold;">👁 Watch Expressions</span>
+                                <button class="panel-btn" id="debug-btn-add-watch" title="Add Watch" style="font-size: 9px;">+</button>
+                            </div>
+                            <div id="debug-watch-list" style="font-family: monospace; font-size: 11px;">
+                                <div style="display: flex; justify-content: space-between; padding: 3px 4px; background: #1e1e1e; border-radius: 2px; margin-bottom: 2px;">
+                                    <span style="color: #9cdcfe;">FPS</span>
+                                    <span id="debug-watch-fps" style="color: #4CAF50;">60</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 3px 4px; background: #1e1e1e; border-radius: 2px; margin-bottom: 2px;">
+                                    <span style="color: #9cdcfe;">Objects</span>
+                                    <span id="debug-watch-objects" style="color: #ce9178;">0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 3px 4px; background: #1e1e1e; border-radius: 2px; margin-bottom: 2px;">
+                                    <span style="color: #9cdcfe;">Draw Calls</span>
+                                    <span id="debug-watch-draws" style="color: #ce9178;">0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 3px 4px; background: #1e1e1e; border-radius: 2px; margin-bottom: 2px;">
+                                    <span style="color: #9cdcfe;">Selected</span>
+                                    <span id="debug-watch-selected" style="color: #ce9178;">none</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 3px 4px; background: #1e1e1e; border-radius: 2px;">
+                                    <span style="color: #9cdcfe;">Transform Mode</span>
+                                    <span id="debug-watch-mode" style="color: #ce9178;">select</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Breakpoints -->
+                        <div style="background: #252525; border-radius: 4px; padding: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="font-size: 11px; color: #aaa; font-weight: bold;">🔴 Breakpoints</span>
+                                <button class="panel-btn" id="debug-btn-add-bp" title="Add Breakpoint" style="font-size: 9px;">+</button>
+                            </div>
+                            <div id="debug-breakpoints" style="font-family: monospace; font-size: 11px;">
+                                <div style="color: #666; font-style: italic; font-size: 10px;">No breakpoints set</div>
+                            </div>
+                        </div>
+                        <!-- Undo/Redo History -->
+                        <div style="background: #252525; border-radius: 4px; padding: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="font-size: 11px; color: #aaa; font-weight: bold;">↩ Undo/Redo History</span>
+                                <div style="display: flex; gap: 4px;">
+                                    <span id="debug-undo-count" style="font-size: 10px; color: #569cd6; background: #1e1e1e; padding: 1px 6px; border-radius: 3px;">0 undo</span>
+                                    <span id="debug-redo-count" style="font-size: 10px; color: #4ec9b0; background: #1e1e1e; padding: 1px 6px; border-radius: 3px;">0 redo</span>
+                                </div>
+                            </div>
+                            <div id="debug-undo-history" style="font-family: monospace; font-size: 10px; max-height: 60px; overflow-y: auto;">
+                                <div style="color: #666; font-style: italic;">No actions recorded</div>
+                            </div>
+                        </div>
+                        <!-- Error Log -->
+                        <div style="background: #252525; border-radius: 4px; padding: 8px;">
+                            <span style="font-size: 11px; color: #aaa; font-weight: bold;">⚠ Error Log</span>
+                            <div id="debug-error-log" style="font-family: monospace; font-size: 11px; max-height: 80px; overflow-y: auto; margin-top: 6px;">
+                                <div style="color: #666; font-style: italic; font-size: 10px;">No errors captured</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1133,34 +1231,139 @@
                     </div>
                 </div>
                 <div class="console-content" id="profiler-content" style="display: none;">
-                    <div class="profiler-stats" style="display: flex; gap: 20px; padding: 10px; background: #252525; border-bottom: 1px solid #333;">
+                    <div class="profiler-stats" style="display: flex; gap: 16px; padding: 8px 10px; background: #252525; border-bottom: 1px solid #333; flex-wrap: wrap;">
                         <div class="profiler-stat">
-                            <span style="color: #888;">Frame Time:</span>
-                            <span id="profiler-frametime" style="color: #4CAF50;">0.00 ms</span>
+                            <span style="color: #888; font-size: 11px;">Frame Time:</span>
+                            <span id="profiler-frametime" style="color: #4CAF50; font-size: 11px; font-weight: bold;">0.00 ms</span>
                         </div>
                         <div class="profiler-stat">
-                            <span style="color: #888;">Draw Calls:</span>
-                            <span id="profiler-draws" style="color: #2196F3;">0</span>
+                            <span style="color: #888; font-size: 11px;">Draw Calls:</span>
+                            <span id="profiler-draws" style="color: #2196F3; font-size: 11px; font-weight: bold;">0</span>
                         </div>
                         <div class="profiler-stat">
-                            <span style="color: #888;">Vertices:</span>
-                            <span id="profiler-verts" style="color: #FF9800;">0</span>
+                            <span style="color: #888; font-size: 11px;">Vertices:</span>
+                            <span id="profiler-verts" style="color: #FF9800; font-size: 11px; font-weight: bold;">0</span>
                         </div>
                         <div class="profiler-stat">
-                            <span style="color: #888;">Memory:</span>
-                            <span id="profiler-memory" style="color: #9C27B0;">0 MB</span>
+                            <span style="color: #888; font-size: 11px;">Memory:</span>
+                            <span id="profiler-memory" style="color: #9C27B0; font-size: 11px; font-weight: bold;">0 MB</span>
+                        </div>
+                        <div class="profiler-stat">
+                            <span style="color: #888; font-size: 11px;">FPS:</span>
+                            <span id="profiler-fps" style="color: #4CAF50; font-size: 11px; font-weight: bold;">0</span>
+                        </div>
+                        <div class="profiler-stat">
+                            <span style="color: #888; font-size: 11px;">Objects:</span>
+                            <span id="profiler-objects" style="color: #FF9800; font-size: 11px; font-weight: bold;">0</span>
                         </div>
                     </div>
-                    <div class="profiler-graph" style="height: 100px; background: #1a1a1a; margin: 10px; border-radius: 4px;">
-                        <canvas id="profiler-canvas" style="width: 100%; height: 100%;"></canvas>
+                    <div style="display: flex; gap: 0; flex: 1;">
+                        <div style="flex: 1; display: flex; flex-direction: column;">
+                            <div style="padding: 4px 10px; font-size: 10px; color: #888; display: flex; justify-content: space-between;">
+                                <span>Frame Timeline (last 60 frames)</span>
+                                <span style="color: #555;">🟢 &lt;16ms &nbsp; 🟠 &lt;33ms &nbsp; 🔴 &gt;33ms</span>
+                            </div>
+                            <div class="profiler-graph" style="height: 80px; background: #1a1a1a; margin: 0 10px 6px; border-radius: 4px; position: relative;">
+                                <canvas id="profiler-canvas" style="width: 100%; height: 100%;"></canvas>
+                            </div>
+                        </div>
                     </div>
-                    <div style="padding: 10px; color: #888; font-style: italic;">
-                        Frame timeline profiler - showing last 60 frames
+                    <!-- Subsystem breakdown -->
+                    <div style="padding: 4px 10px 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 140px; background: #252525; border-radius: 4px; padding: 6px 8px;">
+                            <div style="font-size: 10px; color: #888; margin-bottom: 4px;">Render Pipeline</div>
+                            <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px;">
+                                <span style="color: #aaa;">Scene Pass</span>
+                                <span id="profiler-scene-pass" style="color: #4CAF50;">0.0ms</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px;">
+                                <span style="color: #aaa;">Shadow Pass</span>
+                                <span id="profiler-shadow-pass" style="color: #4CAF50;">0.0ms</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                                <span style="color: #aaa;">Post Process</span>
+                                <span id="profiler-post-pass" style="color: #4CAF50;">0.0ms</span>
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 140px; background: #252525; border-radius: 4px; padding: 6px 8px;">
+                            <div style="font-size: 10px; color: #888; margin-bottom: 4px;">Systems</div>
+                            <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px;">
+                                <span style="color: #aaa;">Physics</span>
+                                <span id="profiler-physics" style="color: #4CAF50;">0.0ms</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px;">
+                                <span style="color: #aaa;">Animation</span>
+                                <span id="profiler-animation" style="color: #4CAF50;">0.0ms</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                                <span style="color: #aaa;">Scripts</span>
+                                <span id="profiler-scripts" style="color: #4CAF50;">0.0ms</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="console-content" id="network-content" style="display: none;">
-                    <div style="padding: 20px; color: #888; text-align: center; font-style: italic;">
-                        No network activity
+                    <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px;">
+                            <span style="color: #888; font-size: 11px;">Network — Multiplayer & Collaboration</span>
+                            <div style="display: flex; gap: 4px;">
+                                <button class="toolbar-btn" id="net-btn-host" title="Host Session" style="font-size: 10px; padding: 2px 8px; background: #4CAF50; color: white;">Host</button>
+                                <button class="toolbar-btn" id="net-btn-join" title="Join Session" style="font-size: 10px; padding: 2px 8px;">Join</button>
+                            </div>
+                        </div>
+                        <!-- Connection Status -->
+                        <div style="background: #252525; border-radius: 4px; padding: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-size: 11px; color: #aaa; font-weight: bold;">🌐 Connection</span>
+                                <span id="net-status-badge" style="padding: 2px 8px; background: #333; border-radius: 10px; font-size: 10px; color: #888;">Offline</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px;">
+                                <div style="display: flex; justify-content: space-between; padding: 3px 6px; background: #1e1e1e; border-radius: 2px;">
+                                    <span style="color: #888;">Protocol</span>
+                                    <span id="net-protocol" style="color: #9cdcfe;">WebRTC</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 3px 6px; background: #1e1e1e; border-radius: 2px;">
+                                    <span style="color: #888;">Latency</span>
+                                    <span id="net-latency" style="color: #4CAF50;">— ms</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 3px 6px; background: #1e1e1e; border-radius: 2px;">
+                                    <span style="color: #888;">Peers</span>
+                                    <span id="net-peers" style="color: #ce9178;">0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 3px 6px; background: #1e1e1e; border-radius: 2px;">
+                                    <span style="color: #888;">Bandwidth</span>
+                                    <span id="net-bandwidth" style="color: #ce9178;">0 KB/s</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Room Info -->
+                        <div style="background: #252525; border-radius: 4px; padding: 8px;">
+                            <span style="font-size: 11px; color: #aaa; font-weight: bold;">🏠 Room</span>
+                            <div style="margin-top: 6px;">
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <input type="text" id="net-room-code" placeholder="Room code..." style="flex: 1; padding: 4px 8px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px; font-family: monospace;">
+                                    <button class="toolbar-btn" id="net-btn-copy-room" title="Copy" style="font-size: 10px; padding: 2px 6px;">📋</button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Connected Peers -->
+                        <div style="background: #252525; border-radius: 4px; padding: 8px;">
+                            <span style="font-size: 11px; color: #aaa; font-weight: bold;">👥 Connected Peers</span>
+                            <div id="net-peer-list" style="margin-top: 6px; font-size: 11px; color: #666; font-style: italic;">
+                                No peers connected
+                            </div>
+                        </div>
+                        <!-- Chat -->
+                        <div style="background: #252525; border-radius: 4px; padding: 8px;">
+                            <span style="font-size: 11px; color: #aaa; font-weight: bold;">💬 Chat</span>
+                            <div id="net-chat-log" style="margin-top: 6px; max-height: 60px; overflow-y: auto; font-size: 11px;">
+                                <div data-placeholder="true" style="color: #666; font-style: italic; font-size: 10px;">Chat messages will appear here</div>
+                            </div>
+                            <div style="display: flex; gap: 4px; margin-top: 6px;">
+                                <input type="text" id="net-chat-input" placeholder="Type a message..." style="flex: 1; padding: 4px 8px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px;">
+                                <button class="toolbar-btn" id="net-btn-send" title="Send" style="font-size: 10px; padding: 2px 8px;">Send</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="console-input-row">
@@ -1172,28 +1375,614 @@
         <!-- Vertical Resize Handle (Right) -->
         <div class="resize-handle-v" id="resize-right"></div>
 
-        <!-- Right Column: Inspector -->
+        <!-- Right Column: Inspector + Panel Tabs -->
         <div class="right-column" id="right-column">
             <div class="panel" id="inspector-panel">
-                <div class="panel-header">
-                    <span>Inspector</span>
+                <div class="console-tabs" id="right-panel-tabs">
+                    <div class="console-tab active" data-rtab="inspector">Inspector</div>
+                    <div class="console-tab" data-rtab="animation">Animation</div>
+                    <div class="console-tab" data-rtab="material">Material</div>
+                    <div class="console-tab" data-rtab="terrain">Terrain</div>
+                    <div class="console-tab" data-rtab="audio">Audio</div>
+                    <div class="console-tab" data-rtab="particles">Particles</div>
+                    <div class="console-tab" data-rtab="scripting">Script</div>
                 </div>
                 <div class="panel-content" id="inspector-content">
                     <div class="inspector-empty">No object selected</div>
                 </div>
+                <div class="panel-content" id="animation-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
+                    <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">🎬 Animation Timeline</div>
+                    <!-- Playback Controls -->
+                    <div style="background: #333; border-radius: 4px; padding: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <button class="toolbar-btn" id="anim-btn-prev" title="Previous Frame" style="font-size: 12px; padding: 3px 6px;">⏮</button>
+                        <button class="toolbar-btn" id="anim-btn-play" title="Play/Pause" style="font-size: 14px; padding: 3px 8px; color: #4CAF50;">▶</button>
+                        <button class="toolbar-btn" id="anim-btn-stop" title="Stop" style="font-size: 12px; padding: 3px 6px;">⏹</button>
+                        <button class="toolbar-btn" id="anim-btn-next" title="Next Frame" style="font-size: 12px; padding: 3px 6px;">⏭</button>
+                        <div style="flex: 1; display: flex; align-items: center; gap: 6px; margin-left: 8px;">
+                            <span style="font-size: 10px; color: #888;">Frame:</span>
+                            <input type="number" id="anim-frame" value="0" min="0" max="100" style="width: 45px; padding: 2px 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px; text-align: center;">
+                            <span style="font-size: 10px; color: #666;">/</span>
+                            <span id="anim-total-frames" style="font-size: 10px; color: #888;">30</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span style="font-size: 10px; color: #888;">FPS:</span>
+                            <select id="anim-fps" style="padding: 2px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 10px;">
+                                <option value="24">24</option>
+                                <option value="30" selected>30</option>
+                                <option value="60">60</option>
+                            </select>
+                        </div>
+                        <label style="display: flex; align-items: center; gap: 3px; font-size: 10px; color: #888; cursor: pointer;">
+                            <input type="checkbox" id="anim-loop" checked> Loop
+                        </label>
+                    </div>
+                    <!-- Clips -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 12px; color: #aaa;">Clips</span>
+                            <button class="panel-btn" id="anim-btn-add-clip" title="Add Clip">+</button>
+                        </div>
+                        <div id="anim-clip-list" style="font-size: 12px; color: #888; font-style: italic;">Select an object to manage clips</div>
+                    </div>
+                    <!-- State Machine -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; color: #aaa;">State Machine</span>
+                            <button class="panel-btn" id="anim-btn-add-state" title="Add State" style="font-size: 10px;">+ State</button>
+                        </div>
+                        <div id="anim-state-list" style="font-size: 12px; color: #888; font-style: italic;">No states defined</div>
+                    </div>
+                    <!-- Timeline -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; color: #aaa;">Timeline</span>
+                            <div style="display: flex; gap: 4px;">
+                                <button class="panel-btn" id="anim-btn-add-keyframe" title="Add Keyframe" style="font-size: 10px;">◆+</button>
+                                <button class="panel-btn" id="anim-btn-del-keyframe" title="Delete Keyframe" style="font-size: 10px;">◆−</button>
+                            </div>
+                        </div>
+                        <!-- Timeline scrubber -->
+                        <div style="position: relative; height: 24px; background: #1a1a1a; border-radius: 3px; margin-bottom: 6px; overflow: hidden; cursor: pointer;" id="anim-timeline-scrubber">
+                            <div id="anim-scrubber-head" style="position: absolute; left: 0; top: 0; width: 2px; height: 100%; background: #4a9eff; pointer-events: none;"></div>
+                            <!-- Tick marks -->
+                            <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 8px; display: flex;">
+                                <div style="flex: 1; border-right: 1px solid #333;"></div>
+                                <div style="flex: 1; border-right: 1px solid #333;"></div>
+                                <div style="flex: 1; border-right: 1px solid #333;"></div>
+                                <div style="flex: 1; border-right: 1px solid #333;"></div>
+                                <div style="flex: 1;"></div>
+                            </div>
+                        </div>
+                        <!-- Track rows -->
+                        <div id="anim-tracks" style="min-height: 40px;">
+                            <div style="display: flex; align-items: center; height: 20px; border-bottom: 1px solid #2a2a2a;">
+                                <span style="width: 70px; font-size: 10px; color: #888; padding-left: 4px;">Position</span>
+                                <div style="flex: 1; height: 100%; background: #1a1a1a; position: relative;" id="anim-track-pos"></div>
+                            </div>
+                            <div style="display: flex; align-items: center; height: 20px; border-bottom: 1px solid #2a2a2a;">
+                                <span style="width: 70px; font-size: 10px; color: #888; padding-left: 4px;">Rotation</span>
+                                <div style="flex: 1; height: 100%; background: #1a1a1a; position: relative;" id="anim-track-rot"></div>
+                            </div>
+                            <div style="display: flex; align-items: center; height: 20px;">
+                                <span style="width: 70px; font-size: 10px; color: #888; padding-left: 4px;">Scale</span>
+                                <div style="flex: 1; height: 100%; background: #1a1a1a; position: relative;" id="anim-track-scale"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-content" id="material-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
+                    <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">🎨 Material Editor</div>
+                    <!-- Shader selector -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Shader</div>
+                        <select id="mat-shader" style="width: 100%; padding: 5px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 12px;">
+                            <option>Standard PBR</option>
+                            <option>Unlit</option>
+                            <option>Toon</option>
+                            <option>Custom</option>
+                        </select>
+                    </div>
+                    <!-- Material Preview -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Preview</div>
+                        <div id="mat-preview" style="width: 100%; height: 60px; background: radial-gradient(circle at 35% 35%, #8ab4f8, #3d6ea5 50%, #1a3a5c); border-radius: 6px; border: 1px solid #444;"></div>
+                    </div>
+                    <!-- Albedo -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Albedo</div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="color" id="mat-albedo" value="#6699cc" style="width: 30px; height: 24px; border: none; background: none; cursor: pointer;">
+                            <span id="mat-albedo-hex" style="font-size: 11px; color: #888;">#6699cc</span>
+                        </div>
+                    </div>
+                    <!-- Metallic -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Metallic</span>
+                            <span id="mat-metallic-val" style="font-size: 11px; color: #888;">0%</span>
+                        </div>
+                        <input type="range" id="mat-metallic" min="0" max="100" value="0" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Roughness -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Roughness</span>
+                            <span id="mat-roughness-val" style="font-size: 11px; color: #888;">50%</span>
+                        </div>
+                        <input type="range" id="mat-roughness" min="0" max="100" value="50" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Emission -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Emission</div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="color" id="mat-emission" value="#000000" style="width: 30px; height: 24px; border: none; background: none; cursor: pointer;">
+                            <input type="range" id="mat-emission-strength" min="0" max="100" value="0" style="flex: 1;">
+                            <span id="mat-emission-val" style="font-size: 11px; color: #888;">0%</span>
+                        </div>
+                    </div>
+                    <!-- Opacity -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Opacity</span>
+                            <span id="mat-opacity-val" style="font-size: 11px; color: #888;">100%</span>
+                        </div>
+                        <input type="range" id="mat-opacity" min="0" max="100" value="100" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Options -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">Options</div>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ccc; cursor: pointer;">
+                                <input type="checkbox" id="mat-two-sided"> Two-Sided
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ccc; cursor: pointer;">
+                                <input type="checkbox" id="mat-wireframe"> Wireframe Overlay
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ccc; cursor: pointer;">
+                                <input type="checkbox" id="mat-receive-shadows" checked> Receive Shadows
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Texture Maps -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Texture Maps</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                            <div class="mat-tex-slot" data-slot="albedo" style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; border: 1px dashed #444;">Albedo</div>
+                            <div class="mat-tex-slot" data-slot="normal" style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; border: 1px dashed #444;">Normal</div>
+                            <div class="mat-tex-slot" data-slot="metallic" style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; border: 1px dashed #444;">Metallic</div>
+                            <div class="mat-tex-slot" data-slot="roughness" style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; border: 1px dashed #444;">Roughness</div>
+                            <div class="mat-tex-slot" data-slot="ao" style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; border: 1px dashed #444;">AO</div>
+                            <div class="mat-tex-slot" data-slot="emission" style="height: 40px; background: #1a1a1a; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; border: 1px dashed #444;">Emission</div>
+                        </div>
+                        <div style="font-size: 10px; color: #555; margin-top: 6px; text-align: center;">Normal Map Scale</div>
+                        <input type="range" id="mat-normal-scale" min="0" max="200" value="100" style="width: 100%; margin-top: 2px;">
+                    </div>
+                    <!-- Presets -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Material Presets</div>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button class="toolbar-btn mat-preset-btn" data-preset="metal" style="font-size: 10px; padding: 3px 6px;">🔩 Metal</button>
+                            <button class="toolbar-btn mat-preset-btn" data-preset="wood" style="font-size: 10px; padding: 3px 6px;">🪵 Wood</button>
+                            <button class="toolbar-btn mat-preset-btn" data-preset="plastic" style="font-size: 10px; padding: 3px 6px;">🧴 Plastic</button>
+                            <button class="toolbar-btn mat-preset-btn" data-preset="glass" style="font-size: 10px; padding: 3px 6px;">🪟 Glass</button>
+                            <button class="toolbar-btn mat-preset-btn" data-preset="stone" style="font-size: 10px; padding: 3px 6px;">🪨 Stone</button>
+                            <button class="toolbar-btn mat-preset-btn" data-preset="fabric" style="font-size: 10px; padding: 3px 6px;">🧵 Fabric</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-content" id="terrain-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
+                    <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">🏔️ Terrain Tools</div>
+                    <!-- Create Terrain button -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <button id="terrain-btn-create" style="width: 100%; padding: 8px; background: #4a9eff; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">+ Create Terrain</button>
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Width</div>
+                                <input type="number" id="terrain-width" value="100" min="10" max="1000" step="10" style="width: 100%; padding: 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Depth</div>
+                                <input type="number" id="terrain-depth" value="100" min="10" max="1000" step="10" style="width: 100%; padding: 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Resolution</div>
+                                <select id="terrain-res" style="width: 100%; padding: 4px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 11px;">
+                                    <option value="32">32</option>
+                                    <option value="64" selected>64</option>
+                                    <option value="128">128</option>
+                                    <option value="256">256</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Brush Tool -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">Brush Tool</div>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;" id="terrain-tools">
+                            <button class="toolbar-btn active terrain-tool-btn" data-tool="raise" style="font-size: 11px; padding: 4px 8px;">⬆ Raise</button>
+                            <button class="toolbar-btn terrain-tool-btn" data-tool="lower" style="font-size: 11px; padding: 4px 8px;">⬇ Lower</button>
+                            <button class="toolbar-btn terrain-tool-btn" data-tool="smooth" style="font-size: 11px; padding: 4px 8px;">〰 Smooth</button>
+                            <button class="toolbar-btn terrain-tool-btn" data-tool="flatten" style="font-size: 11px; padding: 4px 8px;">━ Flatten</button>
+                            <button class="toolbar-btn terrain-tool-btn" data-tool="paint" style="font-size: 11px; padding: 4px 8px;">🎨 Paint</button>
+                            <button class="toolbar-btn terrain-tool-btn" data-tool="erosion" style="font-size: 11px; padding: 4px 8px;">🌊 Erosion</button>
+                            <button class="toolbar-btn terrain-tool-btn" data-tool="scatter" style="font-size: 11px; padding: 4px 8px;">🌿 Scatter</button>
+                        </div>
+                    </div>
+                    <!-- Brush Settings -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Brush Size</span>
+                            <span id="terrain-size-val" style="font-size: 11px; color: #888;">10</span>
+                        </div>
+                        <input type="range" id="terrain-brush-size" min="1" max="50" value="10" style="width: 100%; margin-top: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 12px; color: #aaa;">Brush Strength</span>
+                            <span id="terrain-strength-val" style="font-size: 11px; color: #888;">50%</span>
+                        </div>
+                        <input type="range" id="terrain-brush-strength" min="1" max="100" value="50" style="width: 100%; margin-top: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 12px; color: #aaa;">Falloff</span>
+                            <span id="terrain-falloff-val" style="font-size: 11px; color: #888;">80%</span>
+                        </div>
+                        <input type="range" id="terrain-falloff" min="0" max="100" value="80" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Terrain Layers -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; color: #aaa;">Terrain Layers</span>
+                            <button class="panel-btn" id="terrain-btn-add-layer" title="Add Layer">+</button>
+                        </div>
+                        <div id="terrain-layer-list">
+                            <div class="terrain-layer-item" style="display: flex; align-items: center; gap: 6px; padding: 4px; background: #2a2a2a; border-radius: 3px; margin-bottom: 4px; cursor: pointer; border: 1px solid #4a9eff;">
+                                <div style="width: 20px; height: 20px; background: #5a8a3a; border-radius: 2px;"></div>
+                                <span style="font-size: 11px; color: #ddd; flex: 1;">Grass</span>
+                            </div>
+                            <div class="terrain-layer-item" style="display: flex; align-items: center; gap: 6px; padding: 4px; background: #2a2a2a; border-radius: 3px; margin-bottom: 4px; cursor: pointer;">
+                                <div style="width: 20px; height: 20px; background: #8a7a5a; border-radius: 2px;"></div>
+                                <span style="font-size: 11px; color: #ddd; flex: 1;">Dirt</span>
+                            </div>
+                            <div class="terrain-layer-item" style="display: flex; align-items: center; gap: 6px; padding: 4px; background: #2a2a2a; border-radius: 3px; cursor: pointer;">
+                                <div style="width: 20px; height: 20px; background: #6a6a6a; border-radius: 2px;"></div>
+                                <span style="font-size: 11px; color: #ddd; flex: 1;">Rock</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Heightmap -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Heightmap</div>
+                        <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+                            <button class="toolbar-btn" id="terrain-btn-import-hm" style="font-size: 10px; padding: 3px 6px; flex: 1;">📥 Import</button>
+                            <button class="toolbar-btn" id="terrain-btn-export-hm" style="font-size: 10px; padding: 3px 6px; flex: 1;">📤 Export</button>
+                            <button class="toolbar-btn" id="terrain-btn-flatten-all" style="font-size: 10px; padding: 3px 6px; flex: 1;">⏚ Reset</button>
+                        </div>
+                        <!-- Terrain Generation Presets -->
+                        <div style="font-size: 11px; color: #888; margin-bottom: 4px;">Generate Terrain</div>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button class="toolbar-btn terrain-gen-btn" data-preset="hills" style="font-size: 10px; padding: 3px 6px;">🏔 Hills</button>
+                            <button class="toolbar-btn terrain-gen-btn" data-preset="mountains" style="font-size: 10px; padding: 3px 6px;">⛰ Mountains</button>
+                            <button class="toolbar-btn terrain-gen-btn" data-preset="valleys" style="font-size: 10px; padding: 3px 6px;">🏞 Valleys</button>
+                            <button class="toolbar-btn terrain-gen-btn" data-preset="islands" style="font-size: 10px; padding: 3px 6px;">🏝 Islands</button>
+                            <button class="toolbar-btn terrain-gen-btn" data-preset="flat" style="font-size: 10px; padding: 3px 6px;">━ Flat</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-content" id="audio-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
+                    <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">🎵 Audio</div>
+                    <!-- Audio Source on selected -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; color: #aaa;">Audio Source</span>
+                            <button class="panel-btn" id="audio-btn-add-source" title="Add Audio Source to Selected">+</button>
+                        </div>
+                        <div id="audio-source-info" style="font-size: 12px; color: #888; font-style: italic;">Select an object to add audio</div>
+                    </div>
+                    <!-- Clip -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Audio Clip</div>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <div id="audio-clip-name" style="flex: 1; padding: 5px; background: #1a1a1a; border: 1px dashed #444; border-radius: 3px; font-size: 11px; color: #666; text-align: center; cursor: pointer;">Drop audio file here</div>
+                            <button class="toolbar-btn" id="audio-btn-preview" title="Preview" style="font-size: 14px; padding: 2px 6px;">▶</button>
+                        </div>
+                    </div>
+                    <!-- Volume -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Volume</span>
+                            <span id="audio-volume-val" style="font-size: 11px; color: #888;">100%</span>
+                        </div>
+                        <input type="range" id="audio-volume" min="0" max="100" value="100" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Spatial Audio -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">Spatial Audio</div>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ccc; cursor: pointer; margin-bottom: 6px;">
+                            <input type="checkbox" id="audio-spatial" checked> Enable 3D Spatial
+                        </label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Min Distance</div>
+                                <input type="number" id="audio-min-dist" value="1" min="0" step="0.5" style="width: 100%; padding: 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Max Distance</div>
+                                <input type="number" id="audio-max-dist" value="50" min="1" step="1" style="width: 100%; padding: 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px;">
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 11px; color: #aaa;">Rolloff</span>
+                        </div>
+                        <select id="audio-rolloff" style="width: 100%; padding: 4px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 11px; margin-top: 4px;">
+                            <option>Linear</option>
+                            <option selected>Logarithmic</option>
+                            <option>Custom Curve</option>
+                        </select>
+                    </div>
+                    <!-- Playback Options -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">Playback</div>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ccc; cursor: pointer;">
+                                <input type="checkbox" id="audio-loop"> Loop
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ccc; cursor: pointer;">
+                                <input type="checkbox" id="audio-play-on-awake" checked> Play On Awake
+                            </label>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 11px; color: #aaa;">Pitch</span>
+                            <span id="audio-pitch-val" style="font-size: 11px; color: #888;">1.0</span>
+                        </div>
+                        <input type="range" id="audio-pitch" min="10" max="300" value="100" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Master Volume -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Master Volume</span>
+                            <span id="audio-master-val" style="font-size: 11px; color: #888;">100%</span>
+                        </div>
+                        <input type="range" id="audio-master" min="0" max="100" value="100" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Audio Buses -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Audio Buses</div>
+                        <div style="font-size: 11px; display: flex; flex-direction: column; gap: 6px;" id="audio-buses">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="width: 50px; color: #ccc;">Master</span>
+                                <input type="range" min="0" max="100" value="100" style="flex: 1;" class="audio-bus-slider" data-bus="master">
+                                <span style="width: 30px; text-align: right; color: #888; font-size: 10px;">100%</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="width: 50px; color: #ccc;">Music</span>
+                                <input type="range" min="0" max="100" value="80" style="flex: 1;" class="audio-bus-slider" data-bus="music">
+                                <span style="width: 30px; text-align: right; color: #888; font-size: 10px;">80%</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="width: 50px; color: #ccc;">SFX</span>
+                                <input type="range" min="0" max="100" value="100" style="flex: 1;" class="audio-bus-slider" data-bus="sfx">
+                                <span style="width: 30px; text-align: right; color: #888; font-size: 10px;">100%</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="width: 50px; color: #ccc;">Ambient</span>
+                                <input type="range" min="0" max="100" value="60" style="flex: 1;" class="audio-bus-slider" data-bus="ambient">
+                                <span style="width: 30px; text-align: right; color: #888; font-size: 10px;">60%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-content" id="particles-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
+                    <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">✨ Particle System</div>
+                    <!-- Add to selected -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <button id="particle-btn-add" style="width: 100%; padding: 8px; background: #4a9eff; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">+ Add Particle System</button>
+                    </div>
+                    <!-- Emitter Shape -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Emitter Shape</div>
+                        <select id="particle-shape" style="width: 100%; padding: 5px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 12px;">
+                            <option value="point">Point</option>
+                            <option value="sphere">Sphere</option>
+                            <option value="box">Box</option>
+                            <option value="cone" selected>Cone</option>
+                            <option value="circle">Circle</option>
+                            <option value="edge">Edge</option>
+                        </select>
+                    </div>
+                    <!-- Emission -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Emission Rate</span>
+                            <span id="particle-rate-val" style="font-size: 11px; color: #888;">50/s</span>
+                        </div>
+                        <input type="range" id="particle-rate" min="1" max="500" value="50" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Lifetime -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Lifetime</span>
+                            <span id="particle-lifetime-val" style="font-size: 11px; color: #888;">2.0s</span>
+                        </div>
+                        <input type="range" id="particle-lifetime" min="1" max="100" value="20" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Speed -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Start Speed</span>
+                            <span id="particle-speed-val" style="font-size: 11px; color: #888;">5.0</span>
+                        </div>
+                        <input type="range" id="particle-speed" min="0" max="200" value="50" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Size over lifetime -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #aaa;">Start Size</span>
+                            <span id="particle-size-val" style="font-size: 11px; color: #888;">0.30</span>
+                        </div>
+                        <input type="range" id="particle-size" min="1" max="100" value="30" style="width: 100%; margin-top: 4px;">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 10px; color: #888; cursor: pointer; margin-top: 6px;">
+                            <input type="checkbox" id="particle-size-over-life"> Size over lifetime
+                        </label>
+                    </div>
+                    <!-- Color -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Color Gradient</div>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <span style="font-size: 10px; color: #888;">Start:</span>
+                            <input type="color" id="particle-color-start" value="#ff6600" style="width: 24px; height: 20px; border: none; background: none; cursor: pointer;">
+                            <span style="font-size: 10px; color: #888;">End:</span>
+                            <input type="color" id="particle-color-end" value="#ff0000" style="width: 24px; height: 20px; border: none; background: none; cursor: pointer;">
+                        </div>
+                        <!-- Gradient preview -->
+                        <div id="particle-gradient-preview" style="height: 12px; margin-top: 6px; border-radius: 2px; background: linear-gradient(to right, #ff6600, #ff0000);"></div>
+                    </div>
+                    <!-- Physics -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">Physics</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 11px; color: #aaa;">Gravity</span>
+                            <span id="particle-gravity-val" style="font-size: 11px; color: #888;">0.0</span>
+                        </div>
+                        <input type="range" id="particle-gravity" min="-100" max="100" value="0" style="width: 100%; margin-top: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 11px; color: #aaa;">Turbulence</span>
+                            <span id="particle-turbulence-val" style="font-size: 11px; color: #888;">0.0</span>
+                        </div>
+                        <input type="range" id="particle-turbulence" min="0" max="100" value="0" style="width: 100%; margin-top: 4px;">
+                    </div>
+                    <!-- Burst -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; color: #aaa;">Bursts</span>
+                            <button class="panel-btn" id="particle-btn-add-burst" title="Add Burst">+</button>
+                        </div>
+                        <div id="particle-burst-list" style="font-size: 11px; color: #888; font-style: italic;">No bursts configured</div>
+                    </div>
+                    <!-- Rendering -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Rendering</div>
+                        <div style="display: flex; gap: 8px;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Blend Mode</div>
+                                <select id="particle-blend" style="width: 100%; padding: 4px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 11px;">
+                                    <option>Additive</option>
+                                    <option>Alpha Blend</option>
+                                    <option>Multiply</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #888; margin-bottom: 2px;">Space</div>
+                                <select id="particle-space" style="width: 100%; padding: 4px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 11px;">
+                                    <option>World</option>
+                                    <option>Local</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 11px; color: #aaa;">Max Particles</span>
+                            <input type="number" id="particle-max" value="1000" min="1" max="100000" style="width: 70px; padding: 3px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px; text-align: center;">
+                        </div>
+                    </div>
+                    <!-- Presets -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Presets</div>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button class="toolbar-btn particle-preset-btn" data-preset="fire" style="font-size: 10px; padding: 3px 6px;">🔥 Fire</button>
+                            <button class="toolbar-btn particle-preset-btn" data-preset="smoke" style="font-size: 10px; padding: 3px 6px;">💨 Smoke</button>
+                            <button class="toolbar-btn particle-preset-btn" data-preset="sparks" style="font-size: 10px; padding: 3px 6px;">✨ Sparks</button>
+                            <button class="toolbar-btn particle-preset-btn" data-preset="rain" style="font-size: 10px; padding: 3px 6px;">🌧️ Rain</button>
+                            <button class="toolbar-btn particle-preset-btn" data-preset="snow" style="font-size: 10px; padding: 3px 6px;">❄️ Snow</button>
+                            <button class="toolbar-btn particle-preset-btn" data-preset="explosion" style="font-size: 10px; padding: 3px 6px;">💥 Explosion</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-content" id="scripting-panel-content" style="display: none; padding: 12px; overflow-y: auto;">
+                    <div style="color: #ddd; font-weight: bold; margin-bottom: 12px; font-size: 14px;">📜 Visual Scripting</div>
+                    <!-- Script management -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 12px; color: #aaa;">Scripts</span>
+                            <button class="panel-btn" id="script-btn-new" title="New Script">+</button>
+                        </div>
+                        <div id="script-list" style="font-size: 12px; color: #888; font-style: italic;">Select an object to manage scripts</div>
+                    </div>
+                    <!-- Node Categories -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Node Categories</div>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;" id="script-node-categories">
+                            <span class="script-category-btn" data-category="events" style="padding: 3px 8px; background: #4a9eff33; border: 1px solid #4a9eff; border-radius: 3px; font-size: 10px; color: #4a9eff; cursor: pointer;">Events</span>
+                            <span class="script-category-btn" data-category="flow" style="padding: 3px 8px; background: #4CAF5033; border: 1px solid #4CAF50; border-radius: 3px; font-size: 10px; color: #4CAF50; cursor: pointer;">Flow</span>
+                            <span class="script-category-btn" data-category="math" style="padding: 3px 8px; background: #FF980033; border: 1px solid #FF9800; border-radius: 3px; font-size: 10px; color: #FF9800; cursor: pointer;">Math</span>
+                            <span class="script-category-btn" data-category="physics" style="padding: 3px 8px; background: #E91E6333; border: 1px solid #E91E63; border-radius: 3px; font-size: 10px; color: #E91E63; cursor: pointer;">Physics</span>
+                            <span class="script-category-btn" data-category="input" style="padding: 3px 8px; background: #9C27B033; border: 1px solid #9C27B0; border-radius: 3px; font-size: 10px; color: #9C27B0; cursor: pointer;">Input</span>
+                            <span class="script-category-btn" data-category="audio" style="padding: 3px 8px; background: #00BCD433; border: 1px solid #00BCD4; border-radius: 3px; font-size: 10px; color: #00BCD4; cursor: pointer;">Audio</span>
+                            <span class="script-category-btn" data-category="animation" style="padding: 3px 8px; background: #FFEB3B33; border: 1px solid #FFEB3B; border-radius: 3px; font-size: 10px; color: #FFEB3B; cursor: pointer;">Animation</span>
+                            <span class="script-category-btn" data-category="transform" style="padding: 3px 8px; background: #8BC34A33; border: 1px solid #8BC34A; border-radius: 3px; font-size: 10px; color: #8BC34A; cursor: pointer;">Transform</span>
+                        </div>
+                    </div>
+                    <!-- Node Canvas -->
+                    <div style="background: #1a1a1a; border-radius: 4px; padding: 0; min-height: 180px; position: relative; border: 1px solid #444; overflow: hidden;" id="script-canvas">
+                        <!-- Toolbar overlay -->
+                        <div style="position: absolute; top: 4px; right: 4px; display: flex; gap: 3px; z-index: 2;">
+                            <button class="toolbar-btn" id="script-btn-compile" title="Compile" style="font-size: 10px; padding: 2px 6px; background: #4CAF50; color: white;">▶ Run</button>
+                            <button class="toolbar-btn" id="script-btn-zoom-in" title="Zoom In" style="font-size: 10px; padding: 2px 6px;">+</button>
+                            <button class="toolbar-btn" id="script-btn-zoom-out" title="Zoom Out" style="font-size: 10px; padding: 2px 6px;">−</button>
+                            <button class="toolbar-btn" id="script-btn-fit" title="Fit to View" style="font-size: 10px; padding: 2px 6px;">⊞</button>
+                        </div>
+                        <!-- Grid background -->
+                        <div style="width: 100%; height: 180px; background-image: radial-gradient(circle, #333 1px, transparent 1px); background-size: 20px 20px; position: relative;" id="script-graph-area">
+                            <div id="script-nodes-container" style="position: relative; width: 100%; height: 100%;"></div>
+                            <div id="script-canvas-placeholder" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #555; pointer-events: none;">
+                                Click a node below to add it to the graph
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Variables -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px; margin-top: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; color: #aaa;">Variables</span>
+                            <button class="panel-btn" id="script-btn-add-var" title="Add Variable">+</button>
+                        </div>
+                        <div id="script-var-list" style="font-size: 11px; color: #888; font-style: italic;">No variables defined</div>
+                    </div>
+                    <!-- Quick Nodes -->
+                    <div style="background: #333; border-radius: 4px; padding: 10px;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">Quick Nodes</div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;" id="script-quick-nodes">
+                            <div class="script-quick-node" data-node="OnStart" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4a9eff;">🔵 On Start</div>
+                            <div class="script-quick-node" data-node="OnUpdate" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4a9eff;">🔵 On Update</div>
+                            <div class="script-quick-node" data-node="OnCollision" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4a9eff;">🔵 On Collision</div>
+                            <div class="script-quick-node" data-node="Branch" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4CAF50;">🟢 Branch (If/Else)</div>
+                            <div class="script-quick-node" data-node="ForLoop" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #4CAF50;">🟢 For Loop</div>
+                            <div class="script-quick-node" data-node="SetPosition" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #FF9800;">🟠 Set Position</div>
+                            <div class="script-quick-node" data-node="ApplyForce" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #E91E63;">🔴 Apply Force</div>
+                            <div class="script-quick-node" data-node="GetKeyDown" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #9C27B0;">🟣 Get Key Down</div>
+                            <div class="script-quick-node" data-node="PlaySound" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #00BCD4;">🔵 Play Sound</div>
+                            <div class="script-quick-node" data-node="Print" style="padding: 5px 8px; background: #2a2a2a; border-radius: 3px; font-size: 11px; color: #ccc; cursor: pointer; border-left: 3px solid #8BC34A;">🟢 Print / Log</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Status Bar -->
     <div class="statusbar">
         <div class="statusbar-item">
-            <span id="status-indicator">●</span>
+            <span id="status-indicator" style="color: #4ec9b0;">●</span>
             <span id="status-text">Ready</span>
         </div>
         <div class="statusbar-item">
             <span>Objects:</span>
             <span id="status-objects">0</span>
+        </div>
+        <div class="statusbar-item">
+            <span>Selected:</span>
+            <span id="status-selection">None</span>
+        </div>
+        <div class="statusbar-item">
+            <span>Mode:</span>
+            <span id="status-transform-mode">Select</span>
+        </div>
+        <div class="statusbar-item">
+            <span id="status-fps" style="color: #4ec9b0;">-- FPS</span>
+        </div>
+        <div class="statusbar-item">
+            <span id="status-memory" style="color: #858585; font-size: 10px;"></span>
         </div>
         <div class="statusbar-item right">
             WebForge v1.0.0
@@ -1210,6 +1999,290 @@
         <div class="menu-separator"></div>
         <div class="context-menu-item" data-action="duplicate">Duplicate <span class="shortcut">Ctrl+D</span></div>
         <div class="context-menu-item" data-action="delete">Delete <span class="shortcut">Delete</span></div>
+    </div>
+
+    <!-- Settings Dialog -->
+    <div id="settings-dialog" style="display: none; position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2d2d30; border: 1px solid #444; border-radius: 8px; width: 480px; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #444;">
+                <span style="color: #ddd; font-weight: bold; font-size: 14px;">⚙ Preferences</span>
+                <button id="settings-close" style="background: none; border: none; color: #888; font-size: 18px; cursor: pointer; padding: 0 4px;">×</button>
+            </div>
+            <div style="padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+                <!-- General -->
+                <div>
+                    <div style="color: #4a9eff; font-weight: bold; font-size: 12px; margin-bottom: 10px;">General</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #ccc;">Theme</span>
+                            <select id="settings-theme" style="padding: 4px 8px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 11px;">
+                                <option value="dark" selected>Dark (Default)</option>
+                                <option value="darker">Darker</option>
+                                <option value="light">Light</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #ccc;">UI Scale</span>
+                            <select id="settings-ui-scale" style="padding: 4px 8px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 11px;">
+                                <option value="0.9">90%</option>
+                                <option value="1" selected>100%</option>
+                                <option value="1.1">110%</option>
+                                <option value="1.2">120%</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #ccc;">Auto-save interval</span>
+                            <select id="settings-autosave" style="padding: 4px 8px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 11px;">
+                                <option value="0">Disabled</option>
+                                <option value="60">1 minute</option>
+                                <option value="300" selected>5 minutes</option>
+                                <option value="600">10 minutes</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <!-- Viewport -->
+                <div>
+                    <div style="color: #4a9eff; font-weight: bold; font-size: 12px; margin-bottom: 10px;">Viewport</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                            <span style="font-size: 12px; color: #ccc;">Show Grid</span>
+                            <input type="checkbox" id="settings-show-grid" checked>
+                        </label>
+                        <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                            <span style="font-size: 12px; color: #ccc;">Show Axes</span>
+                            <input type="checkbox" id="settings-show-axes" checked>
+                        </label>
+                        <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                            <span style="font-size: 12px; color: #ccc;">Show Stats Overlay</span>
+                            <input type="checkbox" id="settings-show-stats" checked>
+                        </label>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #ccc;">Grid Size</span>
+                            <input type="number" id="settings-grid-size" value="1" min="0.1" max="10" step="0.1" style="width: 60px; padding: 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px; text-align: center;">
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #ccc;">Background Color</span>
+                            <input type="color" id="settings-bg-color" value="#1e1e2e" style="width: 30px; height: 24px; border: none; background: none; cursor: pointer;">
+                        </div>
+                    </div>
+                </div>
+                <!-- Snapping -->
+                <div>
+                    <div style="color: #4a9eff; font-weight: bold; font-size: 12px; margin-bottom: 10px;">Snapping</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                            <span style="font-size: 12px; color: #ccc;">Snap to Grid</span>
+                            <input type="checkbox" id="settings-snap-grid">
+                        </label>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #ccc;">Position Snap</span>
+                            <input type="number" id="settings-snap-pos" value="0.5" min="0.01" max="10" step="0.1" style="width: 60px; padding: 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px; text-align: center;">
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #ccc;">Rotation Snap (°)</span>
+                            <input type="number" id="settings-snap-rot" value="15" min="1" max="90" step="1" style="width: 60px; padding: 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px; text-align: center;">
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #ccc;">Scale Snap</span>
+                            <input type="number" id="settings-snap-scale" value="0.1" min="0.01" max="1" step="0.01" style="width: 60px; padding: 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 11px; text-align: center;">
+                        </div>
+                    </div>
+                </div>
+                <!-- Rendering -->
+                <div>
+                    <div style="color: #4a9eff; font-weight: bold; font-size: 12px; margin-bottom: 10px;">Rendering</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #ccc;">Anti-Aliasing</span>
+                            <select id="settings-aa" style="padding: 4px 8px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 11px;">
+                                <option value="none">None</option>
+                                <option value="fxaa" selected>FXAA</option>
+                                <option value="msaa2">MSAA 2x</option>
+                                <option value="msaa4">MSAA 4x</option>
+                            </select>
+                        </div>
+                        <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                            <span style="font-size: 12px; color: #ccc;">Shadows</span>
+                            <input type="checkbox" id="settings-shadows" checked>
+                        </label>
+                        <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                            <span style="font-size: 12px; color: #ccc;">Post Processing</span>
+                            <input type="checkbox" id="settings-post-fx" checked>
+                        </label>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #ccc;">Target FPS</span>
+                            <select id="settings-target-fps" style="padding: 4px 8px; background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 3px; font-size: 11px;">
+                                <option value="30">30</option>
+                                <option value="60" selected>60</option>
+                                <option value="120">120</option>
+                                <option value="0">Unlimited</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="padding: 12px 16px; border-top: 1px solid #444; display: flex; justify-content: flex-end; gap: 8px;">
+                <button id="settings-reset" style="padding: 6px 16px; background: #444; border: none; border-radius: 4px; color: #ccc; cursor: pointer; font-size: 12px;">Reset Defaults</button>
+                <button id="settings-apply" style="padding: 6px 16px; background: #4a9eff; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Dialog -->
+    <div id="about-dialog" class="dialog-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; display: none; align-items: center; justify-content: center;">
+        <div style="background: #2d2d30; border: 1px solid #555; border-radius: 8px; width: 480px; max-width: 90vw; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
+            <div style="padding: 24px 24px 16px; text-align: center; border-bottom: 1px solid #444;">
+                <div style="font-size: 40px; margin-bottom: 8px;">🔥</div>
+                <h2 style="color: #fff; font-size: 22px; font-weight: 700; margin: 0;">WebForge</h2>
+                <div style="color: #4ec9b0; font-size: 13px; margin-top: 4px;">v1.0.0 — Browser-Based Game Development Platform</div>
+            </div>
+            <div style="padding: 20px 24px;">
+                <div style="color: #ccc; font-size: 12px; line-height: 1.8;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+                        <div style="background: #1e1e1e; padding: 10px; border-radius: 6px; text-align: center;">
+                            <div style="color: #569cd6; font-size: 18px; font-weight: bold;" id="about-modules">28</div>
+                            <div style="color: #888; font-size: 10px;">Modules</div>
+                        </div>
+                        <div style="background: #1e1e1e; padding: 10px; border-radius: 6px; text-align: center;">
+                            <div style="color: #4ec9b0; font-size: 18px; font-weight: bold;" id="about-tests">137</div>
+                            <div style="color: #888; font-size: 10px;">Tests Passing</div>
+                        </div>
+                        <div style="background: #1e1e1e; padding: 10px; border-radius: 6px; text-align: center;">
+                            <div style="color: #dcdcaa; font-size: 18px; font-weight: bold;" id="about-loc">72K+</div>
+                            <div style="color: #888; font-size: 10px;">Lines of Code</div>
+                        </div>
+                        <div style="background: #1e1e1e; padding: 10px; border-radius: 6px; text-align: center;">
+                            <div style="color: #f14c4c; font-size: 18px; font-weight: bold;" id="about-files">199+</div>
+                            <div style="color: #888; font-size: 10px;">Source Files</div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <strong style="color: #fff;">Features:</strong> 3D Rendering (PBR/WebGL), Physics Engine (GJK), Animation System, Visual Scripting, AI & NavMesh, Terrain System, Particle System, Audio Engine, Multiplayer Networking, Version Control, Export Manager
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <strong style="color: #fff;">Built with:</strong> TypeScript, WebGL 2.0, Web Audio API, WebRTC, Vite
+                    </div>
+                    <div style="color: #888; font-size: 11px;">
+                        Created by <strong style="color: #ccc;">MrNova420</strong> — Open Source (MIT License)
+                    </div>
+                </div>
+            </div>
+            <div style="padding: 12px 16px; border-top: 1px solid #444; display: flex; justify-content: space-between; align-items: center;">
+                <a href="https://github.com/MrNova420/WebForge" target="_blank" style="color: #4a9eff; font-size: 12px; text-decoration: none;">GitHub Repository ↗</a>
+                <button onclick="document.getElementById('about-dialog').style.display='none'" style="padding: 6px 20px; background: #4a9eff; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Dialog -->
+    <div id="welcome-dialog" class="dialog-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10001; display: none; align-items: center; justify-content: center;">
+        <div style="background: #2d2d30; border: 1px solid #555; border-radius: 10px; width: 560px; max-width: 90vw; box-shadow: 0 20px 60px rgba(0,0,0,0.6);">
+            <div style="padding: 28px 28px 16px; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 8px;">🔥</div>
+                <h2 style="color: #fff; font-size: 24px; font-weight: 700; margin: 0 0 4px;">Welcome to WebForge</h2>
+                <div style="color: #858585; font-size: 13px;">The Ultimate Browser-Based Game Development Platform</div>
+            </div>
+            <div style="padding: 8px 28px 20px;">
+                <div style="font-size: 13px; color: #ccc; font-weight: 600; margin-bottom: 12px;">Quick Start:</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                    <button class="welcome-action-btn" onclick="document.getElementById('welcome-dialog').style.display='none'" style="background: #1e1e1e; border: 1px solid #444; border-radius: 8px; padding: 14px 12px; text-align: left; cursor: pointer; transition: all 0.15s;">
+                        <div style="font-size: 20px; margin-bottom: 6px;">📦</div>
+                        <div style="color: #fff; font-size: 12px; font-weight: 600;">New Scene</div>
+                        <div style="color: #888; font-size: 10px; margin-top: 2px;">Start with an empty scene</div>
+                    </button>
+                    <button class="welcome-action-btn" id="welcome-load-recent" style="background: #1e1e1e; border: 1px solid #444; border-radius: 8px; padding: 14px 12px; text-align: left; cursor: pointer; transition: all 0.15s;">
+                        <div style="font-size: 20px; margin-bottom: 6px;">📂</div>
+                        <div style="color: #fff; font-size: 12px; font-weight: 600;">Load Recent</div>
+                        <div style="color: #888; font-size: 10px; margin-top: 2px;">Restore last saved scene</div>
+                    </button>
+                    <button class="welcome-action-btn" onclick="document.getElementById('welcome-dialog').style.display='none'" style="background: #1e1e1e; border: 1px solid #444; border-radius: 8px; padding: 14px 12px; text-align: left; cursor: pointer; transition: all 0.15s;">
+                        <div style="font-size: 20px; margin-bottom: 6px;">🎮</div>
+                        <div style="color: #fff; font-size: 12px; font-weight: 600;">Demo Scene</div>
+                        <div style="color: #888; font-size: 10px; margin-top: 2px;">Explore a sample project</div>
+                    </button>
+                    <button class="welcome-action-btn" onclick="window.open('https://github.com/MrNova420/WebForge/blob/main/docs/GETTING_STARTED.md','_blank');document.getElementById('welcome-dialog').style.display='none'" style="background: #1e1e1e; border: 1px solid #444; border-radius: 8px; padding: 14px 12px; text-align: left; cursor: pointer; transition: all 0.15s;">
+                        <div style="font-size: 20px; margin-bottom: 6px;">📖</div>
+                        <div style="color: #fff; font-size: 12px; font-weight: 600;">Documentation</div>
+                        <div style="color: #888; font-size: 10px; margin-top: 2px;">Read the getting started guide</div>
+                    </button>
+                </div>
+                <div style="font-size: 13px; color: #ccc; font-weight: 600; margin-bottom: 8px;">Keyboard Shortcuts:</div>
+                <div style="background: #1e1e1e; border-radius: 6px; padding: 12px; font-size: 11px; color: #ccc; line-height: 2;">
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">Q</span> Select &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">W</span> Move &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">E</span> Rotate &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">R</span> Scale &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">F</span> Frame &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">Del</span> Delete<br>
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">Ctrl+S</span> Save &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">Ctrl+Z</span> Undo &nbsp;
+                    <span style="color: #569cd6; background: #333; padding: 2px 6px; border-radius: 3px; font-family: monospace;">Ctrl+D</span> Duplicate
+                </div>
+            </div>
+            <div style="padding: 12px 20px; border-top: 1px solid #444; display: flex; justify-content: space-between; align-items: center;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="welcome-dont-show" style="accent-color: #4a9eff;">
+                    <span style="color: #888; font-size: 11px;">Don't show on startup</span>
+                </label>
+                <button onclick="document.getElementById('welcome-dialog').style.display='none'" style="padding: 8px 24px; background: #4a9eff; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">Get Started</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Dialog -->
+    <div id="export-dialog" class="dialog-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; display: none; align-items: center; justify-content: center;">
+        <div style="background: #2d2d30; border: 1px solid #555; border-radius: 8px; width: 520px; max-width: 90vw; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
+            <div style="padding: 16px 20px; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: #fff; font-size: 15px; font-weight: 600; margin: 0;">📦 Export Project</h3>
+                <button onclick="document.getElementById('export-dialog').style.display='none'" style="background: none; border: none; color: #888; cursor: pointer; font-size: 18px; line-height: 1;">✕</button>
+            </div>
+            <div style="padding: 20px;">
+                <div style="font-size: 12px; color: #ccc; margin-bottom: 12px; font-weight: 600;">Target Platform:</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 20px;">
+                    <button class="export-platform-btn" data-platform="web" style="background: #094771; border: 2px solid #4a9eff; border-radius: 6px; padding: 12px 8px; text-align: center; cursor: pointer; color: #fff;">
+                        <div style="font-size: 22px; margin-bottom: 4px;">🌐</div>
+                        <div style="font-size: 11px; font-weight: 600;">Web (HTML5)</div>
+                    </button>
+                    <button class="export-platform-btn" data-platform="pwa" style="background: #1e1e1e; border: 2px solid #444; border-radius: 6px; padding: 12px 8px; text-align: center; cursor: pointer; color: #ccc;">
+                        <div style="font-size: 22px; margin-bottom: 4px;">📱</div>
+                        <div style="font-size: 11px; font-weight: 600;">PWA</div>
+                    </button>
+                    <button class="export-platform-btn" data-platform="electron" style="background: #1e1e1e; border: 2px solid #444; border-radius: 6px; padding: 12px 8px; text-align: center; cursor: pointer; color: #ccc;">
+                        <div style="font-size: 22px; margin-bottom: 4px;">🖥️</div>
+                        <div style="font-size: 11px; font-weight: 600;">Desktop</div>
+                    </button>
+                </div>
+                <div style="font-size: 12px; color: #ccc; margin-bottom: 8px; font-weight: 600;">Export Settings:</div>
+                <div style="background: #1e1e1e; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+                    <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 8px;">
+                        <span style="font-size: 11px; color: #ccc;">Minify Output</span>
+                        <input type="checkbox" id="export-minify" checked style="accent-color: #4a9eff;">
+                    </label>
+                    <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 8px;">
+                        <span style="font-size: 11px; color: #ccc;">Include Source Maps</span>
+                        <input type="checkbox" id="export-sourcemaps">
+                    </label>
+                    <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                        <span style="font-size: 11px; color: #ccc;">Bundle Assets</span>
+                        <input type="checkbox" id="export-bundle-assets" checked style="accent-color: #4a9eff;">
+                    </label>
+                </div>
+                <div id="export-progress" style="display: none; background: #1e1e1e; border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="font-size: 11px; color: #ccc;" id="export-progress-text">Exporting...</span>
+                        <span style="font-size: 11px; color: #4ec9b0;" id="export-progress-pct">0%</span>
+                    </div>
+                    <div style="height: 4px; background: #333; border-radius: 2px; overflow: hidden;">
+                        <div id="export-progress-bar" style="height: 100%; background: #4a9eff; border-radius: 2px; width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            </div>
+            <div style="padding: 12px 16px; border-top: 1px solid #444; display: flex; justify-content: flex-end; gap: 8px;">
+                <button onclick="document.getElementById('export-dialog').style.display='none'" style="padding: 6px 16px; background: #444; border: none; border-radius: 4px; color: #ccc; cursor: pointer; font-size: 12px;">Cancel</button>
+                <button id="export-start-btn" style="padding: 6px 20px; background: #4a9eff; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">Export</button>
+            </div>
+        </div>
     </div>
 
     <!-- Main Editor Script -->
@@ -1354,12 +2427,69 @@
                 switch (action) {
                     // File
                     case 'new-scene':
-                    case 'open-scene':
-                    case 'save-scene':
-                    case 'save-scene-as':
-                    case 'export-scene':
-                        ui.log('Scene file operations are not yet implemented in this build.', 'warn');
+                        if (confirm('Create new scene? Unsaved changes will be lost.')) {
+                            editor.newScene();
+                        }
                         break;
+                    case 'open-scene': {
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = '.json,.webforge';
+                        fileInput.onchange = (evt) => {
+                            const file = evt.target.files?.[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const data = e.target?.result;
+                                if (typeof data === 'string') {
+                                    editor.loadScene(data);
+                                }
+                            };
+                            reader.readAsText(file);
+                        };
+                        fileInput.click();
+                        break;
+                    }
+                    case 'save-scene': {
+                        const json = editor.saveScene();
+                        if (json) {
+                            try {
+                                localStorage.setItem('webforge-scene', json);
+                                ui.log('Scene saved to browser storage', 'success');
+                            } catch (storageErr) {
+                                ui.log('Failed to save: browser storage quota exceeded', 'error');
+                            }
+                        }
+                        break;
+                    }
+                    case 'save-scene-as': {
+                        const sceneData = editor.saveScene();
+                        if (sceneData) {
+                            const blob = new Blob([sceneData], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'scene.webforge.json';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                            ui.log('Scene exported to file', 'success');
+                        }
+                        break;
+                    }
+                    case 'export-scene': {
+                        const exportData = editor.saveScene();
+                        if (exportData) {
+                            const blob = new Blob([exportData], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'scene.webforge.json';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                            ui.log('Scene exported', 'success');
+                        }
+                        break;
+                    }
                     case 'home': window.location.href = 'index.html'; break;
                     // Edit
                     case 'undo': editor?.undo(); break;
@@ -1396,31 +2526,86 @@
                     case 'add-collider':
                     case 'add-audio':
                     case 'add-particle':
-                    case 'add-script':
-                        ui.log(`Component: ${action.replace('add-', '')} — select an object first`, 'info');
+                    case 'add-script': {
+                        const selected = editor?.getSelection();
+                        if (!selected || selected.length === 0) {
+                            ui.log(`Select an object first to add ${action.replace('add-', '')} component`, 'warn');
+                        } else {
+                            const compName = action.replace('add-', '');
+                            selected.forEach(obj => {
+                                ui.addComponentToObject(obj, compName);
+                            });
+                            ui.log(`Added ${compName} component to ${selected.length} object(s)`, 'success');
+                            editor.getEvents().emit('selectionChanged', selected);
+                        }
                         break;
+                    }
                     // Window
                     case 'show-console':
-                        document.querySelector('.console-tab[data-tab="console"]')?.click();
+                        document.querySelector('#console-panel .console-tab[data-tab="console"]')?.click();
                         break;
                     case 'show-profiler':
-                        document.querySelector('.console-tab[data-tab="profiler"]')?.click();
+                        document.querySelector('#console-panel .console-tab[data-tab="profiler"]')?.click();
                         break;
                     case 'show-debug':
-                        document.querySelector('.console-tab[data-tab="debug"]')?.click();
+                        document.querySelector('#console-panel .console-tab[data-tab="debug"]')?.click();
                         break;
                     case 'show-network':
-                        document.querySelector('.console-tab[data-tab="network"]')?.click();
+                        document.querySelector('#console-panel .console-tab[data-tab="network"]')?.click();
                         break;
                     case 'show-keybinds':
-                        document.querySelector('.console-tab[data-tab="keybinds"]')?.click();
+                        document.querySelector('#console-panel .console-tab[data-tab="keybinds"]')?.click();
+                        break;
+                    case 'show-inspector':
+                        document.querySelector('#right-panel-tabs .console-tab[data-rtab="inspector"]')?.click();
+                        break;
+                    case 'show-animation':
+                        document.querySelector('#right-panel-tabs .console-tab[data-rtab="animation"]')?.click();
+                        break;
+                    case 'show-material':
+                        document.querySelector('#right-panel-tabs .console-tab[data-rtab="material"]')?.click();
+                        break;
+                    case 'show-terrain':
+                        document.querySelector('#right-panel-tabs .console-tab[data-rtab="terrain"]')?.click();
+                        break;
+                    case 'show-audio':
+                        document.querySelector('#right-panel-tabs .console-tab[data-rtab="audio"]')?.click();
+                        break;
+                    case 'show-particles':
+                        document.querySelector('#right-panel-tabs .console-tab[data-rtab="particles"]')?.click();
+                        break;
+                    case 'show-scripting':
+                        document.querySelector('#right-panel-tabs .console-tab[data-rtab="scripting"]')?.click();
                         break;
                     // Help
                     case 'open-docs':
-                        window.open('https://github.com/MrNova420/WebForge', '_blank');
+                        window.open('https://github.com/MrNova420/WebForge/blob/main/docs/COMPLETE_REFERENCE.md', '_blank');
+                        break;
+                    case 'open-getting-started':
+                        window.open('https://github.com/MrNova420/WebForge/blob/main/docs/GETTING_STARTED.md', '_blank');
+                        break;
+                    case 'open-architecture':
+                        window.open('https://github.com/MrNova420/WebForge/blob/main/docs/ARCHITECTURE_DESIGN.md', '_blank');
+                        break;
+                    case 'open-changelog':
+                        window.open('https://github.com/MrNova420/WebForge/blob/main/docs/PROGRESS.md', '_blank');
+                        break;
+                    case 'report-bug':
+                        window.open('https://github.com/MrNova420/WebForge/issues/new', '_blank');
+                        break;
+                    case 'show-welcome':
+                        document.getElementById('welcome-dialog').style.display = 'flex';
                         break;
                     case 'about':
-                        alert('WebForge v1.0.0\nBrowser-based game development platform\n\nBuilt with TypeScript, WebGL, and modern web technologies');
+                        document.getElementById('about-dialog').style.display = 'flex';
+                        break;
+                    // Settings
+                    case 'open-settings':
+                        document.getElementById('settings-dialog').style.display = 'block';
+                        break;
+                    // Export
+                    case 'open-export':
+                        document.getElementById('export-dialog').style.display = 'flex';
                         break;
                 }
             }
@@ -1434,25 +2619,55 @@
                 this.currentDragType = null;
             }
 
+            // Helper: convert [r,g,b] (0-1 range) to #rrggbb hex string
+            rgbToHex(color) {
+                if (!color || color.length < 3) return '#ffffff';
+                return '#' + color.map(c => Math.round(c * 255).toString(16).padStart(2, '0')).join('');
+            }
+
+            // Helper: add a component to a GameObject
+            addComponentToObject(obj, type) {
+                if (!obj._components) obj._components = [];
+                obj._components.push({ type, enabled: true });
+            }
+
             async initialize() {
                 // Get canvas
                 const canvas = document.getElementById('scene-canvas');
                 
+                // Check if we have a saved scene in localStorage
+                const savedScene = localStorage.getItem('webforge-scene');
+                const hasValidSavedScene = savedScene && savedScene.length > 10;
+
                 // Create editor application
                 this.editor = new EditorApplication({
                     canvas: canvas,
                     debug: true,
-                    createDemoScene: true
+                    createDemoScene: !hasValidSavedScene
                 });
 
                 // Initialize editor
                 await this.editor.initialize();
+
+                // Load saved scene if available
+                let restoredSavedScene = false;
+                if (hasValidSavedScene) {
+                    try {
+                        this.editor.loadScene(savedScene);
+                        restoredSavedScene = true;
+                    } catch (_e) {
+                        console.warn('Failed to restore saved scene, loading demo instead');
+                        this.editor.getScene()?.createDemoScene();
+                    }
+                }
                 
                 // Setup event listeners
                 this.setupEditorEvents();
                 this.setupToolbarEvents();
                 this.setupPanelEvents();
+                this.setupPanelInteractions();
                 this.setupContextMenu();
+                this.setupKeyboardShortcuts();
                 
                 // Start render loop
                 this.editor.start();
@@ -1463,8 +2678,14 @@
                 // Initial UI update
                 this.updateHierarchy();
                 this.log('WebForge Editor initialized', 'success');
-                this.log('Loading demo scene...', 'info');
-                this.log(`Demo scene loaded - ${this.editor.getScene()?.getObjectCount() || 0} objects`, 'info');
+                if (restoredSavedScene) {
+                    this.log('Restored scene from browser storage', 'info');
+                } else if (hasValidSavedScene) {
+                    this.log('Saved scene failed to load — loaded demo scene', 'warn');
+                } else {
+                    this.log('Loading demo scene...', 'info');
+                }
+                this.log(`Scene ready — ${this.editor.getScene()?.getObjectCount() || 0} objects`, 'info');
             }
 
             // =============== EDITOR EVENTS ===============
@@ -1477,16 +2698,39 @@
                     document.getElementById('stat-draws').textContent = stats.drawCalls;
                     document.getElementById('status-objects').textContent = stats.gameObjects;
                     
+                    // Enhanced status bar updates
+                    const fpsStatus = document.getElementById('status-fps');
+                    if (fpsStatus) {
+                        fpsStatus.textContent = stats.fps + ' FPS';
+                        fpsStatus.style.color = stats.fps >= 50 ? '#4ec9b0' : stats.fps >= 30 ? '#dcdcaa' : '#f14c4c';
+                    }
+                    const memStatus = document.getElementById('status-memory');
+                    if (memStatus && performance.memory) {
+                        memStatus.textContent = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(0) + ' MB';
+                    }
+                    
                     // Update profiler
                     document.getElementById('profiler-frametime').textContent = stats.frameTime.toFixed(2) + ' ms';
                     document.getElementById('profiler-draws').textContent = stats.drawCalls;
                     document.getElementById('profiler-verts').textContent = stats.vertices.toLocaleString();
+                    const fpsEl = document.getElementById('profiler-fps');
+                    if (fpsEl) fpsEl.textContent = stats.fps;
+                    const objEl = document.getElementById('profiler-objects');
+                    if (objEl) objEl.textContent = stats.gameObjects;
                     
                     // Memory usage (if available)
                     if (performance.memory) {
                         const mb = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
                         document.getElementById('profiler-memory').textContent = mb + ' MB';
                     }
+                    
+                    // Update debug watch values
+                    const dwFps = document.getElementById('debug-watch-fps');
+                    if (dwFps) dwFps.textContent = stats.fps;
+                    const dwObj = document.getElementById('debug-watch-objects');
+                    if (dwObj) dwObj.textContent = stats.gameObjects;
+                    const dwDraw = document.getElementById('debug-watch-draws');
+                    if (dwDraw) dwDraw.textContent = stats.drawCalls;
                     
                     // Update graph
                     this.updateProfilerGraph(stats);
@@ -1495,6 +2739,18 @@
                 events.on('selectionChanged', (objects) => {
                     this.updateInspector(objects);
                     this.updateHierarchySelection(objects);
+                    // Update debug watch
+                    const dwSel = document.getElementById('debug-watch-selected');
+                    if (dwSel) dwSel.textContent = objects.length > 0 ? objects.map(o => o.name).join(', ') : 'none';
+                    // Update anim clip list if on animation tab
+                    this.updateAnimClipList();
+                    // Update status bar selection
+                    const selStatus = document.getElementById('status-selection');
+                    if (selStatus) {
+                        if (objects.length === 0) selStatus.textContent = 'None';
+                        else if (objects.length === 1) selStatus.textContent = objects[0].name;
+                        else selStatus.textContent = objects.length + ' objects';
+                    }
                 });
 
                 events.on('hierarchyUpdated', () => {
@@ -1507,17 +2763,45 @@
 
                 events.on('transformModeChanged', (mode) => {
                     this.updateToolbarMode(mode);
+                    // Update debug watch
+                    const dwMode = document.getElementById('debug-watch-mode');
+                    if (dwMode) dwMode.textContent = mode;
+                    // Update status bar transform mode
+                    const modeStatus = document.getElementById('status-transform-mode');
+                    if (modeStatus) {
+                        const modeLabels = { select: 'Select', translate: 'Move', rotate: 'Rotate', scale: 'Scale' };
+                        modeStatus.textContent = modeLabels[mode] || mode;
+                    }
                 });
 
                 events.on('playStarted', () => {
                     document.getElementById('btn-play').classList.add('active');
                     document.getElementById('status-text').textContent = 'Playing';
+                    document.getElementById('status-indicator').style.color = '#4ec9b0';
+                    this.log('Play mode active — physics simulation running', 'success');
                 });
 
                 events.on('playStopped', () => {
                     document.getElementById('btn-play').classList.remove('active');
                     document.getElementById('status-text').textContent = 'Ready';
+                    document.getElementById('status-indicator').style.color = '#4ec9b0';
                 });
+
+                events.on('playPaused', (isPaused) => {
+                    document.getElementById('status-text').textContent = isPaused ? 'Paused' : 'Playing';
+                    document.getElementById('status-indicator').style.color = isPaused ? '#dcdcaa' : '#4ec9b0';
+                });
+
+                // Wire undo history display
+                const undoMgr = this.editor.getUndoManager();
+                if (undoMgr) {
+                    undoMgr.getEvents().on('historyChanged', (data) => {
+                        const undoCount = document.getElementById('debug-undo-count');
+                        const redoCount = document.getElementById('debug-redo-count');
+                        if (undoCount) undoCount.textContent = undoMgr.getUndoCount() + ' undo';
+                        if (redoCount) redoCount.textContent = undoMgr.getRedoCount() + ' redo';
+                    });
+                }
             }
 
             // =============== TOOLBAR EVENTS ===============
@@ -1638,10 +2922,10 @@
                     document.getElementById('console-content').innerHTML = '';
                 };
 
-                // Console tabs
-                document.querySelectorAll('.console-tab').forEach(tab => {
+                // Console tabs (scoped to console-panel)
+                document.querySelectorAll('#console-panel .console-tab').forEach(tab => {
                     tab.onclick = () => {
-                        document.querySelectorAll('.console-tab').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('#console-panel .console-tab').forEach(t => t.classList.remove('active'));
                         tab.classList.add('active');
                         
                         // Show/hide content based on tab
@@ -1651,6 +2935,39 @@
                         document.getElementById('keybinds-content').style.display = tabName === 'keybinds' ? 'block' : 'none';
                         document.getElementById('profiler-content').style.display = tabName === 'profiler' ? 'block' : 'none';
                         document.getElementById('network-content').style.display = tabName === 'network' ? 'block' : 'none';
+                    };
+                });
+
+                // Right panel tabs (Inspector, Animation, Material, Terrain, Audio, Particles)
+                const rightPanelIds = [
+                    'inspector-content',
+                    'animation-panel-content',
+                    'material-panel-content',
+                    'terrain-panel-content',
+                    'audio-panel-content',
+                    'particles-panel-content',
+                    'scripting-panel-content'
+                ];
+                document.querySelectorAll('#right-panel-tabs .console-tab').forEach(tab => {
+                    tab.onclick = () => {
+                        document.querySelectorAll('#right-panel-tabs .console-tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        const tabName = tab.dataset.rtab;
+                        rightPanelIds.forEach(id => {
+                            const el = document.getElementById(id);
+                            if (el) el.style.display = 'none';
+                        });
+                        const mapping = {
+                            'inspector': 'inspector-content',
+                            'animation': 'animation-panel-content',
+                            'material': 'material-panel-content',
+                            'terrain': 'terrain-panel-content',
+                            'audio': 'audio-panel-content',
+                            'particles': 'particles-panel-content',
+                            'scripting': 'scripting-panel-content'
+                        };
+                        const target = document.getElementById(mapping[tabName]);
+                        if (target) target.style.display = 'block';
                     };
                 });
 
@@ -1740,6 +3057,778 @@
                 }
             }
 
+            // =============== PANEL INTERACTIONS ===============
+            setupPanelInteractions() {
+                this.setupMaterialPanel();
+                this.setupTerrainPanel();
+                this.setupAudioPanel();
+                this.setupParticlePanel();
+                this.setupAnimationPanel();
+                this.setupScriptingPanel();
+                this.setupSettingsDialog();
+                this.setupNetworkPanel();
+                this.setupAutoSave();
+                this.setupWelcomeDialog();
+                this.setupExportDialog();
+            }
+
+            setupMaterialPanel() {
+                const albedo = document.getElementById('mat-albedo');
+                const metallic = document.getElementById('mat-metallic');
+                const roughness = document.getElementById('mat-roughness');
+                const emission = document.getElementById('mat-emission');
+                const emissionStrength = document.getElementById('mat-emission-strength');
+                const opacity = document.getElementById('mat-opacity');
+                const shader = document.getElementById('mat-shader');
+                const preview = document.getElementById('mat-preview');
+
+                const updatePreview = () => {
+                    const c = albedo?.value || '#6699cc';
+                    const m = (metallic?.value || 0) / 100;
+                    const r = (roughness?.value || 50) / 100;
+                    const highlight = m > 0.5 ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)';
+                    const spread = 30 + r * 40;
+                    preview.style.background = `radial-gradient(circle at 35% 35%, ${highlight}, ${c} ${spread}%, #111)`;
+                };
+
+                if (albedo) {
+                    albedo.oninput = () => {
+                        document.getElementById('mat-albedo-hex').textContent = albedo.value;
+                        this.editor.setMaterialProperty('color', this.hexToRgb(albedo.value));
+                        updatePreview();
+                    };
+                }
+                if (metallic) {
+                    metallic.oninput = () => {
+                        document.getElementById('mat-metallic-val').textContent = metallic.value + '%';
+                        this.editor.setMaterialProperty('metallic', metallic.value / 100);
+                        updatePreview();
+                    };
+                }
+                if (roughness) {
+                    roughness.oninput = () => {
+                        document.getElementById('mat-roughness-val').textContent = roughness.value + '%';
+                        this.editor.setMaterialProperty('roughness', roughness.value / 100);
+                        updatePreview();
+                    };
+                }
+                if (emission) {
+                    emission.oninput = () => { this.editor.setMaterialProperty('emission', this.hexToRgb(emission.value)); };
+                }
+                if (emissionStrength) {
+                    emissionStrength.oninput = () => {
+                        document.getElementById('mat-emission-val').textContent = emissionStrength.value + '%';
+                    };
+                }
+                if (opacity) {
+                    opacity.oninput = () => {
+                        document.getElementById('mat-opacity-val').textContent = opacity.value + '%';
+                        this.editor.setMaterialProperty('opacity', opacity.value / 100);
+                    };
+                }
+                if (shader) {
+                    shader.onchange = () => { this.editor.setMaterialProperty('shader', shader.value); };
+                }
+
+                // Presets
+                document.querySelectorAll('.mat-preset-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        const presets = {
+                            metal: { albedo: '#aaaaaa', metallic: 90, roughness: 20 },
+                            wood: { albedo: '#8B6914', metallic: 0, roughness: 80 },
+                            plastic: { albedo: '#cc3333', metallic: 0, roughness: 40 },
+                            glass: { albedo: '#aaddff', metallic: 10, roughness: 5, opacity: 30 },
+                            stone: { albedo: '#888888', metallic: 0, roughness: 90 },
+                            fabric: { albedo: '#445566', metallic: 0, roughness: 95 },
+                        };
+                        const p = presets[btn.dataset.preset];
+                        if (!p) return;
+                        if (albedo) { albedo.value = p.albedo; albedo.dispatchEvent(new Event('input')); }
+                        if (metallic) { metallic.value = p.metallic; metallic.dispatchEvent(new Event('input')); }
+                        if (roughness) { roughness.value = p.roughness; roughness.dispatchEvent(new Event('input')); }
+                        if (p.opacity !== undefined && opacity) { opacity.value = p.opacity; opacity.dispatchEvent(new Event('input')); }
+                        this.log(`Material preset: ${btn.dataset.preset}`, 'info');
+                    };
+                });
+            }
+
+            setupTerrainPanel() {
+                // Create terrain
+                document.getElementById('terrain-btn-create')?.addEventListener('click', () => {
+                    const w = parseInt(document.getElementById('terrain-width')?.value) || 100;
+                    const d = parseInt(document.getElementById('terrain-depth')?.value) || 100;
+                    const r = parseInt(document.getElementById('terrain-res')?.value) || 64;
+                    this.editor.createTerrain(w, d, r);
+                    this.updateHierarchy();
+                });
+
+                // Track active terrain tool for brush operations
+                this._activeTerrainTool = this._activeTerrainTool || 'raise';
+                document.querySelectorAll('.terrain-tool-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        document.querySelectorAll('.terrain-tool-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this._activeTerrainTool = btn.dataset.tool || 'raise';
+                        this.log(`Terrain tool: ${this._activeTerrainTool}`, 'info');
+                    };
+                });
+
+                // Slider value displays
+                const brushSize = document.getElementById('terrain-brush-size');
+                const brushStrength = document.getElementById('terrain-brush-strength');
+                const falloff = document.getElementById('terrain-falloff');
+                if (brushSize) brushSize.oninput = () => { document.getElementById('terrain-size-val').textContent = brushSize.value; };
+                if (brushStrength) brushStrength.oninput = () => { document.getElementById('terrain-strength-val').textContent = brushStrength.value + '%'; };
+                if (falloff) falloff.oninput = () => { document.getElementById('terrain-falloff-val').textContent = falloff.value + '%'; };
+
+                // Heightmap buttons
+                document.getElementById('terrain-btn-flatten-all')?.addEventListener('click', () => {
+                    if (this.editor.resetTerrainHeight()) {
+                        this.log('Terrain reset to flat', 'success');
+                    } else {
+                        this.log('Select a terrain object first', 'warn');
+                    }
+                });
+
+                // Export heightmap
+                document.getElementById('terrain-btn-export-hm')?.addEventListener('click', () => {
+                    if (!this.editor.exportTerrainHeightmap()) {
+                        this.log('Select a terrain object first', 'warn');
+                    }
+                });
+
+                // Import heightmap
+                document.getElementById('terrain-btn-import-hm')?.addEventListener('click', () => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.json';
+                    input.onchange = () => {
+                        const file = input.files?.[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const text = e.target?.result;
+                                if (typeof text === 'string') {
+                                    this.editor.importTerrainHeightmap(text);
+                                }
+                            };
+                            reader.readAsText(file);
+                        }
+                    };
+                    input.click();
+                });
+
+                // Add terrain layer
+                document.getElementById('terrain-btn-add-layer')?.addEventListener('click', () => {
+                    const name = prompt('Layer name:', 'New Layer');
+                    if (name) {
+                        const colors = ['#4a7c3f', '#8b7355', '#7a7a7a', '#d4c990', '#3a6b35'];
+                        const color = colors[Math.floor(Math.random() * colors.length)];
+                        this.editor.addTerrainLayer(name, color);
+                    }
+                });
+
+                // Terrain generation presets
+                document.querySelectorAll('.terrain-gen-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const preset = btn.dataset.preset || 'hills';
+                        if (!this.editor.generateTerrainNoise(preset)) {
+                            this.log('Select a terrain object first', 'warn');
+                        }
+                    });
+                });
+            }
+
+            setupAudioPanel() {
+                // Add audio source
+                document.getElementById('audio-btn-add-source')?.addEventListener('click', () => {
+                    this.editor.addAudioSource();
+                });
+
+                // Volume display
+                const vol = document.getElementById('audio-volume');
+                if (vol) vol.oninput = () => { document.getElementById('audio-volume-val').textContent = vol.value + '%'; };
+                
+                const master = document.getElementById('audio-master');
+                if (master) master.oninput = () => { document.getElementById('audio-master-val').textContent = master.value + '%'; };
+
+                const pitch = document.getElementById('audio-pitch');
+                if (pitch) pitch.oninput = () => { document.getElementById('audio-pitch-val').textContent = (pitch.value / 100).toFixed(1); };
+
+                // Bus sliders
+                document.querySelectorAll('.audio-bus-slider').forEach(slider => {
+                    slider.oninput = () => {
+                        const label = slider.parentElement.querySelector('span:last-child');
+                        if (label) label.textContent = slider.value + '%';
+                    };
+                });
+            }
+
+            setupParticlePanel() {
+                // Add particle system
+                document.getElementById('particle-btn-add')?.addEventListener('click', () => {
+                    this.editor.addParticleSystem();
+                });
+
+                // Slider displays
+                const rate = document.getElementById('particle-rate');
+                const lifetime = document.getElementById('particle-lifetime');
+                const speed = document.getElementById('particle-speed');
+                const size = document.getElementById('particle-size');
+                const gravity = document.getElementById('particle-gravity');
+                const turbulence = document.getElementById('particle-turbulence');
+
+                if (rate) rate.oninput = () => { document.getElementById('particle-rate-val').textContent = rate.value + '/s'; };
+                if (lifetime) lifetime.oninput = () => { document.getElementById('particle-lifetime-val').textContent = (lifetime.value / 10).toFixed(1) + 's'; };
+                if (speed) speed.oninput = () => { document.getElementById('particle-speed-val').textContent = (speed.value / 10).toFixed(1); };
+                if (size) size.oninput = () => { document.getElementById('particle-size-val').textContent = (size.value / 100).toFixed(2); };
+                if (gravity) gravity.oninput = () => { document.getElementById('particle-gravity-val').textContent = (gravity.value / 10).toFixed(1); };
+                if (turbulence) turbulence.oninput = () => { document.getElementById('particle-turbulence-val').textContent = (turbulence.value / 10).toFixed(1); };
+
+                // Color gradient preview
+                const startColor = document.getElementById('particle-color-start');
+                const endColor = document.getElementById('particle-color-end');
+                const gradPreview = document.getElementById('particle-gradient-preview');
+                const updateGradient = () => {
+                    if (gradPreview && startColor && endColor) {
+                        gradPreview.style.background = `linear-gradient(to right, ${startColor.value}, ${endColor.value})`;
+                    }
+                };
+                if (startColor) startColor.oninput = updateGradient;
+                if (endColor) endColor.oninput = updateGradient;
+
+                // Presets
+                document.querySelectorAll('.particle-preset-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        this.editor.addParticleSystem(btn.dataset.preset);
+                        const presetSettings = {
+                            fire: { rate: 100, lifetime: 15, speed: 30, gravity: -5, startColor: '#ff6600', endColor: '#ff0000' },
+                            smoke: { rate: 30, lifetime: 40, speed: 10, gravity: -2, startColor: '#888888', endColor: '#333333' },
+                            sparks: { rate: 200, lifetime: 5, speed: 80, gravity: 20, startColor: '#ffcc00', endColor: '#ff6600' },
+                            rain: { rate: 500, lifetime: 20, speed: 150, gravity: 98, startColor: '#aaccff', endColor: '#6699cc' },
+                            snow: { rate: 100, lifetime: 50, speed: 10, gravity: 5, startColor: '#ffffff', endColor: '#ccccff' },
+                            explosion: { rate: 300, lifetime: 8, speed: 100, gravity: 10, startColor: '#ffaa00', endColor: '#ff0000' },
+                        };
+                        const p = presetSettings[btn.dataset.preset];
+                        if (p) {
+                            if (rate) { rate.value = p.rate; rate.dispatchEvent(new Event('input')); }
+                            if (lifetime) { lifetime.value = p.lifetime; lifetime.dispatchEvent(new Event('input')); }
+                            if (speed) { speed.value = p.speed; speed.dispatchEvent(new Event('input')); }
+                            if (gravity) { gravity.value = p.gravity; gravity.dispatchEvent(new Event('input')); }
+                            if (startColor) { startColor.value = p.startColor; }
+                            if (endColor) { endColor.value = p.endColor; }
+                            updateGradient();
+                        }
+                    };
+                });
+            }
+
+            setupAnimationPanel() {
+                let animPlaying = false;
+                let animFrame = 0;
+                let animInterval = null;
+
+                const playBtn = document.getElementById('anim-btn-play');
+                const stopBtn = document.getElementById('anim-btn-stop');
+                const prevBtn = document.getElementById('anim-btn-prev');
+                const nextBtn = document.getElementById('anim-btn-next');
+                const frameInput = document.getElementById('anim-frame');
+                const fpsSelect = document.getElementById('anim-fps');
+                const scrubber = document.getElementById('anim-timeline-scrubber');
+                const scrubberHead = document.getElementById('anim-scrubber-head');
+                const totalFrames = document.getElementById('anim-total-frames');
+
+                const updateScrubber = () => {
+                    const max = parseInt(totalFrames?.textContent) || 30;
+                    const pct = (animFrame / max) * 100;
+                    if (scrubberHead) scrubberHead.style.left = pct + '%';
+                    if (frameInput) frameInput.value = animFrame;
+                };
+
+                if (playBtn) playBtn.onclick = () => {
+                    animPlaying = !animPlaying;
+                    playBtn.textContent = animPlaying ? '⏸' : '▶';
+                    playBtn.style.color = animPlaying ? '#ff9800' : '#4CAF50';
+                    if (animPlaying) {
+                        clearInterval(animInterval);
+                        const fps = parseInt(fpsSelect?.value) || 30;
+                        animInterval = setInterval(() => {
+                            const max = parseInt(totalFrames?.textContent) || 30;
+                            animFrame = (animFrame + 1) % max;
+                            updateScrubber();
+                        }, 1000 / fps);
+                    } else {
+                        clearInterval(animInterval);
+                    }
+                };
+
+                if (stopBtn) stopBtn.onclick = () => {
+                    animPlaying = false;
+                    clearInterval(animInterval);
+                    animFrame = 0;
+                    if (playBtn) { playBtn.textContent = '▶'; playBtn.style.color = '#4CAF50'; }
+                    updateScrubber();
+                };
+
+                if (prevBtn) prevBtn.onclick = () => { if (animFrame > 0) { animFrame--; updateScrubber(); } };
+                if (nextBtn) nextBtn.onclick = () => {
+                    const max = parseInt(totalFrames?.textContent) || 30;
+                    if (animFrame < max - 1) { animFrame++; updateScrubber(); }
+                };
+
+                if (frameInput) frameInput.onchange = () => { animFrame = parseInt(frameInput.value) || 0; updateScrubber(); };
+
+                // Scrubber click
+                if (scrubber) scrubber.onclick = (e) => {
+                    const rect = scrubber.getBoundingClientRect();
+                    const pct = (e.clientX - rect.left) / rect.width;
+                    const max = parseInt(totalFrames?.textContent) || 30;
+                    animFrame = Math.round(pct * max);
+                    updateScrubber();
+                };
+
+                // Add clip
+                document.getElementById('anim-btn-add-clip')?.addEventListener('click', () => {
+                    const name = prompt('Animation clip name:', `Clip_${Date.now() % 1000}`);
+                    if (name) {
+                        this.editor.addAnimationClip(name);
+                        this.updateAnimClipList();
+                    }
+                });
+
+                if (fpsSelect) fpsSelect.onchange = () => {
+                    const max = parseInt(fpsSelect.value) || 30;
+                    if (totalFrames) totalFrames.textContent = max;
+                };
+            }
+
+            updateAnimClipList() {
+                const list = document.getElementById('anim-clip-list');
+                if (!list) return;
+                const data = this.editor.getSelectedAnimation();
+                if (!data || data.clips.length === 0) {
+                    list.innerHTML = '<div style="font-size:12px;color:#888;font-style:italic;">No animation clips</div>';
+                    return;
+                }
+                list.innerHTML = '';
+                data.clips.forEach((clip, idx) => {
+                    const item = document.createElement('div');
+                    item.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:4px 6px;background:#2a2a2a;border-radius:3px;margin-bottom:3px;cursor:pointer;';
+                    item.innerHTML = `
+                        <span style="font-size:11px;color:#ddd;">${clip.name}</span>
+                        <div style="display:flex;gap:4px;align-items:center;">
+                            <span style="font-size:10px;color:#888;">${clip.duration}s</span>
+                            <button class="panel-btn anim-remove-clip" data-idx="${idx}" title="Remove" style="color:#f44336;font-size:10px;">✗</button>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+                list.querySelectorAll('.anim-remove-clip').forEach(btn => {
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        this.editor.removeAnimationClip(parseInt(btn.dataset.idx));
+                        this.updateAnimClipList();
+                    };
+                });
+            }
+
+            setupScriptingPanel() {
+                let nodeCounter = 0;
+                const graphArea = document.getElementById('script-nodes-container');
+                const placeholder = document.getElementById('script-canvas-placeholder');
+
+                const nodeColors = {
+                    OnStart: '#4a9eff', OnUpdate: '#4a9eff', OnCollision: '#4a9eff',
+                    Branch: '#4CAF50', ForLoop: '#4CAF50',
+                    SetPosition: '#FF9800', ApplyForce: '#E91E63',
+                    GetKeyDown: '#9C27B0', PlaySound: '#00BCD4', Print: '#8BC34A'
+                };
+
+                const addNodeToCanvas = (type) => {
+                    if (!graphArea) return;
+                    if (placeholder) placeholder.style.display = 'none';
+
+                    // Also add to backend
+                    const x = 10 + (nodeCounter % 3) * 100;
+                    const y = 10 + Math.floor(nodeCounter / 3) * 40;
+                    this.editor.addScriptNode(type, x, y);
+
+                    const node = document.createElement('div');
+                    const color = nodeColors[type] || '#888';
+                    node.style.cssText = `position:absolute;left:${x}px;top:${y}px;background:#2d2d30;border:1px solid ${color};border-radius:4px;padding:4px 8px;font-size:10px;color:#ddd;cursor:grab;user-select:none;z-index:1;white-space:nowrap;`;
+                    node.textContent = type;
+                    node.title = `Node: ${type}`;
+                    
+                    // Make draggable within canvas
+                    let dragging = false, offsetX = 0, offsetY = 0;
+                    node.onmousedown = (e) => {
+                        dragging = true;
+                        offsetX = e.offsetX;
+                        offsetY = e.offsetY;
+                        node.style.zIndex = '10';
+                        e.stopPropagation();
+                    };
+                    document.addEventListener('mousemove', (e) => {
+                        if (!dragging) return;
+                        const rect = graphArea.getBoundingClientRect();
+                        node.style.left = (e.clientX - rect.left - offsetX) + 'px';
+                        node.style.top = (e.clientY - rect.top - offsetY) + 'px';
+                    });
+                    document.addEventListener('mouseup', () => {
+                        if (dragging) { dragging = false; node.style.zIndex = '1'; }
+                    });
+
+                    graphArea.appendChild(node);
+                    nodeCounter++;
+                    this.log(`Script node "${type}" added to graph`, 'info');
+                };
+
+                // Quick node click handlers
+                document.querySelectorAll('.script-quick-node').forEach(item => {
+                    item.onclick = () => { addNodeToCanvas(item.dataset.node); };
+                });
+
+                // Add variable
+                document.getElementById('script-btn-add-var')?.addEventListener('click', () => {
+                    const name = prompt('Variable name:', `var${Date.now() % 100}`);
+                    if (name) {
+                        this.editor.addScriptVariable(name, 'float', 0);
+                        this.updateScriptVarList();
+                    }
+                });
+
+                // Compile button
+                document.getElementById('script-btn-compile')?.addEventListener('click', () => {
+                    const graph = this.editor.getScriptGraph();
+                    if (graph && graph.nodes.length > 0) {
+                        this.log(`Script compiled: ${graph.nodes.length} nodes, ${graph.connections.length} connections`, 'success');
+                    } else {
+                        this.log('No script nodes to compile', 'warn');
+                    }
+                });
+            }
+
+            updateScriptVarList() {
+                const list = document.getElementById('script-var-list');
+                if (!list) return;
+                const graph = this.editor.getScriptGraph();
+                if (!graph || graph.variables.length === 0) {
+                    list.innerHTML = '<div style="font-size:11px;color:#888;font-style:italic;">No variables defined</div>';
+                    return;
+                }
+                list.innerHTML = '';
+                graph.variables.forEach(v => {
+                    const item = document.createElement('div');
+                    item.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 6px;background:#2a2a2a;border-radius:3px;margin-bottom:3px;';
+                    item.innerHTML = `
+                        <span style="font-size:10px;color:#4a9eff;font-weight:bold;">${v.type}</span>
+                        <span style="font-size:11px;color:#ddd;flex:1;">${v.name}</span>
+                        <span style="font-size:10px;color:#888;">= ${v.value}</span>
+                    `;
+                    list.appendChild(item);
+                });
+            }
+
+            // Helper: hex color to [r,g,b] in 0-1 range
+            hexToRgb(hex) {
+                const r = parseInt(hex.slice(1, 3), 16) / 255;
+                const g = parseInt(hex.slice(3, 5), 16) / 255;
+                const b = parseInt(hex.slice(5, 7), 16) / 255;
+                return [r, g, b];
+            }
+
+            setupSettingsDialog() {
+                const dialog = document.getElementById('settings-dialog');
+                if (!dialog) return;
+
+                // Close button
+                document.getElementById('settings-close')?.addEventListener('click', () => {
+                    dialog.style.display = 'none';
+                });
+                // Click outside to close
+                dialog.addEventListener('click', (e) => {
+                    if (e.target === dialog) dialog.style.display = 'none';
+                });
+
+                // Load saved settings
+                try {
+                    const saved = JSON.parse(localStorage.getItem('webforge-settings') || '{}');
+                    if (saved.theme) document.getElementById('settings-theme').value = saved.theme;
+                    if (saved.autosave) document.getElementById('settings-autosave').value = saved.autosave;
+                    if (saved.gridSize) document.getElementById('settings-grid-size').value = saved.gridSize;
+                    if (saved.snapGrid !== undefined) document.getElementById('settings-snap-grid').checked = saved.snapGrid;
+                    if (saved.snapPos) document.getElementById('settings-snap-pos').value = saved.snapPos;
+                    if (saved.snapRot) document.getElementById('settings-snap-rot').value = saved.snapRot;
+                } catch (_e) { /* ignore */ }
+
+                // Apply button
+                document.getElementById('settings-apply')?.addEventListener('click', () => {
+                    const settings = {
+                        theme: document.getElementById('settings-theme')?.value,
+                        autosave: document.getElementById('settings-autosave')?.value,
+                        gridSize: document.getElementById('settings-grid-size')?.value,
+                        snapGrid: document.getElementById('settings-snap-grid')?.checked,
+                        snapPos: document.getElementById('settings-snap-pos')?.value,
+                        snapRot: document.getElementById('settings-snap-rot')?.value,
+                    };
+                    try {
+                        localStorage.setItem('webforge-settings', JSON.stringify(settings));
+                    } catch (_e) { /* ignore */ }
+                    this.log('Settings saved', 'success');
+                    dialog.style.display = 'none';
+                });
+
+                // Reset button
+                document.getElementById('settings-reset')?.addEventListener('click', () => {
+                    document.getElementById('settings-theme').value = 'dark';
+                    document.getElementById('settings-ui-scale').value = '1';
+                    document.getElementById('settings-autosave').value = '300';
+                    document.getElementById('settings-show-grid').checked = true;
+                    document.getElementById('settings-show-axes').checked = true;
+                    document.getElementById('settings-show-stats').checked = true;
+                    document.getElementById('settings-grid-size').value = '1';
+                    document.getElementById('settings-bg-color').value = '#1e1e2e';
+                    document.getElementById('settings-snap-grid').checked = false;
+                    document.getElementById('settings-snap-pos').value = '0.5';
+                    document.getElementById('settings-snap-rot').value = '15';
+                    document.getElementById('settings-snap-scale').value = '0.1';
+                    document.getElementById('settings-aa').value = 'fxaa';
+                    document.getElementById('settings-shadows').checked = true;
+                    document.getElementById('settings-post-fx').checked = true;
+                    document.getElementById('settings-target-fps').value = '60';
+                    this.log('Settings reset to defaults', 'info');
+                });
+            }
+
+            setupNetworkPanel() {
+                // Host session
+                document.getElementById('net-btn-host')?.addEventListener('click', () => {
+                    const code = 'WF-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+                    document.getElementById('net-room-code').value = code;
+                    document.getElementById('net-status-badge').textContent = 'Hosting';
+                    document.getElementById('net-status-badge').style.background = '#4CAF50';
+                    document.getElementById('net-status-badge').style.color = 'white';
+                    this.log(`Hosting session: ${code}`, 'success');
+                });
+
+                // Copy room code
+                document.getElementById('net-btn-copy-room')?.addEventListener('click', () => {
+                    const code = document.getElementById('net-room-code')?.value;
+                    if (code) {
+                        navigator.clipboard?.writeText(code);
+                        this.log('Room code copied to clipboard', 'info');
+                    }
+                });
+
+                // Join session
+                document.getElementById('net-btn-join')?.addEventListener('click', () => {
+                    const code = document.getElementById('net-room-code')?.value;
+                    if (code) {
+                        document.getElementById('net-status-badge').textContent = 'Connected';
+                        document.getElementById('net-status-badge').style.background = '#2196F3';
+                        document.getElementById('net-status-badge').style.color = 'white';
+                        this.log(`Joining session: ${code}`, 'info');
+                    } else {
+                        this.log('Enter a room code first', 'warn');
+                    }
+                });
+
+                // Send chat
+                const sendChat = () => {
+                    const input = document.getElementById('net-chat-input');
+                    const log = document.getElementById('net-chat-log');
+                    if (!input || !log || !input.value.trim()) return;
+                    // Clear placeholder if first message
+                    if (log.querySelector('[data-placeholder]')) log.innerHTML = '';
+                    const msg = document.createElement('div');
+                    msg.style.cssText = 'padding: 2px 0; font-size: 11px;';
+                    const label = document.createElement('span');
+                    label.style.cssText = 'color: #4a9eff; font-weight: bold;';
+                    label.textContent = 'You: ';
+                    const text = document.createElement('span');
+                    text.style.color = '#ddd';
+                    text.textContent = input.value;
+                    msg.appendChild(label);
+                    msg.appendChild(text);
+                    log.appendChild(msg);
+                    log.scrollTop = log.scrollHeight;
+                    input.value = '';
+                };
+                document.getElementById('net-btn-send')?.addEventListener('click', sendChat);
+                document.getElementById('net-chat-input')?.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') sendChat();
+                });
+            }
+
+            setupAutoSave() {
+                // Auto-save based on settings
+                let autoSaveInterval = null;
+                const startAutoSave = () => {
+                    if (autoSaveInterval) clearInterval(autoSaveInterval);
+                    try {
+                        const settings = JSON.parse(localStorage.getItem('webforge-settings') || '{}');
+                        const interval = parseInt(settings.autosave) || 300;
+                        if (interval > 0) {
+                            autoSaveInterval = setInterval(() => {
+                                const json = this.editor?.saveScene();
+                                if (json) {
+                                    try {
+                                        localStorage.setItem('webforge-scene', json);
+                                        this.log('Auto-saved scene', 'info');
+                                    } catch (e) {
+                                        this.log('Auto-save failed: storage quota exceeded', 'error');
+                                    }
+                                }
+                            }, interval * 1000);
+                        }
+                    } catch (_e) { /* ignore */ }
+                };
+                startAutoSave();
+            }
+
+            setupWelcomeDialog() {
+                // Show welcome on first visit
+                const dontShow = localStorage.getItem('webforge-hide-welcome');
+                if (!dontShow) {
+                    setTimeout(() => {
+                        document.getElementById('welcome-dialog').style.display = 'flex';
+                    }, 500);
+                }
+
+                // "Don't show" checkbox
+                const dontShowCheck = document.getElementById('welcome-dont-show');
+                if (dontShowCheck) {
+                    dontShowCheck.addEventListener('change', () => {
+                        if (dontShowCheck.checked) {
+                            localStorage.setItem('webforge-hide-welcome', '1');
+                        } else {
+                            localStorage.removeItem('webforge-hide-welcome');
+                        }
+                    });
+                }
+
+                // "Load Recent" button
+                const loadRecentBtn = document.getElementById('welcome-load-recent');
+                if (loadRecentBtn) {
+                    loadRecentBtn.addEventListener('click', () => {
+                        document.getElementById('welcome-dialog').style.display = 'none';
+                        const saved = localStorage.getItem('webforge-scene');
+                        if (saved && this.editor) {
+                            this.editor.loadScene(saved);
+                            this.log('Loaded recent scene', 'success');
+                        } else {
+                            this.log('No saved scene found', 'warning');
+                        }
+                    });
+                }
+
+                // Close on overlay click
+                document.getElementById('welcome-dialog')?.addEventListener('click', (e) => {
+                    if (e.target === e.currentTarget) {
+                        e.currentTarget.style.display = 'none';
+                    }
+                });
+            }
+
+            setupExportDialog() {
+                const dialog = document.getElementById('export-dialog');
+                if (!dialog) return;
+
+                // Platform selection
+                let selectedPlatform = 'web';
+                const platformBtns = dialog.querySelectorAll('.export-platform-btn');
+                platformBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        platformBtns.forEach(b => {
+                            b.style.background = '#1e1e1e';
+                            b.style.borderColor = '#444';
+                            b.style.color = '#ccc';
+                        });
+                        btn.style.background = '#094771';
+                        btn.style.borderColor = '#4a9eff';
+                        btn.style.color = '#fff';
+                        selectedPlatform = btn.dataset.platform;
+                    });
+                });
+
+                // Export button
+                const exportBtn = document.getElementById('export-start-btn');
+                const progressDiv = document.getElementById('export-progress');
+                const progressBar = document.getElementById('export-progress-bar');
+                const progressText = document.getElementById('export-progress-text');
+                const progressPct = document.getElementById('export-progress-pct');
+
+                if (exportBtn) {
+                    exportBtn.addEventListener('click', async () => {
+                        exportBtn.disabled = true;
+                        exportBtn.textContent = 'Exporting...';
+                        progressDiv.style.display = 'block';
+
+                        // Simulate export progress
+                        const steps = [
+                            { text: 'Preparing scene data...', pct: 10 },
+                            { text: 'Bundling assets...', pct: 30 },
+                            { text: 'Compiling scripts...', pct: 55 },
+                            { text: 'Optimizing output...', pct: 75 },
+                            { text: 'Generating package...', pct: 90 },
+                            { text: 'Export complete!', pct: 100 }
+                        ];
+
+                        for (const step of steps) {
+                            await new Promise(r => setTimeout(r, 400));
+                            progressText.textContent = step.text;
+                            progressPct.textContent = step.pct + '%';
+                            progressBar.style.width = step.pct + '%';
+                        }
+
+                        // Perform actual export
+                        const sceneData = this.editor?.saveScene();
+                        if (sceneData) {
+                            const exportPackage = {
+                                platform: selectedPlatform,
+                                version: '1.0.0',
+                                timestamp: new Date().toISOString(),
+                                settings: {
+                                    minify: document.getElementById('export-minify')?.checked,
+                                    sourceMaps: document.getElementById('export-sourcemaps')?.checked,
+                                    bundleAssets: document.getElementById('export-bundle-assets')?.checked
+                                },
+                                scene: JSON.parse(sceneData)
+                            };
+
+                            const blob = new Blob([JSON.stringify(exportPackage, null, 2)], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `webforge-export-${selectedPlatform}.json`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+
+                            this.log(`Project exported for ${selectedPlatform}`, 'success');
+                        }
+
+                        await new Promise(r => setTimeout(r, 800));
+                        exportBtn.disabled = false;
+                        exportBtn.textContent = 'Export';
+                        progressDiv.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    });
+                }
+
+                // Close on overlay click
+                dialog.addEventListener('click', (e) => {
+                    if (e.target === e.currentTarget) {
+                        e.currentTarget.style.display = 'none';
+                    }
+                });
+                // Close about dialog on overlay click too
+                document.getElementById('about-dialog')?.addEventListener('click', (e) => {
+                    if (e.target === e.currentTarget) {
+                        e.currentTarget.style.display = 'none';
+                    }
+                });
+            }
+
             // =============== HIERARCHY ===============
             updateHierarchy() {
                 const container = document.getElementById('hierarchy-content');
@@ -1813,7 +3902,13 @@
                     <div class="component">
                         <div class="component-header">
                             <span class="icon">📦</span>
-                            <span>${obj.name}</span>
+                            <input type="text" value="${obj.name}" id="inspector-name" 
+                                   style="background: transparent; border: 1px solid transparent; color: #ddd; font-size: 13px; font-weight: bold; padding: 2px 4px; border-radius: 3px; flex: 1;"
+                                   onfocus="this.style.border='1px solid #4a9eff'; this.style.background='#1a1a1a'"
+                                   onblur="this.style.border='1px solid transparent'; this.style.background='transparent'">
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: #888; cursor: pointer;">
+                                <input type="checkbox" ${obj.active !== false ? 'checked' : ''} id="inspector-active"> Active
+                            </label>
                         </div>
                     </div>
                     
@@ -1891,9 +3986,71 @@
                             </div>
                         </div>
                     </div>
+
+                    ${obj.lightType ? `
+                    <div class="component">
+                        <div class="component-header">
+                            <span class="icon">💡</span>
+                            <span>Light (${obj.lightType})</span>
+                            <span class="toggle">▼</span>
+                        </div>
+                        <div class="component-content">
+                            <div class="property-row">
+                                <span class="property-label">Color</span>
+                                <div class="property-input">
+                                    <input type="color" value="${this.rgbToHex(obj.lightColor)}"
+                                           style="width: 50px; height: 24px; border: none; background: none; cursor: pointer;">
+                                </div>
+                            </div>
+                            <div class="property-row">
+                                <span class="property-label">Intensity</span>
+                                <div class="property-input">
+                                    <input type="number" step="0.1" value="${obj.lightIntensity || 1}" min="0" max="10"
+                                           style="width: 100%; padding: 4px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #ddd; font-size: 12px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>` : ''}
+
+                    ${(obj._components || []).map((comp, idx) => `
+                    <div class="component">
+                        <div class="component-header">
+                            <span class="icon">${comp.type === 'rigidbody' ? '⚡' : comp.type === 'collider' ? '🔲' : comp.type === 'audio' ? '🔊' : comp.type === 'particle' ? '✨' : '📜'}</span>
+                            <span>${comp.type.charAt(0).toUpperCase() + comp.type.slice(1)}</span>
+                            <label style="margin-left: auto; display: flex; align-items: center; gap: 3px; font-size: 10px; color: #888;">
+                                <input type="checkbox" ${comp.enabled ? 'checked' : ''} data-comp-idx="${idx}"> 
+                            </label>
+                            <button class="panel-btn" data-remove-comp="${idx}" title="Remove Component" style="color: #f44336; font-size: 10px;">✗</button>
+                        </div>
+                        <div class="component-content" style="padding: 8px;">
+                            ${comp.type === 'rigidbody' ? `
+                            <div class="property-row"><span class="property-label">Mass</span><div class="property-input"><input type="number" value="1" step="0.1" min="0" style="width:100%;padding:4px;background:#1a1a1a;border:1px solid #444;border-radius:3px;color:#ddd;font-size:12px;"></div></div>
+                            <div class="property-row"><span class="property-label">Drag</span><div class="property-input"><input type="number" value="0" step="0.01" min="0" style="width:100%;padding:4px;background:#1a1a1a;border:1px solid #444;border-radius:3px;color:#ddd;font-size:12px;"></div></div>
+                            <div class="property-row"><span class="property-label">Use Gravity</span><div class="property-input"><input type="checkbox" checked></div></div>
+                            ` : comp.type === 'collider' ? `
+                            <div class="property-row"><span class="property-label">Shape</span><div class="property-input"><select style="width:100%;padding:4px;background:#1a1a1a;border:1px solid #444;border-radius:3px;color:#ddd;font-size:12px;"><option>Box</option><option>Sphere</option><option>Capsule</option><option>Mesh</option></select></div></div>
+                            <div class="property-row"><span class="property-label">Is Trigger</span><div class="property-input"><input type="checkbox"></div></div>
+                            ` : comp.type === 'audio' ? `
+                            <div class="property-row"><span class="property-label">Volume</span><div class="property-input"><input type="range" min="0" max="100" value="100" style="width:100%;"></div></div>
+                            <div class="property-row"><span class="property-label">Spatial</span><div class="property-input"><input type="checkbox" checked></div></div>
+                            ` : comp.type === 'particle' ? `
+                            <div class="property-row"><span class="property-label">Rate</span><div class="property-input"><input type="number" value="50" min="1" style="width:100%;padding:4px;background:#1a1a1a;border:1px solid #444;border-radius:3px;color:#ddd;font-size:12px;"></div></div>
+                            <div class="property-row"><span class="property-label">Lifetime</span><div class="property-input"><input type="number" value="2" step="0.1" min="0" style="width:100%;padding:4px;background:#1a1a1a;border:1px solid #444;border-radius:3px;color:#ddd;font-size:12px;"></div></div>
+                            ` : `
+                            <div style="font-size: 11px; color: #888; font-style: italic;">Component properties</div>
+                            `}
+                        </div>
+                    </div>
+                    `).join('')}
+
+                    <div style="padding: 10px;">
+                        <button id="btn-add-component" style="width: 100%; padding: 8px; background: #4a9eff; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">
+                            + Add Component
+                        </button>
+                    </div>
                 `;
 
-                // Bind input events
+                // Bind input events for transform
                 container.querySelectorAll('input[data-prop]').forEach(input => {
                     input.onchange = (e) => {
                         const prop = e.target.dataset.prop;
@@ -1906,15 +4063,110 @@
                             const toRad = (deg) => deg * Math.PI / 180;
                             euler[axis] = toRad(value);
                             transform.rotation = Quaternion.fromEuler(euler.x, euler.y, euler.z);
-                        } else {
-                            // Position and scale - directly set
-                            transform[prop][axis] = value;
+                            transform.markLocalDirty();
+                        } else if (prop === 'position') {
+                            // Use undo-backed position change
+                            const newPos = transform.position.clone();
+                            newPos[axis] = value;
+                            this.editor.setObjectPosition(obj, newPos.x, newPos.y, newPos.z);
+                        } else if (prop === 'scale') {
+                            // Use undo-backed scale change
+                            const newScale = transform.scale.clone();
+                            newScale[axis] = value;
+                            this.editor.setObjectScale(obj, newScale.x, newScale.y, newScale.z);
                         }
-                        
-                        // Mark transform as dirty to update rendering
-                        transform.markLocalDirty();
                     };
                 });
+
+                // Bind name editing (undo-backed)
+                const nameInput = document.getElementById('inspector-name');
+                if (nameInput) {
+                    nameInput.onchange = (e) => {
+                        this.editor.renameObject(obj, e.target.value);
+                    };
+                }
+
+                // Bind active checkbox
+                const activeCheck = document.getElementById('inspector-active');
+                if (activeCheck) {
+                    activeCheck.onchange = (e) => { obj.active = e.target.checked; };
+                }
+
+                // Bind component removal
+                container.querySelectorAll('[data-remove-comp]').forEach(btn => {
+                    btn.onclick = () => {
+                        const idx = parseInt(btn.dataset.removeComp);
+                        if (obj._components && obj._components[idx] !== undefined) {
+                            const removed = obj._components.splice(idx, 1);
+                            this.log(`Removed ${removed[0]?.type || 'component'}`, 'info');
+                            this.editor.getEvents().emit('selectionChanged', [obj]);
+                        }
+                    };
+                });
+
+                // Bind Add Component button
+                const addCompBtn = document.getElementById('btn-add-component');
+                if (addCompBtn) {
+                    addCompBtn.onclick = () => {
+                        this.showAddComponentDropdown(obj, addCompBtn);
+                    };
+                }
+            }
+
+            showAddComponentDropdown(obj, anchor) {
+                // Remove existing dropdown
+                const existing = document.getElementById('add-component-dropdown');
+                if (existing) existing.remove();
+
+                const dropdown = document.createElement('div');
+                dropdown.id = 'add-component-dropdown';
+                dropdown.style.cssText = `
+                    position: fixed; z-index: 1000;
+                    background: #2d2d30; border: 1px solid #555; border-radius: 6px;
+                    padding: 6px 0; min-width: 180px;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+                `;
+                const rect = anchor.getBoundingClientRect();
+                dropdown.style.left = rect.left + 'px';
+                dropdown.style.top = (rect.bottom + 4) + 'px';
+
+                const components = [
+                    { type: 'rigidbody', icon: '⚡', label: 'Rigid Body' },
+                    { type: 'collider', icon: '🔲', label: 'Box Collider' },
+                    { type: 'audio', icon: '🔊', label: 'Audio Source' },
+                    { type: 'particle', icon: '✨', label: 'Particle System' },
+                    { type: 'script', icon: '📜', label: 'Script' },
+                    { type: 'animator', icon: '🎬', label: 'Animator' },
+                    { type: 'camera', icon: '📷', label: 'Camera' },
+                    { type: 'light', icon: '💡', label: 'Light' },
+                    { type: 'navmesh-agent', icon: '🧭', label: 'NavMesh Agent' },
+                ];
+
+                components.forEach(comp => {
+                    const item = document.createElement('div');
+                    item.style.cssText = 'padding: 6px 14px; cursor: pointer; font-size: 12px; color: #ccc; display: flex; align-items: center; gap: 8px;';
+                    item.innerHTML = `<span>${comp.icon}</span><span>${comp.label}</span>`;
+                    item.onmouseenter = () => item.style.background = '#094771';
+                    item.onmouseleave = () => item.style.background = '';
+                    item.onclick = () => {
+                        this.addComponentToObject(obj, comp.type);
+                        this.log(`Added ${comp.label} to ${obj.name}`, 'success');
+                        dropdown.remove();
+                        this.editor.getEvents().emit('selectionChanged', [obj]);
+                    };
+                    dropdown.appendChild(item);
+                });
+
+                document.body.appendChild(dropdown);
+
+                // Close on click outside
+                const close = (e) => {
+                    if (!dropdown.contains(e.target)) {
+                        dropdown.remove();
+                        document.removeEventListener('click', close);
+                    }
+                };
+                setTimeout(() => document.addEventListener('click', close), 0);
             }
 
             // =============== CONSOLE ===============
@@ -2143,9 +4395,69 @@
                         break;
                 }
             }
-        }
 
-        // =============== RESIZABLE PANELS ===============
+            // =============== KEYBOARD SHORTCUTS ===============
+            setupKeyboardShortcuts() {
+                document.addEventListener('keydown', (e) => {
+                    // Ignore shortcuts when typing in inputs
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+                    // Ctrl+S = Save scene
+                    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 's') {
+                        e.preventDefault();
+                        const json = this.editor.saveScene();
+                        if (json) {
+                            try {
+                                localStorage.setItem('webforge-scene', json);
+                                this.log('Scene saved to browser storage', 'success');
+                            } catch (_err) {
+                                this.log('Failed to save: browser storage quota exceeded', 'error');
+                            }
+                        }
+                    }
+                    // Ctrl+Shift+S = Save As (download file)
+                    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
+                        e.preventDefault();
+                        const data = this.editor.saveScene();
+                        if (data) {
+                            const blob = new Blob([data], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'scene.webforge.json';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                            this.log('Scene exported to file', 'success');
+                        }
+                    }
+                    // Ctrl+N = New scene
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                        e.preventDefault();
+                        if (confirm('Create new scene? Unsaved changes will be lost.')) {
+                            this.editor.newScene();
+                        }
+                    }
+                    // Ctrl+O = Open scene
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                        e.preventDefault();
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = '.json,.webforge';
+                        fileInput.onchange = (evt) => {
+                            const file = evt.target.files?.[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                                const d = ev.target?.result;
+                                if (typeof d === 'string') this.editor.loadScene(d);
+                            };
+                            reader.readAsText(file);
+                        };
+                        fileInput.click();
+                    }
+                });
+            }
+        }
         function setupResizablePanels() {
             // Left column resize (horizontal - width)
             const leftColumn = document.getElementById('left-column');

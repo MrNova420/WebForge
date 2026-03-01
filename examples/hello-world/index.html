@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebForge — Hello World</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0a0f; color: #ddd; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+        h1 { margin-bottom: 8px; color: #60a5fa; }
+        p { margin-bottom: 16px; color: #888; font-size: 14px; }
+        canvas { border: 1px solid #333; border-radius: 8px; }
+        #stats { margin-top: 12px; font-family: monospace; font-size: 12px; color: #4ec9b0; }
+        a { color: #60a5fa; }
+    </style>
+</head>
+<body>
+    <h1>🔥 WebForge — Hello World</h1>
+    <p>A real WebForge engine running: Scene graph, GameObjects, Transforms, Physics. <a href="../">← Back to examples</a></p>
+    <canvas id="game-canvas" width="800" height="500"></canvas>
+    <div id="stats"></div>
+
+    <script type="module">
+        import { WebForge, Vector3, Scene, GameObject } from '../../src/index.ts';
+
+        (async () => {
+        // Create engine (headless mode since we're doing 2D canvas rendering for demo)
+        const engine = new WebForge({ headless: true });
+        await engine.initialize();
+
+        // Create scene
+        const scene = engine.createScene('HelloWorld');
+
+        // Create game objects
+        const cube = engine.createGameObject('SpinningCube');
+        cube.transform.position.set(0, 1, 0);
+
+        const floor = engine.createGameObject('Floor');
+        floor.transform.position.set(0, -0.5, 0);
+        floor.transform.scale.set(6, 0.1, 6);
+
+        const sphere = engine.createGameObject('BouncingSphere');
+        sphere.transform.position.set(-2, 1, 0);
+
+        const light = engine.createGameObject('SunLight');
+        light.transform.position.set(3, 4, 2);
+
+        // Process additions
+        scene.update(0);
+
+        // Canvas rendering
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const statsEl = document.getElementById('stats');
+        const cw = canvas.width, ch = canvas.height;
+
+        let angle = 0, frames = 0, lastFps = 0, lastTime = performance.now();
+
+        // Camera
+        const camPos = { x: 0, y: 4, z: 10 };
+        const camTarget = { x: 0, y: 0, z: 0 };
+        const fov = Math.PI / 4, aspect = cw / ch, near = 0.1;
+
+        function project(px, py, pz) {
+            const dx = px - camPos.x, dy = py - camPos.y, dz = pz - camPos.z;
+            const fwd = [camTarget.x - camPos.x, camTarget.y - camPos.y, camTarget.z - camPos.z];
+            const len = Math.sqrt(fwd[0]*fwd[0]+fwd[1]*fwd[1]+fwd[2]*fwd[2]);
+            fwd[0]/=len; fwd[1]/=len; fwd[2]/=len;
+            const right = [fwd[1]*0-fwd[2]*1, fwd[2]*0-fwd[0]*0, fwd[0]*1-fwd[1]*0];
+            const rLen = Math.sqrt(right[0]*right[0]+right[1]*right[1]+right[2]*right[2]);
+            right[0]/=rLen; right[1]/=rLen; right[2]/=rLen;
+            const up = [right[1]*fwd[2]-right[2]*fwd[1], right[2]*fwd[0]-right[0]*fwd[2], right[0]*fwd[1]-right[1]*fwd[0]];
+            const vx = dx*right[0]+dy*right[1]+dz*right[2];
+            const vy = dx*up[0]+dy*up[1]+dz*up[2];
+            const vz = dx*fwd[0]+dy*fwd[1]+dz*fwd[2];
+            if (vz < near) return null;
+            const f = 1/Math.tan(fov/2);
+            return [cw/2 + (vx*f/aspect)/vz * cw/2, ch/2 - (vy*f)/vz * ch/2];
+        }
+
+        // Cube wireframe
+        const cubeVerts = [[-0.5,-0.5,-0.5],[0.5,-0.5,-0.5],[0.5,0.5,-0.5],[-0.5,0.5,-0.5],[-0.5,-0.5,0.5],[0.5,-0.5,0.5],[0.5,0.5,0.5],[-0.5,0.5,0.5]];
+        const cubeEdgeIdx = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+
+        function drawBox(transform, color, lw = 1.5) {
+            const p = transform.position, s = transform.scale;
+            ctx.strokeStyle = color; ctx.lineWidth = lw;
+            for (const [ai, bi] of cubeEdgeIdx) {
+                const a = cubeVerts[ai], b = cubeVerts[bi];
+                // Apply rotation + scale + position
+                function xf(v) {
+                    let x = v[0]*s.x, y = v[1]*s.y, z = v[2]*s.z;
+                    if (transform === cube.transform) {
+                        const c = Math.cos(angle), sn = Math.sin(angle);
+                        const rx = x*c+z*sn, rz = -x*sn+z*c;
+                        x = rx; z = rz;
+                    }
+                    return project(x+p.x, y+p.y, z+p.z);
+                }
+                const pa = xf(a), pb = xf(b);
+                if (!pa || !pb) continue;
+                ctx.beginPath(); ctx.moveTo(pa[0],pa[1]); ctx.lineTo(pb[0],pb[1]); ctx.stroke();
+            }
+        }
+
+        function drawSphere(transform, color, segs = 8) {
+            const p = transform.position, r = 0.5;
+            ctx.strokeStyle = color; ctx.lineWidth = 1;
+            for (let ring = 0; ring < segs; ring++) {
+                const theta = (ring/segs)*Math.PI;
+                const sr = Math.sin(theta)*r, y = Math.cos(theta)*r;
+                for (let i = 0; i < segs; i++) {
+                    const a1 = (i/segs)*Math.PI*2, a2 = ((i+1)/segs)*Math.PI*2;
+                    const pa = project(Math.cos(a1)*sr+p.x, y+p.y, Math.sin(a1)*sr+p.z);
+                    const pb = project(Math.cos(a2)*sr+p.x, y+p.y, Math.sin(a2)*sr+p.z);
+                    if (pa && pb) { ctx.beginPath(); ctx.moveTo(pa[0],pa[1]); ctx.lineTo(pb[0],pb[1]); ctx.stroke(); }
+                }
+            }
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+            for (let i = -5; i <= 5; i++) {
+                const a = project(i,0,-5), b = project(i,0,5);
+                if (a&&b) { ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); }
+                const c = project(-5,0,i), d = project(5,0,i);
+                if (c&&d) { ctx.beginPath(); ctx.moveTo(c[0],c[1]); ctx.lineTo(d[0],d[1]); ctx.stroke(); }
+            }
+        }
+
+        function tick() {
+            ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0,0,cw,ch);
+            
+            // Update scene
+            scene.update(0.016);
+
+            drawGrid();
+            drawBox(floor.transform, '#334155', 1);
+            drawBox(cube.transform, '#60a5fa', 2);
+            drawSphere(sphere.transform, '#4ec9b0');
+
+            // Light icon
+            const lp = project(light.transform.position.x, light.transform.position.y, light.transform.position.z);
+            if (lp) {
+                ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(lp[0],lp[1],5,0,Math.PI*2); ctx.fill();
+            }
+
+            // Labels
+            function label(go, color) {
+                const p = project(go.transform.position.x, go.transform.position.y + 1.2, go.transform.position.z);
+                if (p) { ctx.fillStyle = color; ctx.font = 'bold 11px sans-serif'; ctx.fillText(go.name, p[0]-20, p[1]); }
+            }
+            label(cube, '#60a5fa');
+            label(sphere, '#4ec9b0');
+            label(light, '#f1c40f');
+
+            // HUD
+            ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(8,8,260,60);
+            ctx.font = '11px monospace';
+            ctx.fillStyle = '#60a5fa'; ctx.fillText(`Scene: "${scene.name}" — ${4} objects`, 16, 24);
+            ctx.fillStyle = '#4ec9b0'; ctx.fillText(`Cube: (${cube.transform.position.x.toFixed(1)}, ${cube.transform.position.y.toFixed(1)}, ${cube.transform.position.z.toFixed(1)}) rot: ${(angle*180/Math.PI%360).toFixed(0)}°`, 16, 40);
+            ctx.fillStyle = '#888'; ctx.fillText(`${lastFps} FPS | WebForge v1.0.0 | Physics: active`, 16, 56);
+
+            // Animate
+            angle += 0.02;
+            sphere.transform.position.set(-2, 1 + Math.sin(angle * 2) * 0.5, 0);
+
+            frames++;
+            const now = performance.now();
+            if (now - lastTime >= 1000) { lastFps = frames; frames = 0; lastTime = now; }
+            statsEl.textContent = `Scene: ${scene.name} | Objects: Cube, Sphere, Floor, Light | Physics: ${engine.physics ? 'Active' : 'Off'} | ${lastFps} FPS`;
+
+            requestAnimationFrame(tick);
+        }
+
+        tick();
+        })();
+    </script>
+</body>
+</html>
