@@ -9,6 +9,7 @@ import { Engine, EngineState } from '../src/core/Engine';
 import { ResourceManager, ResourceType, ResourceStatus } from '../src/core/ResourceManager';
 import { Scene } from '../src/scene/Scene';
 import { Time } from '../src/core/Time';
+import { GameStateManager, GameState } from '../src/core/GameStateManager';
 
 // Physics
 import { PhysicsWorld, type IPhysicsBody } from '../src/physics/PhysicsWorld';
@@ -733,5 +734,475 @@ describe('RigidBody', () => {
     const body = new RigidBody({ restitution: 0.8, friction: 0.3 });
     expect(body.getRestitution()).toBeCloseTo(0.8);
     expect(body.getFriction()).toBeCloseTo(0.3);
+  });
+});
+
+// ============================================================
+// GameStateManager Tests
+// ============================================================
+describe('GameStateManager', () => {
+  let gsm: GameStateManager;
+
+  beforeEach(() => {
+    gsm = new GameStateManager();
+  });
+
+  // -- Creation & Registration -----------------------------------------------
+
+  it('should initialize with no states', () => {
+    expect(gsm.getCurrentState()).toBeNull();
+    expect(gsm.getPreviousState()).toBeNull();
+    expect(gsm.getStateCount()).toBe(0);
+    expect(gsm.getAllStates()).toEqual([]);
+    expect(gsm.getStackDepth()).toBe(0);
+    expect(gsm.isPaused()).toBe(false);
+  });
+
+  it('should register states', () => {
+    gsm.addState({ name: 'Menu' });
+    gsm.addState({ name: 'Play' });
+    expect(gsm.getStateCount()).toBe(2);
+    expect(gsm.getAllStates()).toContain('Menu');
+    expect(gsm.getAllStates()).toContain('Play');
+  });
+
+  it('should throw when adding duplicate state', () => {
+    gsm.addState({ name: 'Menu' });
+    expect(() => gsm.addState({ name: 'Menu' })).toThrow('State "Menu" already exists');
+  });
+
+  it('should remove a registered state', () => {
+    gsm.addState({ name: 'Menu' });
+    gsm.addState({ name: 'Play' });
+    gsm.removeState('Menu');
+    expect(gsm.getStateCount()).toBe(1);
+    expect(gsm.getAllStates()).toEqual(['Play']);
+  });
+
+  it('should throw when removing the active state', () => {
+    gsm.addState({ name: 'Menu' });
+    gsm.setState('Menu');
+    expect(() => gsm.removeState('Menu')).toThrow('Cannot remove active state "Menu"');
+  });
+
+  it('should remove transitions involving a removed state', () => {
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+    gsm.addState({ name: 'C' });
+    gsm.addTransition({ from: 'A', to: 'B' });
+    gsm.addTransition({ from: 'B', to: 'C' });
+    gsm.removeState('B');
+    // Transition A->B and B->C should both be gone
+    gsm.setState('A');
+    expect(gsm.canTransitionTo('B')).toBe(false);
+  });
+
+  // -- setState (force set) --------------------------------------------------
+
+  it('should set state directly', () => {
+    gsm.addState({ name: 'Menu' });
+    expect(gsm.setState('Menu')).toBe(true);
+    expect(gsm.getCurrentState()).toBe('Menu');
+  });
+
+  it('should return false when setting unknown state', () => {
+    expect(gsm.setState('Unknown')).toBe(false);
+    expect(gsm.getCurrentState()).toBeNull();
+  });
+
+  it('should track previous state on setState', () => {
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+    gsm.setState('A');
+    gsm.setState('B');
+    expect(gsm.getPreviousState()).toBe('A');
+    expect(gsm.getCurrentState()).toBe('B');
+  });
+
+  it('should call onEnter and onExit lifecycle hooks', () => {
+    const enterSpy = vi.fn();
+    const exitSpy = vi.fn();
+    gsm.addState({ name: 'A', onExit: exitSpy });
+    gsm.addState({ name: 'B', onEnter: enterSpy });
+
+    gsm.setState('A');
+    gsm.setState('B');
+
+    expect(exitSpy).toHaveBeenCalledWith('B');
+    expect(enterSpy).toHaveBeenCalledWith('A');
+  });
+
+  it('should record state history', () => {
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+    gsm.addState({ name: 'C' });
+    gsm.setState('A');
+    gsm.setState('B');
+    gsm.setState('C');
+    expect(gsm.getStateHistory()).toEqual(['A', 'B', 'C']);
+  });
+
+  // -- isInState -------------------------------------------------------------
+
+  it('should report isInState correctly', () => {
+    gsm.addState({ name: 'Menu' });
+    gsm.setState('Menu');
+    expect(gsm.isInState('Menu')).toBe(true);
+    expect(gsm.isInState('Play')).toBe(false);
+  });
+
+  // -- Transitions -----------------------------------------------------------
+
+  it('should transition when a valid rule exists', () => {
+    gsm.addState({ name: 'Menu' });
+    gsm.addState({ name: 'Play' });
+    gsm.addTransition({ from: 'Menu', to: 'Play' });
+    gsm.setState('Menu');
+
+    expect(gsm.transitionTo('Play')).toBe(true);
+    expect(gsm.getCurrentState()).toBe('Play');
+  });
+
+  it('should reject transition without a matching rule', () => {
+    gsm.addState({ name: 'Menu' });
+    gsm.addState({ name: 'Play' });
+    gsm.setState('Menu');
+
+    expect(gsm.transitionTo('Play')).toBe(false);
+    expect(gsm.getCurrentState()).toBe('Menu');
+  });
+
+  it('should reject transition to unknown state', () => {
+    gsm.addState({ name: 'Menu' });
+    gsm.setState('Menu');
+    expect(gsm.transitionTo('Unknown')).toBe(false);
+  });
+
+  it('should respect guard conditions on transitions', () => {
+    let allowed = false;
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+    gsm.addTransition({ from: 'A', to: 'B', condition: () => allowed });
+    gsm.setState('A');
+
+    expect(gsm.transitionTo('B')).toBe(false);
+    expect(gsm.getCurrentState()).toBe('A');
+
+    allowed = true;
+    expect(gsm.transitionTo('B')).toBe(true);
+    expect(gsm.getCurrentState()).toBe('B');
+  });
+
+  it('should invoke onTransition callback', () => {
+    const spy = vi.fn();
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+    gsm.addTransition({ from: 'A', to: 'B', onTransition: spy });
+    gsm.setState('A');
+    gsm.transitionTo('B');
+    expect(spy).toHaveBeenCalledWith('A', 'B');
+  });
+
+  it('should support wildcard (*) transitions', () => {
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+    gsm.addState({ name: 'Error' });
+    gsm.addTransition({ from: '*', to: 'Error' });
+    gsm.setState('A');
+
+    expect(gsm.canTransitionTo('Error')).toBe(true);
+    expect(gsm.transitionTo('Error')).toBe(true);
+    expect(gsm.getCurrentState()).toBe('Error');
+  });
+
+  it('should list available transitions from current state', () => {
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+    gsm.addState({ name: 'C' });
+    gsm.addTransition({ from: 'A', to: 'B' });
+    gsm.addTransition({ from: 'A', to: 'C' });
+    gsm.setState('A');
+
+    const available = gsm.getAvailableTransitions();
+    expect(available).toContain('B');
+    expect(available).toContain('C');
+    expect(available.length).toBe(2);
+  });
+
+  it('should exclude transitions with failing guard from available list', () => {
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+    gsm.addTransition({ from: 'A', to: 'B', condition: () => false });
+    gsm.setState('A');
+    expect(gsm.getAvailableTransitions()).toEqual([]);
+  });
+
+  it('should remove a transition rule', () => {
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+    gsm.addTransition({ from: 'A', to: 'B' });
+    gsm.setState('A');
+    expect(gsm.canTransitionTo('B')).toBe(true);
+
+    gsm.removeTransition('A', 'B');
+    expect(gsm.canTransitionTo('B')).toBe(false);
+  });
+
+  // -- Push / Pop state stack ------------------------------------------------
+
+  it('should push state onto stack', () => {
+    gsm.addState({ name: 'Gameplay' });
+    gsm.addState({ name: 'Pause' });
+    gsm.setState('Gameplay');
+
+    gsm.pushState('Pause');
+    expect(gsm.getCurrentState()).toBe('Pause');
+    expect(gsm.getStackDepth()).toBe(1);
+  });
+
+  it('should throw when pushing unknown state', () => {
+    expect(() => gsm.pushState('Unknown')).toThrow('State "Unknown" not found');
+  });
+
+  it('should pause previous state on push and call onPause', () => {
+    const pauseSpy = vi.fn();
+    gsm.addState({ name: 'Gameplay', onPause: pauseSpy });
+    gsm.addState({ name: 'Pause' });
+    gsm.setState('Gameplay');
+
+    gsm.pushState('Pause');
+    expect(pauseSpy).toHaveBeenCalled();
+  });
+
+  it('should pop state and resume previous', () => {
+    const resumeSpy = vi.fn();
+    gsm.addState({ name: 'Gameplay', onResume: resumeSpy });
+    gsm.addState({ name: 'Pause' });
+    gsm.setState('Gameplay');
+    gsm.pushState('Pause');
+
+    const popped = gsm.popState();
+    expect(popped).toBe('Pause');
+    expect(gsm.getCurrentState()).toBe('Gameplay');
+    expect(gsm.getStackDepth()).toBe(0);
+    expect(resumeSpy).toHaveBeenCalled();
+  });
+
+  it('should return null when popping empty stack', () => {
+    gsm.addState({ name: 'A' });
+    gsm.setState('A');
+    expect(gsm.popState()).toBeNull();
+  });
+
+  it('should call onExit on the popped state', () => {
+    const exitSpy = vi.fn();
+    gsm.addState({ name: 'Gameplay' });
+    gsm.addState({ name: 'Pause', onExit: exitSpy });
+    gsm.setState('Gameplay');
+    gsm.pushState('Pause');
+    gsm.popState();
+    expect(exitSpy).toHaveBeenCalled();
+  });
+
+  it('should handle nested push/pop', () => {
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+    gsm.addState({ name: 'C' });
+    gsm.setState('A');
+    gsm.pushState('B');
+    gsm.pushState('C');
+    expect(gsm.getStackDepth()).toBe(2);
+    expect(gsm.getCurrentState()).toBe('C');
+
+    gsm.popState();
+    expect(gsm.getCurrentState()).toBe('B');
+    expect(gsm.getStackDepth()).toBe(1);
+
+    gsm.popState();
+    expect(gsm.getCurrentState()).toBe('A');
+    expect(gsm.getStackDepth()).toBe(0);
+  });
+
+  // -- Update / Pause / Resume -----------------------------------------------
+
+  it('should call onUpdate on current state', () => {
+    const updateSpy = vi.fn();
+    gsm.addState({ name: 'A', onUpdate: updateSpy });
+    gsm.setState('A');
+    gsm.update(0.016);
+    expect(updateSpy).toHaveBeenCalledWith(0.016);
+  });
+
+  it('should not call onUpdate when paused', () => {
+    const updateSpy = vi.fn();
+    gsm.addState({ name: 'A', onUpdate: updateSpy });
+    gsm.setState('A');
+    gsm.pause();
+    gsm.update(0.016);
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not call onUpdate when no current state', () => {
+    // Should not throw
+    gsm.update(0.016);
+  });
+
+  it('should pause and resume', () => {
+    const pauseSpy = vi.fn();
+    const resumeSpy = vi.fn();
+    gsm.addState({ name: 'A', onPause: pauseSpy, onResume: resumeSpy });
+    gsm.setState('A');
+
+    gsm.pause();
+    expect(gsm.isPaused()).toBe(true);
+    expect(pauseSpy).toHaveBeenCalled();
+
+    gsm.resume();
+    expect(gsm.isPaused()).toBe(false);
+    expect(resumeSpy).toHaveBeenCalled();
+  });
+
+  it('should not pause twice', () => {
+    const pauseSpy = vi.fn();
+    gsm.addState({ name: 'A', onPause: pauseSpy });
+    gsm.setState('A');
+    gsm.pause();
+    gsm.pause();
+    expect(pauseSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not resume if not paused', () => {
+    const resumeSpy = vi.fn();
+    gsm.addState({ name: 'A', onResume: resumeSpy });
+    gsm.setState('A');
+    gsm.resume();
+    expect(resumeSpy).not.toHaveBeenCalled();
+  });
+
+  // -- Events ----------------------------------------------------------------
+
+  it('should emit state:enter and state:exit events', () => {
+    const enterSpy = vi.fn();
+    const exitSpy = vi.fn();
+    gsm.on('state:enter', enterSpy);
+    gsm.on('state:exit', exitSpy);
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+
+    gsm.setState('A');
+    expect(enterSpy).toHaveBeenCalledWith({ state: 'A', previous: null });
+
+    gsm.setState('B');
+    expect(exitSpy).toHaveBeenCalledWith({ state: 'A', next: 'B' });
+    expect(enterSpy).toHaveBeenCalledWith({ state: 'B', previous: 'A' });
+  });
+
+  it('should emit state:transition event on transitionTo', () => {
+    const spy = vi.fn();
+    gsm.on('state:transition', spy);
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+    gsm.addTransition({ from: 'A', to: 'B' });
+    gsm.setState('A');
+    gsm.transitionTo('B');
+    expect(spy).toHaveBeenCalledWith({ from: 'A', to: 'B' });
+  });
+
+  it('should emit state:push and state:pop events', () => {
+    const pushSpy = vi.fn();
+    const popSpy = vi.fn();
+    gsm.on('state:push', pushSpy);
+    gsm.on('state:pop', popSpy);
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+    gsm.setState('A');
+
+    gsm.pushState('B');
+    expect(pushSpy).toHaveBeenCalledWith({ state: 'B', previous: 'A' });
+
+    gsm.popState();
+    expect(popSpy).toHaveBeenCalledWith({ state: 'B', restored: 'A' });
+  });
+
+  it('should emit state:pause and state:resume events', () => {
+    const pauseSpy = vi.fn();
+    const resumeSpy = vi.fn();
+    gsm.on('state:pause', pauseSpy);
+    gsm.on('state:resume', resumeSpy);
+    gsm.addState({ name: 'A' });
+    gsm.setState('A');
+
+    gsm.pause();
+    expect(pauseSpy).toHaveBeenCalledWith({ state: 'A' });
+
+    gsm.resume();
+    expect(resumeSpy).toHaveBeenCalledWith({ state: 'A' });
+  });
+
+  it('should unsubscribe with off()', () => {
+    const spy = vi.fn();
+    gsm.on('state:enter', spy);
+    gsm.off('state:enter', spy);
+    gsm.addState({ name: 'A' });
+    gsm.setState('A');
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  // -- Clear -----------------------------------------------------------------
+
+  it('should clear all state', () => {
+    gsm.addState({ name: 'A' });
+    gsm.addState({ name: 'B' });
+    gsm.addTransition({ from: 'A', to: 'B' });
+    gsm.setState('A');
+    gsm.pushState('B');
+
+    gsm.clear();
+    expect(gsm.getCurrentState()).toBeNull();
+    expect(gsm.getPreviousState()).toBeNull();
+    expect(gsm.getStateCount()).toBe(0);
+    expect(gsm.getStateHistory()).toEqual([]);
+    expect(gsm.getStackDepth()).toBe(0);
+    expect(gsm.isPaused()).toBe(false);
+  });
+
+  it('should call onExit on current state when clearing', () => {
+    const exitSpy = vi.fn();
+    gsm.addState({ name: 'A', onExit: exitSpy });
+    gsm.setState('A');
+    gsm.clear();
+    expect(exitSpy).toHaveBeenCalledWith('');
+  });
+
+  // -- Static factory --------------------------------------------------------
+
+  it('should create default game flow with createDefaultGameFlow', () => {
+    const flow = GameStateManager.createDefaultGameFlow();
+    const states = flow.getAllStates();
+    expect(states).toContain('MainMenu');
+    expect(states).toContain('Loading');
+    expect(states).toContain('Gameplay');
+    expect(states).toContain('Pause');
+    expect(states).toContain('GameOver');
+    expect(flow.getStateCount()).toBe(5);
+  });
+
+  it('should follow default game flow transitions', () => {
+    const flow = GameStateManager.createDefaultGameFlow();
+    flow.setState('MainMenu');
+
+    expect(flow.transitionTo('Loading')).toBe(true);
+    expect(flow.transitionTo('Gameplay')).toBe(true);
+    expect(flow.transitionTo('Pause')).toBe(true);
+    expect(flow.transitionTo('Gameplay')).toBe(true);
+    expect(flow.transitionTo('GameOver')).toBe(true);
+    expect(flow.transitionTo('MainMenu')).toBe(true);
+  });
+
+  it('should reject invalid transitions in default game flow', () => {
+    const flow = GameStateManager.createDefaultGameFlow();
+    flow.setState('MainMenu');
+    expect(flow.transitionTo('GameOver')).toBe(false);
+    expect(flow.transitionTo('Pause')).toBe(false);
   });
 });
