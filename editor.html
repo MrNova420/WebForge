@@ -1340,9 +1340,12 @@
             });
 
             function handleMenuAction(action) {
-                // Defer to EditorUI once initialized
                 const ui = window.editorUI;
-                const editor = ui?.editor;
+                if (!ui || !ui.editor) {
+                    console.warn('[Menu] Editor not yet initialized');
+                    return;
+                }
+                const editor = ui.editor;
                 switch (action) {
                     // File
                     case 'new-scene': editor?.newScene(); break;
@@ -1387,7 +1390,7 @@
                     case 'add-audio':
                     case 'add-particle':
                     case 'add-script':
-                        ui?.log('Component: ' + action.replace('add-', '') + ' — select an object first', 'info');
+                        ui.log(`Component: ${action.replace('add-', '')} — select an object first`, 'info');
                         break;
                     // Window
                     case 'show-console':
