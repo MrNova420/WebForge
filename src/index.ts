@@ -85,5 +85,48 @@ export * from './dev';
 // Future Tech
 export * from './future';
 
+// Export Pipeline
+export {
+    ExportManager,
+    ExportPlatform,
+    type ExportConfig as ExportPipelineConfig,
+    type ExportResult as ExportPipelineResult,
+    type IconSet,
+    type SplashScreenSet,
+    type ExportArtifact
+} from './export/ExportManager';
+
+// Collaboration & Multiplayer
+export * from './collaboration';
+
+// Version Control
+export * from './versioncontrol';
+
+// Asset Marketplace
+export * from './marketplace';
+
+// Performance Profiling
+export {
+    PerformanceProfiler,
+    type ProfilingSession,
+    type FrameProfile,
+    type MemorySnapshot as ProfilerMemorySnapshot,
+    type GPUMetrics,
+    type NetworkActivity,
+    type PerformanceRecommendation as ProfilerRecommendation
+} from './profiling/PerformanceProfiler';
+
+// Documentation Generation
+export {
+    DocumentationGenerator,
+    DocPageType,
+    type DocPage,
+    type APIDoc,
+    type ParameterDoc,
+    type ReturnDoc,
+    type CodeExample,
+    type SearchResult as DocSearchResult
+} from './documentation/DocumentationGenerator';
+
 // Default export for convenience
 export { WebForge as default } from './WebForge';

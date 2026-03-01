@@ -40,11 +40,15 @@ export interface AssetItem {
 export class AssetBrowserPanel extends Panel {
     private currentPath: string = '/';
     private assets: AssetItem[] = [];
+    private allAssets: AssetItem[] = [];
     protected content: HTMLElement | null = null;
     
     private pathBar: HTMLElement | null = null;
     private gridContainer: HTMLElement | null = null;
     private viewMode: 'grid' | 'list' = 'grid';
+    
+    private navigationHistory: string[] = ['/'];
+    private navigationIndex: number = 0;
     
     /**
      * Creates a new asset browser panel
@@ -173,7 +177,7 @@ export class AssetBrowserPanel extends Panel {
         
         // Forward button
         const forwardBtn = this.createButton('→', 'Go forward', () => {
-            // Navigation history (not implemented yet)
+            this.navigateForward();
         });
         toolbar.appendChild(forwardBtn);
         
@@ -497,8 +501,30 @@ export class AssetBrowserPanel extends Panel {
     /**
      * Navigates to a path
      */
+    private navigateForward(): void {
+        if (this.navigationIndex < this.navigationHistory.length - 1) {
+            this.navigationIndex++;
+            this.currentPath = this.navigationHistory[this.navigationIndex];
+            this.loadAssets();
+            
+            if (this.pathBar && this.pathBar.parentElement) {
+                const newPathBar = this.createPathBar();
+                this.pathBar.parentElement.replaceChild(newPathBar, this.pathBar);
+                this.pathBar = newPathBar;
+            }
+            
+            this.refreshView();
+        }
+    }
+    
     private navigateTo(path: string): void {
         this.currentPath = path;
+        
+        // Update navigation history
+        this.navigationHistory = this.navigationHistory.slice(0, this.navigationIndex + 1);
+        this.navigationHistory.push(path);
+        this.navigationIndex = this.navigationHistory.length - 1;
+        
         this.loadAssets();
         
         // Update path bar
@@ -528,7 +554,7 @@ export class AssetBrowserPanel extends Panel {
      */
     private loadAssets(): void {
         // Mock asset loading - in a real implementation, this would load from file system
-        this.assets = [
+        this.allAssets = [
             { name: 'Models', type: AssetType.FOLDER, path: this.currentPath + '/Models' },
             { name: 'Textures', type: AssetType.FOLDER, path: this.currentPath + '/Textures' },
             { name: 'Materials', type: AssetType.FOLDER, path: this.currentPath + '/Materials' },
@@ -536,13 +562,21 @@ export class AssetBrowserPanel extends Panel {
             { name: 'Scripts', type: AssetType.FOLDER, path: this.currentPath + '/Scripts' },
             { name: 'Scenes', type: AssetType.FOLDER, path: this.currentPath + '/Scenes' }
         ];
+        this.assets = [...this.allAssets];
     }
     
     /**
      * Filters assets by search term
      */
-    private filterAssets(_searchTerm: string): void {
-        // Filter and refresh view - implementation placeholder
+    private filterAssets(searchTerm: string): void {
+        if (!searchTerm || searchTerm.trim() === '') {
+            this.assets = [...this.allAssets];
+        } else {
+            const lower = searchTerm.toLowerCase();
+            this.assets = this.allAssets.filter(asset =>
+                asset.name.toLowerCase().includes(lower)
+            );
+        }
         this.refreshView();
     }
     

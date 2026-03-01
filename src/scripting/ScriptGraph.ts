@@ -253,8 +253,58 @@ export class ScriptGraph {
         const graph = new ScriptGraph();
         graph.name = data.name;
         
-        // Restore nodes (simplified - would need full node reconstruction)
-        // This is a placeholder for actual implementation
+        // Restore nodes
+        if (data.nodes) {
+            for (const nodeData of data.nodes) {
+                const node = new ScriptNode(nodeData.name, nodeData.type as NodeType);
+                // Preserve original ID for connection restoration
+                (node as any).id = nodeData.id;
+                node.x = nodeData.x || 0;
+                node.y = nodeData.y || 0;
+                
+                // Restore input ports
+                if (nodeData.inputs) {
+                    for (const [portName, portDef] of nodeData.inputs) {
+                        node.inputs.set(portName, portDef as any);
+                    }
+                }
+                
+                // Restore output ports
+                if (nodeData.outputs) {
+                    for (const [portName, portDef] of nodeData.outputs) {
+                        node.outputs.set(portName, portDef as any);
+                    }
+                }
+                
+                // Restore properties
+                if (nodeData.properties) {
+                    for (const [key, value] of nodeData.properties) {
+                        node.properties.set(key, value);
+                    }
+                }
+                
+                graph.nodes.set(node.id, node);
+            }
+        }
+        
+        // Restore connections
+        if (data.connections) {
+            for (const conn of data.connections) {
+                graph.connections.push({
+                    sourceNodeId: conn.sourceNodeId,
+                    sourcePort: conn.sourcePort,
+                    targetNodeId: conn.targetNodeId,
+                    targetPort: conn.targetPort
+                });
+            }
+        }
+        
+        // Restore variables
+        if (data.variables) {
+            for (const [key, value] of data.variables) {
+                graph.variables.set(key, value);
+            }
+        }
         
         return graph;
     }
