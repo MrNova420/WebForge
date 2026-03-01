@@ -9,6 +9,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         editor: resolve(__dirname, 'editor.html'),
+        'hello-world': resolve(__dirname, 'examples/hello-world/index.html'),
       },
     },
   },

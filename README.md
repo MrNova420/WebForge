@@ -4,14 +4,21 @@
 
 [![Status](https://img.shields.io/badge/status-alpha-green)]()
 [![Version](https://img.shields.io/badge/version-1.0.0-blue)]()
-[![Tests](https://img.shields.io/badge/tests-105%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-117%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ---
 
 ## ⚠️ Development Status — Honest Notes
 
-> **The backend engine code is largely built. The gap is the editor frontend — most backend systems have TypeScript implementations in `src/` but are not yet wired into the editor UI.**
+> **The engine API now works with real implementations.** The `WebForge` facade creates real `Scene`, `GameObject`, `Camera`, and `PhysicsWorld` instances. The landing page code examples are functional. Editor frontend panels are wired and interactive.
+
+### ✅ Engine API — fully wired
+- `WebForge` facade uses real `Engine`, `Scene`, `GameObject`, `Camera`, `PhysicsWorld` classes
+- `engine.createGameObject('Player')` creates a real GameObject with Transform, components, hierarchy
+- `engine.createScene()` creates a real Scene with add/remove/findByName/findByTag
+- Physics runs on fixed-update loop with GJK collision detection
+- Landing page code example is a working, tested code path (see tests)
 
 ### ✅ Backend — largely implemented (`src/`)
 - Core engine, event system, input, resource manager
@@ -44,7 +51,7 @@
 | Scene save/load | ✅ EditorScene.toJSON/fromJSON | ✅ File menu wired (localStorage + file) |
 
 ### 📋 Next priority
-**Collaboration UI and deeper backend integration** — build a real-time collaboration panel (chat, presence indicators), and connect each interactive panel to its full TypeScript backend class (e.g. AnimationPanel.ts methods, PhysicsWorld for terrain, ParticleSystem GPU rendering).
+**Deeper backend integration** — Connect each interactive editor panel to its full TypeScript backend class (e.g. AnimationPanel → AnimationSystem, ParticlePanel → ParticleSystem GPU rendering). Build collaboration UI (chat, presence indicators). Wire WebGL Renderer into main loop for true 3D viewport rendering.
 
 ---
 
@@ -75,7 +82,7 @@ npm run build
 | `npm run dev` | Start development server with hot reload |
 | `npm run build` | Build for production (TypeScript + Vite) |
 | `npm run compile` | TypeScript compile only |
-| `npm test` | Run all tests (105 tests) |
+| `npm test` | Run all tests (117 tests) |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run lint` | Type-check without emit |
 
