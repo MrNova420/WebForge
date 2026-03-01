@@ -227,23 +227,25 @@ describe('ResourceManager', () => {
     expect(rm.getLoadTimeout()).toBe(0);
   });
 
-  it('should register custom loader', () => {
-    rm.registerLoader(ResourceType.JSON, async (url: string) => {
-      return { test: true, url };
+  it('should use custom registered loader', async () => {
+    const customRm = new ResourceManager();
+    customRm.registerLoader(ResourceType.JSON, async (_url: string) => {
+      return { custom: true };
     });
-    // Should not throw
-    expect(true).toBe(true);
+    const result = await customRm.load<{ custom: boolean }>('test.json', ResourceType.JSON);
+    expect(result.custom).toBe(true);
   });
 
   it('should throw for missing loader type', async () => {
-    // Unregister all loaders by creating fresh manager
+    // Create a manager with no default loaders by overriding with undefined behavior
     const freshRm = new ResourceManager();
-    // TEXT loader exists by default, but we can test with a known invalid scenario
-    // by trying to load with a type that errors
+    // IMAGE loader exists but we can test a type that we clear
+    freshRm.registerLoader(ResourceType.IMAGE, undefined as unknown as (url: string) => Promise<unknown>);
     try {
-      await freshRm.load('test.json', ResourceType.JSON);
+      await freshRm.load('test.png', ResourceType.IMAGE);
+      // Should not reach here
+      expect(true).toBe(false);
     } catch (e) {
-      // Expected - fetch will fail in test env
       expect(e).toBeDefined();
     }
   });

@@ -55,7 +55,7 @@ webforge/
 │   ├── procedural/         # Procedural generation
 │   ├── optimization/       # Frustum culling, LOD, instancing
 │   └── ... 10 more modules
-├── tests/                  # 9 test files, 579 tests
+├── tests/                  # 10 test files, 653 tests
 ├── index.html              # Landing page
 ├── editor.html             # Full visual editor UI
 └── docs/                   # Comprehensive documentation
