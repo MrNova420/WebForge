@@ -2617,6 +2617,7 @@
                 this.editor = null;
                 this.selectedTreeItem = null;
                 this.currentDragType = null;
+                this._slotBlobUrls = new WeakMap();
             }
 
             // Helper: convert [r,g,b] (0-1 range) to #rrggbb hex string
@@ -3186,9 +3187,10 @@
                             if (input.files && input.files[0]) {
                                 const file = input.files[0];
                                 // Revoke previous URL if any
-                                if (slot._blobUrl) URL.revokeObjectURL(slot._blobUrl);
+                                const prevUrl = this._slotBlobUrls.get(slot);
+                                if (prevUrl) URL.revokeObjectURL(prevUrl);
                                 const url = URL.createObjectURL(file);
-                                slot._blobUrl = url;
+                                this._slotBlobUrls.set(slot, url);
                                 slot.style.backgroundImage = `url(${url})`;
                                 slot.style.backgroundSize = 'cover';
                                 slot.style.border = '1px solid #4ec9b0';
@@ -3207,9 +3209,10 @@
                         slot.style.borderColor = '#444';
                         const files = e.dataTransfer?.files;
                         if (files && files.length > 0 && files[0].type.startsWith('image/')) {
-                            if (slot._blobUrl) URL.revokeObjectURL(slot._blobUrl);
+                            const prevUrl = this._slotBlobUrls.get(slot);
+                            if (prevUrl) URL.revokeObjectURL(prevUrl);
                             const url = URL.createObjectURL(files[0]);
-                            slot._blobUrl = url;
+                            this._slotBlobUrls.set(slot, url);
                             slot.style.backgroundImage = `url(${url})`;
                             slot.style.backgroundSize = 'cover';
                             slot.style.border = '1px solid #4ec9b0';
@@ -3383,7 +3386,9 @@
                         if (files && files.length > 0) {
                             const file = files[0];
                             if (file.type.startsWith('audio/') || file.name.match(/\.(mp3|wav|ogg|m4a|flac)$/i)) {
+                                const url = URL.createObjectURL(file);
                                 clipDrop.innerHTML = `<span style="font-size:11px;color:#4ec9b0;">🔊 ${file.name}</span>`;
+                                this.editor.setAudioClip(url, file.name);
                                 this.log(`Audio clip loaded: ${file.name}`, 'info');
                             } else {
                                 this.log('Invalid file type. Drop an audio file (.mp3, .wav, .ogg)', 'warn');
@@ -3396,7 +3401,9 @@
                         input.accept = 'audio/*,.mp3,.wav,.ogg,.m4a,.flac';
                         input.onchange = () => {
                             if (input.files && input.files[0]) {
+                                const url = URL.createObjectURL(input.files[0]);
                                 clipDrop.innerHTML = `<span style="font-size:11px;color:#4ec9b0;">🔊 ${input.files[0].name}</span>`;
+                                this.editor.setAudioClip(url, input.files[0].name);
                                 this.log(`Audio clip loaded: ${input.files[0].name}`, 'info');
                             }
                         };
@@ -4202,7 +4209,7 @@
                     }
                 });
 
-                const renderObject = (obj, depth = 0) => {
+                const renderObject = (obj, depth = 0, parentEl = container) => {
                     const item = document.createElement('div');
                     item.className = 'tree-item';
                     item.dataset.name = obj.name;
@@ -4215,7 +4222,7 @@
                     const icon = isLight ? '💡' : isTerrain ? '🏔' : isParticle ? '✨' : '📦';
                     
                     const expandBtn = hasChildren ? 
-                        `<span class="expand-btn" style="cursor:pointer;font-size:10px;color:#888;width:14px;display:inline-block;text-align:center;">▶</span>` :
+                        `<span class="expand-btn" style="cursor:pointer;font-size:10px;color:#888;width:14px;display:inline-block;text-align:center;">▼</span>` :
                         `<span style="width:14px;display:inline-block;"></span>`;
 
                     item.innerHTML = `
@@ -4233,14 +4240,14 @@
                         this.editor.frameSelected();
                     };
 
-                    container.appendChild(item);
+                    parentEl.appendChild(item);
 
                     // Render children (collapsible)
                     if (hasChildren) {
                         const childContainer = document.createElement('div');
                         childContainer.className = 'tree-children';
                         childContainer.dataset.parent = obj.name;
-                        childMap.get(obj).forEach(child => renderObject(child, depth + 1));
+                        childMap.get(obj).forEach(child => renderObject(child, depth + 1, childContainer));
                         
                         const expandBtnEl = item.querySelector('.expand-btn');
                         if (expandBtnEl) {
@@ -4248,11 +4255,10 @@
                                 e.stopPropagation();
                                 const isExpanded = expandBtnEl.textContent === '▼';
                                 expandBtnEl.textContent = isExpanded ? '▶' : '▼';
-                                const children = container.querySelectorAll(`.tree-children[data-parent="${obj.name}"]`);
-                                children.forEach(c => c.style.display = isExpanded ? 'none' : 'block');
+                                childContainer.style.display = isExpanded ? 'none' : 'block';
                             };
                         }
-                        container.appendChild(childContainer);
+                        parentEl.appendChild(childContainer);
                     }
                 };
 

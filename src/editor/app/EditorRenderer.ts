@@ -153,8 +153,8 @@ export class EditorRenderer {
     private cylinderVAO: WebGLVertexArrayObject | null = null;
     private coneVAO: WebGLVertexArrayObject | null = null;
     
-    // Terrain mesh cache (keyed by object name, rebuilt when heightmap changes)
-    private terrainVAOs: Map<string, { vao: WebGLVertexArrayObject; indexCount: number; version: number }> = new Map();
+    // Terrain mesh cache (keyed by object reference, rebuilt when heightmap changes)
+    private terrainVAOs: WeakMap<GameObject, { vao: WebGLVertexArrayObject; indexCount: number; vertexCount: number; version: number }> = new WeakMap();
 
     // Gizmo buffer (cached, reused each frame)
     private gizmoVAO: WebGLVertexArrayObject | null = null;
@@ -802,16 +802,15 @@ export class EditorRenderer {
     private getOrCreateTerrainVAO(
         gl: WebGL2RenderingContext,
         obj: GameObject
-    ): { vao: WebGLVertexArrayObject; indexCount: number } | null {
+    ): { vao: WebGLVertexArrayObject; indexCount: number; vertexCount: number } | null {
         const terrainObj = obj as any;
         const heightData: Float32Array | undefined = terrainObj.terrainHeightData;
         if (!heightData) return null;
 
         const res: number = terrainObj.terrainResolution || 64;
         const version: number = terrainObj._terrainVersion ?? 0;
-        const key = obj.name;
 
-        const cached = this.terrainVAOs.get(key);
+        const cached = this.terrainVAOs.get(obj);
         if (cached && cached.version === version) {
             return cached;
         }
@@ -882,8 +881,8 @@ export class EditorRenderer {
             gl.deleteVertexArray(cached.vao);
         }
 
-        const vao = this.glContext.createVertexArray()!;
-        this.glContext.bindVertexArray(vao);
+        const vao = gl.createVertexArray()!;
+        gl.bindVertexArray(vao);
 
         const vbo = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
@@ -900,19 +899,20 @@ export class EditorRenderer {
         gl.enableVertexAttribArray(1);
         gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
 
-        this.glContext.bindVertexArray(null);
+        gl.bindVertexArray(null);
 
-        const entry = { vao, indexCount: idxCount, version };
+        const entry = { vao, indexCount: idxCount, vertexCount: vertCount, version };
         (vao as any).indexCount = idxCount;
-        this.terrainVAOs.set(key, entry);
+        (vao as any).vertexCount = vertCount;
+        this.terrainVAOs.set(obj, entry);
         return entry;
     }
 
     /**
      * Invalidate a terrain VAO so it will be rebuilt on next render.
      */
-    invalidateTerrainVAO(objectName: string): void {
-        const cached = this.terrainVAOs.get(objectName);
+    invalidateTerrainVAO(obj: GameObject): void {
+        const cached = this.terrainVAOs.get(obj);
         if (cached) {
             cached.version = -1; // Force rebuild
         }
@@ -1891,8 +1891,11 @@ export class EditorRenderer {
             this.glContext.bindVertexArray(vao);
             const indexCount = (vao as any).indexCount || 36;
             
-            // Terrain with large index counts needs Uint32 indices
-            const indexType = indexCount > 65535 ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
+            // Determine index type based on vertex count (not index count).
+            // WebGL index buffers use UNSIGNED_SHORT when all vertex indices fit in 16 bits.
+            const vertexCount: number | undefined = (vao as any).vertexCount;
+            const indexType = (typeof vertexCount === 'number' ? vertexCount : indexCount) > 65535
+                ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
             
             if (this.wireframe) {
                 gl.drawElements(gl.LINES, indexCount, indexType, 0);

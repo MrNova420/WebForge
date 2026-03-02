@@ -228,6 +228,12 @@ export class SpatialHashBroadphase extends Broadphase {
     // Find pairs within each cell
     const testedPairs = new Set<string>();
 
+    // Build an index lookup to avoid O(n) indexOf per pair
+    const bodyIndex = new Map<IPhysicsBody, number>();
+    for (let k = 0; k < bodies.length; k++) {
+      bodyIndex.set(bodies[k], k);
+    }
+
     for (const cell of this.grid.values()) {
       for (let i = 0; i < cell.length; i++) {
         for (let j = i + 1; j < cell.length; j++) {
@@ -240,8 +246,8 @@ export class SpatialHashBroadphase extends Broadphase {
           }
 
           // Create unique pair ID (order-independent)
-          const idA = bodies.indexOf(bodyA);
-          const idB = bodies.indexOf(bodyB);
+          const idA = bodyIndex.get(bodyA) ?? -1;
+          const idB = bodyIndex.get(bodyB) ?? -1;
           const pairId = idA < idB 
             ? `${idA}:${idB}` 
             : `${idB}:${idA}`;

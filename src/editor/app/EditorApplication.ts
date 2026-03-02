@@ -1170,6 +1170,21 @@ export class EditorApplication {
     }
 
     /**
+     * Set the audio clip URL on the selected object's audio component
+     */
+    setAudioClip(clipUrl: string, clipName: string): void {
+        const sel = this.context.getSelection();
+        if (sel.length === 0) return;
+        const obj = sel[0] as any;
+        const audioComp = obj._components?.find((c: any) => c.type === 'audio');
+        if (audioComp) {
+            audioComp.clip = clipUrl;
+            audioComp.clipName = clipName;
+            this.events.emit('audioChanged', { object: obj, clipUrl, clipName });
+        }
+    }
+
+    /**
      * Add a particle system component to the selected object
      */
     addParticleSystem(preset?: string): boolean {

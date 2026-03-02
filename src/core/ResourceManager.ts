@@ -224,16 +224,28 @@ export class ResourceManager {
       if (metadata.status === ResourceStatus.LOADING) {
         return new Promise((resolve, reject) => {
           const startTime = performance.now();
-          const checkStatus = () => {
+          let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+          const cancelTimer = (): void => {
+            if (timeoutId !== null) {
+              clearTimeout(timeoutId);
+              timeoutId = null;
+            }
+          };
+
+          const checkStatus = (): void => {
             const meta = this.resources.get(resolvedURL);
             if (meta?.status === ResourceStatus.LOADED) {
+              cancelTimer();
               resolve(meta.data);
             } else if (meta?.status === ResourceStatus.ERROR) {
+              cancelTimer();
               reject(meta.error);
             } else if (this.loadTimeout > 0 && (performance.now() - startTime) > this.loadTimeout) {
+              cancelTimer();
               reject(new Error(`Timed out waiting for resource: ${url}`));
             } else {
-              setTimeout(checkStatus, 10);
+              timeoutId = setTimeout(checkStatus, 10);
             }
           };
           checkStatus();
