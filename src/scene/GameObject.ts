@@ -97,6 +97,11 @@ export class GameObject implements ISceneObject {
    * @param parent - New parent or null to detach
    */
   setParent(parent: GameObject | null): void {
+    // Prevent self-parenting which would cause infinite recursion
+    if (parent === this) {
+      return;
+    }
+
     // Remove from old parent
     if (this._parent) {
       this._parent._children.delete(this);
