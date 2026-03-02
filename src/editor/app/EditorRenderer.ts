@@ -1732,6 +1732,9 @@ export class EditorRenderer {
             case 'cone': vao = this.coneVAO; color = [0.8, 0.6, 0.4]; break;
             case 'capsule': vao = this.cylinderVAO; color = [0.4, 0.8, 0.6]; break;
             case 'light': vao = this.sphereVAO; color = [1.0, 0.9, 0.5]; break;
+            case 'particles': vao = this.sphereVAO; color = [1.0, 0.6, 0.1]; break;
+            case 'audio': vao = this.sphereVAO; color = [0.3, 0.8, 1.0]; break;
+            case 'camera': vao = this.cubeVAO; color = [0.6, 0.6, 0.9]; break;
             default: vao = this.cubeVAO; color = [0.1, 0.8, 1.0];
         }
         if (!vao) return;
