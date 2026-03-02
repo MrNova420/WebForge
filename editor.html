@@ -4222,7 +4222,7 @@
                     const icon = isLight ? '💡' : isTerrain ? '🏔' : isParticle ? '✨' : '📦';
                     
                     const expandBtn = hasChildren ? 
-                        `<span class="expand-btn" style="cursor:pointer;font-size:10px;color:#888;width:14px;display:inline-block;text-align:center;">▼</span>` :
+                        `<span class="expand-btn" style="cursor:pointer;font-size:10px;color:#888;width:14px;display:inline-block;text-align:center;">▶</span>` :
                         `<span style="width:14px;display:inline-block;"></span>`;
 
                     item.innerHTML = `
@@ -4247,6 +4247,7 @@
                         const childContainer = document.createElement('div');
                         childContainer.className = 'tree-children';
                         childContainer.dataset.parent = obj.name;
+                        childContainer.style.display = 'none';
                         childMap.get(obj).forEach(child => renderObject(child, depth + 1, childContainer));
                         
                         const expandBtnEl = item.querySelector('.expand-btn');

@@ -246,8 +246,9 @@ export class SpatialHashBroadphase extends Broadphase {
           }
 
           // Create unique pair ID (order-independent)
-          const idA = bodyIndex.get(bodyA) ?? -1;
-          const idB = bodyIndex.get(bodyB) ?? -1;
+          const idA = bodyIndex.get(bodyA);
+          const idB = bodyIndex.get(bodyB);
+          if (idA === undefined || idB === undefined) continue;
           const pairId = idA < idB 
             ? `${idA}:${idB}` 
             : `${idB}:${idA}`;
