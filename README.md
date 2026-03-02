@@ -39,17 +39,20 @@
 - **Tools** — debug tools, profiler, version control, export (web/PWA/Electron/mobile), marketplace
 - **UI** — Canvas HUD system for in-game UI
 
-### ✅ Frontend — editor panels wired and interactive
+### ✅ Frontend — editor panels fully wired and interactive
 | System | Panel exists in `src/editor/`? | Mounted in `editor.html`? |
 |--------|-------------------------------|--------------------------|
-| Hierarchy, Inspector, Console | ✅ | ✅ wired |
-| Scene viewport + gizmos | ✅ | ✅ wired |
-| Animation timeline | ✅ AnimationPanel.ts | ✅ interactive — playback, clips, timeline scrubber |
-| Audio controls | ✅ AudioPanel.ts | ✅ interactive — spatial audio, buses, playback |
-| Terrain tools | ✅ TerrainPanel.ts | ✅ interactive — 8 brush tools, layers, heightmap |
-| Particle editor | ✅ ParticlePanel.ts | ✅ interactive — gradients, physics, 6 presets |
-| Material editor | ✅ MaterialEditorPanel.ts | ✅ interactive — PBR, textures, 6 presets |
-| Visual scripting | ✅ VisualScriptingPanel.ts | ✅ interactive — node canvas, 10 quick nodes, variables |
+| Hierarchy (expand/collapse) | ✅ | ✅ wired — parent-child tree, type icons, expand/collapse |
+| Inspector (components) | ✅ | ✅ wired — transform editing, component enable/disable |
+| Console, Debug, Keybinds | ✅ | ✅ wired |
+| Scene viewport + gizmos | ✅ | ✅ wired — WebGL 3D, translate/rotate/scale gizmos |
+| Animation timeline | ✅ AnimationPanel.ts | ✅ interactive — playback, clips, keyframe markers (◆), add/delete keyframes |
+| Audio controls | ✅ AudioPanel.ts | ✅ interactive — spatial audio, buses, file drop zone, preview |
+| Terrain tools | ✅ TerrainPanel.ts | ✅ interactive — 8 brush tools, layers, heightmap, dynamic mesh |
+| Particle editor | ✅ ParticlePanel.ts | ✅ interactive — gradients, physics, 6 presets, burst editor |
+| Material editor | ✅ MaterialEditorPanel.ts | ✅ interactive — PBR, 6 texture map slots (click/drag), 6 presets |
+| Visual scripting | ✅ VisualScriptingPanel.ts | ✅ interactive — typed I/O ports, SVG bezier connections, 10 quick nodes |
+| Asset browser | ✅ | ✅ wired — drag-drop primitives, particles, audio, camera to viewport |
 | Profiler | ✅ TimelineProfiler.ts | ✅ wired to console tab |
 | Network / multiplayer | ✅ NetworkManager.ts | ✅ wired to console tab |
 | Collaboration | ✅ ChatSystem, Presence | ❌ no UI yet |
@@ -58,7 +61,7 @@
 | Scene save/load | ✅ EditorScene.toJSON/fromJSON | ✅ File menu wired (localStorage + file) |
 
 ### 📋 Next priority
-**Phase 10: Launch** — Beta testing, marketing, community building. Wire the WebGL Renderer into the editor's main loop for true 3D viewport rendering. Build collaboration UI (chat, presence indicators). Deeper panel↔backend integration (e.g. AnimationPanel → AnimationSystem, ParticlePanel → GPU particle rendering).
+**Phase 10: Launch** — Beta testing, marketing, community building. Build collaboration UI (chat, presence indicators). Deeper panel↔backend integration (AnimationPanel → real AnimationSystem keyframes, ParticlePanel → GPU particle rendering). WebGL viewport enhancements (shadow rendering, post-processing in editor).
 
 ---
 
