@@ -3242,21 +3242,20 @@
                 const terrainCanvas = document.getElementById('scene-canvas');
                 if (terrainCanvas) {
                     let isPaintingTerrain = false;
+                    const brushSizeEl = document.getElementById('terrain-brush-size');
+                    const brushStrengthEl = document.getElementById('terrain-brush-strength');
                     const applyBrush = (e) => {
                         const terrain = this.editor.getSelectedTerrain?.();
                         if (!terrain) return;
                         const rect = terrainCanvas.getBoundingClientRect();
-                        const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-                        const ndcY = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
-                        // Approximate world intersection with ground plane (y=0)
                         const ground = this.editor.screenToGround?.(
                             (e.clientX - rect.left) / rect.width,
                             (e.clientY - rect.top) / rect.height
                         );
                         if (!ground) return;
                         const tool = this._activeTerrainTool || 'raise';
-                        const brushSize = parseInt(document.getElementById('terrain-brush-size')?.value) || 10;
-                        const brushStrength = parseInt(document.getElementById('terrain-brush-strength')?.value) || 50;
+                        const brushSize = parseInt(brushSizeEl?.value) || 10;
+                        const brushStrength = parseInt(brushStrengthEl?.value) || 50;
                         this.editor.applyTerrainBrush(tool, ground.x, ground.z, brushSize, brushStrength);
                     };
                     terrainCanvas.addEventListener('mousedown', (e) => {
