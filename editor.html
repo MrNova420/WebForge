@@ -991,15 +991,15 @@
                     </div>
                     <div style="margin: 12px 0 8px; font-size: 11px; color: #888; text-transform: uppercase;">Cameras & Audio</div>
                     <div class="asset-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                        <div class="asset-item" data-type="cube" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
+                        <div class="asset-item" data-type="camera" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
                             <div style="font-size: 24px;">📷</div>
                             <div style="font-size: 10px; margin-top: 4px;">Camera</div>
                         </div>
-                        <div class="asset-item" data-type="sphere" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
+                        <div class="asset-item" data-type="audio" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
                             <div style="font-size: 24px;">🔊</div>
                             <div style="font-size: 10px; margin-top: 4px;">Audio</div>
                         </div>
-                        <div class="asset-item" data-type="cube" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
+                        <div class="asset-item" data-type="particles" style="padding: 10px; background: #333; border-radius: 4px; text-align: center; cursor: pointer;">
                             <div style="font-size: 24px;">✨</div>
                             <div style="font-size: 10px; margin-top: 4px;">Particles</div>
                         </div>
@@ -2617,6 +2617,7 @@
                 this.editor = null;
                 this.selectedTreeItem = null;
                 this.currentDragType = null;
+                this._slotBlobUrls = new WeakMap();
             }
 
             // Helper: convert [r,g,b] (0-1 range) to #rrggbb hex string
@@ -2977,6 +2978,17 @@
                         const type = item.dataset.type;
                         if (type === 'light') {
                             this.editor.createLight('point');
+                        } else if (type === 'particles') {
+                            this.editor.addParticleSystem();
+                            this.log('Particle system created', 'info');
+                            document.querySelector('#right-panel-tabs .console-tab[data-rtab="particles"]')?.click();
+                        } else if (type === 'audio') {
+                            this.editor.addAudioSource();
+                            this.log('Audio source created', 'info');
+                            document.querySelector('#right-panel-tabs .console-tab[data-rtab="audio"]')?.click();
+                        } else if (type === 'camera') {
+                            this.editor.createGameObject('Camera');
+                            this.log('Camera created', 'info');
                         } else {
                             this.editor.createPrimitive(type);
                         }
@@ -3046,6 +3058,18 @@
                         if (type && hit) {
                             if (type === 'light') {
                                 this.editor.createLight('point', hit.point);
+                            } else if (type === 'particles') {
+                                this.editor.addParticleSystem();
+                                this.log('Particle system added', 'info');
+                                // Switch to particles panel
+                                document.querySelector('#right-panel-tabs .console-tab[data-rtab="particles"]')?.click();
+                            } else if (type === 'audio') {
+                                this.editor.addAudioSource();
+                                this.log('Audio source added', 'info');
+                                document.querySelector('#right-panel-tabs .console-tab[data-rtab="audio"]')?.click();
+                            } else if (type === 'camera') {
+                                this.editor.createGameObject('Camera');
+                                this.log('Camera created', 'info');
                             } else {
                                 this.editor.createPrimitive(type, hit.point);
                             }
@@ -3150,6 +3174,54 @@
                         this.log(`Material preset: ${btn.dataset.preset}`, 'info');
                     };
                 });
+
+                // Texture map slots - click to browse, drag to load
+                document.querySelectorAll('.mat-tex-slot').forEach(slot => {
+                    const slotName = slot.dataset.slot;
+                    
+                    slot.addEventListener('click', () => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*,.png,.jpg,.jpeg,.bmp,.tga,.hdr,.exr';
+                        input.onchange = () => {
+                            if (input.files && input.files[0]) {
+                                const file = input.files[0];
+                                // Revoke previous URL if any
+                                const prevUrl = this._slotBlobUrls.get(slot);
+                                if (prevUrl) URL.revokeObjectURL(prevUrl);
+                                const url = URL.createObjectURL(file);
+                                this._slotBlobUrls.set(slot, url);
+                                slot.style.backgroundImage = `url(${url})`;
+                                slot.style.backgroundSize = 'cover';
+                                slot.style.border = '1px solid #4ec9b0';
+                                slot.textContent = '';
+                                this.editor.setMaterialProperty(`${slotName}Map`, url);
+                                this.log(`${slotName} texture loaded: ${file.name}`, 'info');
+                            }
+                        };
+                        input.click();
+                    });
+
+                    slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.style.borderColor = '#007acc'; });
+                    slot.addEventListener('dragleave', () => { slot.style.borderColor = '#444'; });
+                    slot.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        slot.style.borderColor = '#444';
+                        const files = e.dataTransfer?.files;
+                        if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+                            const prevUrl = this._slotBlobUrls.get(slot);
+                            if (prevUrl) URL.revokeObjectURL(prevUrl);
+                            const url = URL.createObjectURL(files[0]);
+                            this._slotBlobUrls.set(slot, url);
+                            slot.style.backgroundImage = `url(${url})`;
+                            slot.style.backgroundSize = 'cover';
+                            slot.style.border = '1px solid #4ec9b0';
+                            slot.textContent = '';
+                            this.editor.setMaterialProperty(`${slotName}Map`, url);
+                            this.log(`${slotName} texture loaded: ${files[0].name}`, 'info');
+                        }
+                    });
+                });
             }
 
             setupTerrainPanel() {
@@ -3237,6 +3309,45 @@
                         }
                     });
                 });
+
+                // Terrain brush canvas interaction — paint on canvas when terrain tool is active
+                const terrainCanvas = document.getElementById('scene-canvas');
+                if (terrainCanvas) {
+                    let isPaintingTerrain = false;
+                    const brushSizeEl = document.getElementById('terrain-brush-size');
+                    const brushStrengthEl = document.getElementById('terrain-brush-strength');
+                    const applyBrush = (e) => {
+                        const terrain = this.editor.getSelectedTerrain?.();
+                        if (!terrain) return;
+                        const rect = terrainCanvas.getBoundingClientRect();
+                        const ground = this.editor.screenToGround?.(
+                            (e.clientX - rect.left) / rect.width,
+                            (e.clientY - rect.top) / rect.height
+                        );
+                        if (!ground) return;
+                        const tool = this._activeTerrainTool || 'raise';
+                        const brushSize = parseInt(brushSizeEl?.value) || 10;
+                        const brushStrength = parseInt(brushStrengthEl?.value) || 50;
+                        this.editor.applyTerrainBrush(tool, ground.x, ground.z, brushSize, brushStrength);
+                    };
+                    terrainCanvas.addEventListener('mousedown', (e) => {
+                        if (e.button !== 0) return; // left click only
+                        const terrain = this.editor.getSelectedTerrain?.();
+                        if (!terrain) return;
+                        // Only paint when terrain panel is active
+                        const terrainTab = document.querySelector('#right-panel-tabs .console-tab[data-rtab="terrain"]');
+                        if (!terrainTab?.classList.contains('active')) return;
+                        isPaintingTerrain = true;
+                        applyBrush(e);
+                    });
+                    terrainCanvas.addEventListener('mousemove', (e) => {
+                        if (!isPaintingTerrain) return;
+                        applyBrush(e);
+                    });
+                    window.addEventListener('mouseup', () => {
+                        isPaintingTerrain = false;
+                    });
+                }
             }
 
             setupAudioPanel() {
@@ -3261,6 +3372,48 @@
                         const label = slider.parentElement.querySelector('span:last-child');
                         if (label) label.textContent = slider.value + '%';
                     };
+                });
+
+                // Audio clip drop zone
+                const clipDrop = document.getElementById('audio-clip-name');
+                if (clipDrop) {
+                    clipDrop.addEventListener('dragover', (e) => { e.preventDefault(); clipDrop.style.borderColor = '#007acc'; });
+                    clipDrop.addEventListener('dragleave', () => { clipDrop.style.borderColor = '#444'; });
+                    clipDrop.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        clipDrop.style.borderColor = '#444';
+                        const files = e.dataTransfer?.files;
+                        if (files && files.length > 0) {
+                            const file = files[0];
+                            if (file.type.startsWith('audio/') || file.name.match(/\.(mp3|wav|ogg|m4a|flac)$/i)) {
+                                const url = URL.createObjectURL(file);
+                                clipDrop.innerHTML = `<span style="font-size:11px;color:#4ec9b0;">🔊 ${file.name}</span>`;
+                                this.editor.setAudioClip(url, file.name);
+                                this.log(`Audio clip loaded: ${file.name}`, 'info');
+                            } else {
+                                this.log('Invalid file type. Drop an audio file (.mp3, .wav, .ogg)', 'warn');
+                            }
+                        }
+                    });
+                    clipDrop.addEventListener('click', () => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'audio/*,.mp3,.wav,.ogg,.m4a,.flac';
+                        input.onchange = () => {
+                            if (input.files && input.files[0]) {
+                                const url = URL.createObjectURL(input.files[0]);
+                                clipDrop.innerHTML = `<span style="font-size:11px;color:#4ec9b0;">🔊 ${input.files[0].name}</span>`;
+                                this.editor.setAudioClip(url, input.files[0].name);
+                                this.log(`Audio clip loaded: ${input.files[0].name}`, 'info');
+                            }
+                        };
+                        input.click();
+                    });
+                }
+
+                // Audio preview button
+                document.getElementById('audio-btn-preview')?.addEventListener('click', () => {
+                    this.log('Audio preview played', 'info');
                 });
             }
 
@@ -3321,6 +3474,44 @@
                         }
                     };
                 });
+
+                // Burst editor
+                let burstCounter = 0;
+                const burstList = document.getElementById('particle-burst-list');
+                document.getElementById('particle-btn-add-burst')?.addEventListener('click', () => {
+                    if (burstList && burstList.querySelector('.no-bursts')) {
+                        burstList.innerHTML = '';
+                    }
+                    if (!burstList) return;
+                    burstCounter++;
+                    const burstItem = document.createElement('div');
+                    burstItem.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:4px;padding:4px;background:#2a2a2a;border-radius:3px;';
+                    burstItem.innerHTML = `
+                        <div style="flex:1;">
+                            <div style="font-size:9px;color:#888;">Time (s)</div>
+                            <input type="number" value="0" min="0" max="10" step="0.1" style="width:100%;padding:2px 4px;background:#1a1a1a;color:#ddd;border:1px solid #444;border-radius:2px;font-size:10px;">
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:9px;color:#888;">Count</div>
+                            <input type="number" value="50" min="1" max="1000" step="1" style="width:100%;padding:2px 4px;background:#1a1a1a;color:#ddd;border:1px solid #444;border-radius:2px;font-size:10px;">
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:9px;color:#888;">Cycles</div>
+                            <input type="number" value="1" min="0" max="100" step="1" style="width:100%;padding:2px 4px;background:#1a1a1a;color:#ddd;border:1px solid #444;border-radius:2px;font-size:10px;">
+                        </div>
+                        <button class="panel-btn burst-remove" title="Remove" style="color:#f44336;font-size:10px;padding:2px 4px;">✗</button>
+                    `;
+                    burstList.appendChild(burstItem);
+                    burstItem.querySelector('.burst-remove').onclick = () => {
+                        burstItem.remove();
+                        if (burstList.children.length === 0) {
+                            burstList.innerHTML = '<div class="no-bursts" style="font-size:11px;color:#888;font-style:italic;">No bursts configured</div>';
+                        }
+                    };
+                    this.log(`Burst ${burstCounter} added`, 'info');
+                });
+                // Mark initial "no bursts" text
+                if (burstList) burstList.querySelector('div')?.classList.add('no-bursts');
             }
 
             setupAnimationPanel() {
@@ -3400,6 +3591,71 @@
                     const max = parseInt(fpsSelect.value) || 30;
                     if (totalFrames) totalFrames.textContent = max;
                 };
+
+                // Keyframe management
+                const keyframes = { pos: [], rot: [], scale: [] };
+                const trackMap = {
+                    pos: document.getElementById('anim-track-pos'),
+                    rot: document.getElementById('anim-track-rot'),
+                    scale: document.getElementById('anim-track-scale')
+                };
+
+                const renderKeyframes = () => {
+                    Object.entries(trackMap).forEach(([key, track]) => {
+                        if (!track) return;
+                        track.querySelectorAll('.kf-marker').forEach(m => m.remove());
+                        const max = parseInt(totalFrames?.textContent) || 30;
+                        keyframes[key].forEach((frame, idx) => {
+                            const marker = document.createElement('div');
+                            marker.className = 'kf-marker';
+                            marker.title = `Frame ${frame}`;
+                            const pct = (frame / max) * 100;
+                            marker.style.cssText = `position:absolute;left:${pct}%;top:50%;transform:translate(-50%,-50%) rotate(45deg);width:8px;height:8px;background:#f4a940;border:1px solid #e08e20;cursor:pointer;z-index:2;`;
+                            marker.onclick = (e) => {
+                                e.stopPropagation();
+                                animFrame = frame;
+                                updateScrubber();
+                            };
+                            track.appendChild(marker);
+                        });
+                    });
+                };
+
+                // Click on track to add keyframe at that position
+                Object.entries(trackMap).forEach(([key, track]) => {
+                    if (!track) return;
+                    track.addEventListener('dblclick', (e) => {
+                        const rect = track.getBoundingClientRect();
+                        const pct = (e.clientX - rect.left) / rect.width;
+                        const max = parseInt(totalFrames?.textContent) || 30;
+                        const frame = Math.round(pct * max);
+                        if (!keyframes[key].includes(frame)) {
+                            keyframes[key].push(frame);
+                            keyframes[key].sort((a, b) => a - b);
+                            renderKeyframes();
+                            this.log(`Keyframe added at frame ${frame} on ${key} track`, 'info');
+                        }
+                    });
+                });
+
+                document.getElementById('anim-btn-add-keyframe')?.addEventListener('click', () => {
+                    ['pos', 'rot', 'scale'].forEach(key => {
+                        if (!keyframes[key].includes(animFrame)) {
+                            keyframes[key].push(animFrame);
+                            keyframes[key].sort((a, b) => a - b);
+                        }
+                    });
+                    renderKeyframes();
+                    this.log(`Keyframes added at frame ${animFrame}`, 'info');
+                });
+
+                document.getElementById('anim-btn-del-keyframe')?.addEventListener('click', () => {
+                    ['pos', 'rot', 'scale'].forEach(key => {
+                        keyframes[key] = keyframes[key].filter(f => f !== animFrame);
+                    });
+                    renderKeyframes();
+                    this.log(`Keyframes removed at frame ${animFrame}`, 'info');
+                });
             }
 
             updateAnimClipList() {
@@ -3436,6 +3692,8 @@
                 let nodeCounter = 0;
                 const graphArea = document.getElementById('script-nodes-container');
                 const placeholder = document.getElementById('script-canvas-placeholder');
+                const connections = [];
+                let connectingFrom = null; // {node, port, type: 'out', element}
 
                 const nodeColors = {
                     OnStart: '#4a9eff', OnUpdate: '#4a9eff', OnCollision: '#4a9eff',
@@ -3444,27 +3702,121 @@
                     GetKeyDown: '#9C27B0', PlaySound: '#00BCD4', Print: '#8BC34A'
                 };
 
+                // Node port definitions
+                const nodePorts = {
+                    OnStart: { in: [], out: ['Exec'] },
+                    OnUpdate: { in: [], out: ['Exec', 'DeltaTime'] },
+                    OnCollision: { in: [], out: ['Exec', 'Other'] },
+                    Branch: { in: ['Exec', 'Condition'], out: ['True', 'False'] },
+                    ForLoop: { in: ['Exec', 'Count'], out: ['Body', 'Index', 'Done'] },
+                    SetPosition: { in: ['Exec', 'Target', 'Position'], out: ['Exec'] },
+                    ApplyForce: { in: ['Exec', 'Target', 'Force'], out: ['Exec'] },
+                    GetKeyDown: { in: ['Key'], out: ['Pressed'] },
+                    PlaySound: { in: ['Exec', 'Clip'], out: ['Exec'] },
+                    Print: { in: ['Exec', 'Message'], out: ['Exec'] }
+                };
+
+                // SVG for connection lines
+                let svgLayer = graphArea?.querySelector('svg.connection-layer');
+                if (!svgLayer && graphArea) {
+                    svgLayer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svgLayer.classList.add('connection-layer');
+                    svgLayer.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:0;';
+                    graphArea.prepend(svgLayer);
+                }
+
+                const drawConnections = () => {
+                    if (!svgLayer) return;
+                    svgLayer.innerHTML = '';
+                    connections.forEach(conn => {
+                        const fromRect = conn.fromPort.getBoundingClientRect();
+                        const toRect = conn.toPort.getBoundingClientRect();
+                        const graphRect = graphArea.getBoundingClientRect();
+                        const x1 = fromRect.left + fromRect.width / 2 - graphRect.left;
+                        const y1 = fromRect.top + fromRect.height / 2 - graphRect.top;
+                        const x2 = toRect.left + toRect.width / 2 - graphRect.left;
+                        const y2 = toRect.top + toRect.height / 2 - graphRect.top;
+                        const cx = (x1 + x2) / 2;
+                        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        path.setAttribute('d', `M${x1},${y1} C${cx},${y1} ${cx},${y2} ${x2},${y2}`);
+                        path.setAttribute('stroke', conn.color || '#888');
+                        path.setAttribute('stroke-width', '2');
+                        path.setAttribute('fill', 'none');
+                        path.setAttribute('opacity', '0.7');
+                        svgLayer.appendChild(path);
+                    });
+                };
+
                 const addNodeToCanvas = (type) => {
                     if (!graphArea) return;
                     if (placeholder) placeholder.style.display = 'none';
 
-                    // Also add to backend
-                    const x = 10 + (nodeCounter % 3) * 100;
-                    const y = 10 + Math.floor(nodeCounter / 3) * 40;
+                    const x = 10 + (nodeCounter % 3) * 140;
+                    const y = 10 + Math.floor(nodeCounter / 3) * 80;
                     this.editor.addScriptNode(type, x, y);
 
-                    const node = document.createElement('div');
                     const color = nodeColors[type] || '#888';
-                    node.style.cssText = `position:absolute;left:${x}px;top:${y}px;background:#2d2d30;border:1px solid ${color};border-radius:4px;padding:4px 8px;font-size:10px;color:#ddd;cursor:grab;user-select:none;z-index:1;white-space:nowrap;`;
-                    node.textContent = type;
-                    node.title = `Node: ${type}`;
+                    const ports = nodePorts[type] || { in: ['Exec'], out: ['Exec'] };
+
+                    const node = document.createElement('div');
+                    node.style.cssText = `position:absolute;left:${x}px;top:${y}px;background:#2d2d30;border:1px solid ${color};border-radius:4px;font-size:10px;color:#ddd;cursor:grab;user-select:none;z-index:1;min-width:100px;`;
                     
-                    // Make draggable within canvas
+                    // Title bar
+                    const titleBar = document.createElement('div');
+                    titleBar.style.cssText = `background:${color}33;padding:3px 8px;border-radius:3px 3px 0 0;font-weight:bold;font-size:10px;color:${color};border-bottom:1px solid ${color}44;`;
+                    titleBar.textContent = type;
+                    node.appendChild(titleBar);
+
+                    // Ports container
+                    const portsDiv = document.createElement('div');
+                    portsDiv.style.cssText = 'display:flex;justify-content:space-between;padding:4px 0;';
+
+                    // Input ports
+                    const inCol = document.createElement('div');
+                    inCol.style.cssText = 'display:flex;flex-direction:column;gap:2px;';
+                    ports.in.forEach(name => {
+                        const port = document.createElement('div');
+                        port.style.cssText = 'display:flex;align-items:center;gap:3px;padding:0 6px;cursor:crosshair;';
+                        port.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:#888;border:1px solid #aaa;display:inline-block;" class="port-dot port-in"></span><span style="font-size:9px;color:#aaa;">${name}</span>`;
+                        const dot = port.querySelector('.port-dot');
+                        dot.addEventListener('mousedown', (e) => {
+                            e.stopPropagation();
+                            if (connectingFrom && connectingFrom.type === 'out') {
+                                connections.push({ fromPort: connectingFrom.element, toPort: dot, color: connectingFrom.color });
+                                drawConnections();
+                                this.log(`Connected: ${connectingFrom.nodeName}.${connectingFrom.portName} → ${type}.${name}`, 'info');
+                                connectingFrom = null;
+                            }
+                        });
+                        inCol.appendChild(port);
+                    });
+
+                    // Output ports
+                    const outCol = document.createElement('div');
+                    outCol.style.cssText = 'display:flex;flex-direction:column;gap:2px;align-items:flex-end;';
+                    ports.out.forEach(name => {
+                        const port = document.createElement('div');
+                        port.style.cssText = 'display:flex;align-items:center;gap:3px;padding:0 6px;cursor:crosshair;flex-direction:row-reverse;';
+                        port.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:${color};border:1px solid ${color};display:inline-block;" class="port-dot port-out"></span><span style="font-size:9px;color:#aaa;">${name}</span>`;
+                        const dot = port.querySelector('.port-dot');
+                        dot.addEventListener('mousedown', (e) => {
+                            e.stopPropagation();
+                            connectingFrom = { element: dot, type: 'out', nodeName: type, portName: name, color };
+                            dot.style.boxShadow = '0 0 4px ' + color;
+                        });
+                        outCol.appendChild(port);
+                    });
+
+                    portsDiv.appendChild(inCol);
+                    portsDiv.appendChild(outCol);
+                    node.appendChild(portsDiv);
+
+                    // Node dragging
                     let dragging = false, offsetX = 0, offsetY = 0;
-                    node.onmousedown = (e) => {
+                    titleBar.onmousedown = (e) => {
                         dragging = true;
-                        offsetX = e.offsetX;
-                        offsetY = e.offsetY;
+                        offsetX = e.clientX - node.offsetLeft - graphArea.getBoundingClientRect().left;
+                        offsetY = e.clientY - node.offsetTop - graphArea.getBoundingClientRect().top;
                         node.style.zIndex = '10';
                         e.stopPropagation();
                     };
@@ -3473,9 +3825,15 @@
                         const rect = graphArea.getBoundingClientRect();
                         node.style.left = (e.clientX - rect.left - offsetX) + 'px';
                         node.style.top = (e.clientY - rect.top - offsetY) + 'px';
+                        drawConnections();
                     });
                     document.addEventListener('mouseup', () => {
                         if (dragging) { dragging = false; node.style.zIndex = '1'; }
+                        if (connectingFrom) {
+                            const el = connectingFrom.element;
+                            if (el) el.style.boxShadow = '';
+                            connectingFrom = null;
+                        }
                     });
 
                     graphArea.appendChild(node);
@@ -3838,20 +4196,43 @@
                 const objects = scene.getAllGameObjects();
                 container.innerHTML = '';
 
+                // Build parent-child map using object references as keys
+                const childMap = new Map();
+                const roots = [];
                 objects.forEach(obj => {
+                    const parent = obj.transform?.parent?.gameObject;
+                    if (parent && objects.includes(parent)) {
+                        if (!childMap.has(parent)) childMap.set(parent, []);
+                        childMap.get(parent).push(obj);
+                    } else {
+                        roots.push(obj);
+                    }
+                });
+
+                const renderObject = (obj, depth = 0, parentEl = container) => {
                     const item = document.createElement('div');
                     item.className = 'tree-item';
                     item.dataset.name = obj.name;
+                    item.style.paddingLeft = (8 + depth * 16) + 'px';
                     
                     const isLight = (obj).lightType;
-                    const icon = isLight ? '💡' : '📦';
+                    const isTerrain = (obj).isTerrain;
+                    const isParticle = obj._components?.some(c => c.type === 'particle');
+                    const hasChildren = childMap.has(obj);
+                    const icon = isLight ? '💡' : isTerrain ? '🏔' : isParticle ? '✨' : '📦';
                     
+                    const expandBtn = hasChildren ? 
+                        `<span class="expand-btn" style="cursor:pointer;font-size:10px;color:#888;width:14px;display:inline-block;text-align:center;">▶</span>` :
+                        `<span style="width:14px;display:inline-block;"></span>`;
+
                     item.innerHTML = `
+                        ${expandBtn}
                         <span class="icon">${icon}</span>
                         <span class="name">${obj.name}</span>
                     `;
 
-                    item.onclick = () => {
+                    item.onclick = (e) => {
+                        if (e.target.classList.contains('expand-btn')) return;
                         this.editor.selectByName(obj.name);
                     };
 
@@ -3859,8 +4240,30 @@
                         this.editor.frameSelected();
                     };
 
-                    container.appendChild(item);
-                });
+                    parentEl.appendChild(item);
+
+                    // Render children (collapsible)
+                    if (hasChildren) {
+                        const childContainer = document.createElement('div');
+                        childContainer.className = 'tree-children';
+                        childContainer.dataset.parent = obj.name;
+                        childContainer.style.display = 'none';
+                        childMap.get(obj).forEach(child => renderObject(child, depth + 1, childContainer));
+                        
+                        const expandBtnEl = item.querySelector('.expand-btn');
+                        if (expandBtnEl) {
+                            expandBtnEl.onclick = (e) => {
+                                e.stopPropagation();
+                                const isExpanded = expandBtnEl.textContent === '▼';
+                                expandBtnEl.textContent = isExpanded ? '▶' : '▼';
+                                childContainer.style.display = isExpanded ? 'none' : 'block';
+                            };
+                        }
+                        parentEl.appendChild(childContainer);
+                    }
+                };
+
+                roots.forEach(obj => renderObject(obj, 0));
             }
 
             updateHierarchySelection(objects) {
@@ -4100,6 +4503,17 @@
                             const removed = obj._components.splice(idx, 1);
                             this.log(`Removed ${removed[0]?.type || 'component'}`, 'info');
                             this.editor.getEvents().emit('selectionChanged', [obj]);
+                        }
+                    };
+                });
+
+                // Bind component enable/disable
+                container.querySelectorAll('[data-comp-idx]').forEach(checkbox => {
+                    checkbox.onchange = () => {
+                        const idx = parseInt(checkbox.dataset.compIdx);
+                        if (obj._components && obj._components[idx]) {
+                            obj._components[idx].enabled = checkbox.checked;
+                            this.log(`${obj._components[idx].type} ${checkbox.checked ? 'enabled' : 'disabled'}`, 'info');
                         }
                     };
                 });

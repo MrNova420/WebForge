@@ -235,7 +235,7 @@ export class MarketplaceManager {
 
             // Apply sorting
             if (filters.sortBy) {
-                const order = filters.sortOrder === 'asc' ? 1 : -1;
+                const order = filters.sortOrder === 'asc' ? -1 : 1;
 
                 results.sort((a, b) => {
                     switch (filters.sortBy) {
@@ -280,10 +280,12 @@ export class MarketplaceManager {
             timestamp: Date.now()
         };
 
-        if (!this.reviews.has(assetId)) {
-            this.reviews.set(assetId, []);
+        let reviews = this.reviews.get(assetId);
+        if (!reviews) {
+            reviews = [];
+            this.reviews.set(assetId, reviews);
         }
-        this.reviews.get(assetId)!.push(review);
+        reviews.push(review);
 
         // Update asset rating
         this.updateAssetRating(assetId);

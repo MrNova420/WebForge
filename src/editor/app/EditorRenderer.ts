@@ -153,6 +153,9 @@ export class EditorRenderer {
     private cylinderVAO: WebGLVertexArrayObject | null = null;
     private coneVAO: WebGLVertexArrayObject | null = null;
     
+    // Terrain mesh cache (keyed by object reference, rebuilt when heightmap changes)
+    private terrainVAOs: WeakMap<GameObject, { vao: WebGLVertexArrayObject; indexCount: number; vertexCount: number; version: number }> = new WeakMap();
+
     // Gizmo buffer (cached, reused each frame)
     private gizmoVAO: WebGLVertexArrayObject | null = null;
     private gizmoBuffer: WebGLBuffer | null = null;
@@ -790,6 +793,129 @@ export class EditorRenderer {
         (vao as any).indexCount = indices.length;
         
         return vao;
+    }
+
+    /**
+     * Build or rebuild a terrain mesh VAO from heightmap data.
+     * Returns the cached entry (creates a new one when the heightmap version changes).
+     */
+    private getOrCreateTerrainVAO(
+        gl: WebGL2RenderingContext,
+        obj: GameObject
+    ): { vao: WebGLVertexArrayObject; indexCount: number; vertexCount: number } | null {
+        const terrainObj = obj as any;
+        const heightData: Float32Array | undefined = terrainObj.terrainHeightData;
+        if (!heightData) return null;
+
+        const res: number = terrainObj.terrainResolution || 64;
+        const version: number = terrainObj._terrainVersion ?? 0;
+
+        const cached = this.terrainVAOs.get(obj);
+        if (cached && cached.version === version) {
+            return cached;
+        }
+
+        // Build grid mesh: res × res vertices, (res-1)² × 2 triangles
+        const vertCount = res * res;
+        // 6 floats per vert: pos(3) + normal(3)
+        const verts = new Float32Array(vertCount * 6);
+        const idxCount = (res - 1) * (res - 1) * 6;
+        // Use Uint32 for terrains larger than ~256 res
+        const indices = vertCount > 65535 ? new Uint32Array(idxCount) : new Uint16Array(idxCount);
+
+        // Fill vertices — positions in [-0.5, 0.5] range (model space, scaled by transform)
+        for (let z = 0; z < res; z++) {
+            for (let x = 0; x < res; x++) {
+                const i = z * res + x;
+                const base = i * 6;
+                verts[base]     = (x / (res - 1)) - 0.5; // x in [-0.5, 0.5]
+                verts[base + 1] = heightData[i];           // y = height
+                verts[base + 2] = (z / (res - 1)) - 0.5; // z in [-0.5, 0.5]
+                // placeholder normals — computed below
+                verts[base + 3] = 0;
+                verts[base + 4] = 1;
+                verts[base + 5] = 0;
+            }
+        }
+
+        // Compute face normals via finite differences
+        for (let z = 0; z < res; z++) {
+            for (let x = 0; x < res; x++) {
+                const i = z * res + x;
+                const h = heightData[i];
+                const hL = x > 0 ? heightData[i - 1] : h;
+                const hR = x < res - 1 ? heightData[i + 1] : h;
+                const hD = z > 0 ? heightData[i - res] : h;
+                const hU = z < res - 1 ? heightData[i + res] : h;
+                // normal = normalize(cross(tangentX, tangentZ))
+                const nx = hL - hR;
+                const nz = hD - hU;
+                const ny = 2.0 / res; // spacing between samples in model coords
+                const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+                const base = i * 6;
+                verts[base + 3] = nx / len;
+                verts[base + 4] = ny / len;
+                verts[base + 5] = nz / len;
+            }
+        }
+
+        // Fill indices (two triangles per quad)
+        let idx = 0;
+        for (let z = 0; z < res - 1; z++) {
+            for (let x = 0; x < res - 1; x++) {
+                const tl = z * res + x;
+                const tr = tl + 1;
+                const bl = tl + res;
+                const br = bl + 1;
+                indices[idx++] = tl;
+                indices[idx++] = bl;
+                indices[idx++] = tr;
+                indices[idx++] = tr;
+                indices[idx++] = bl;
+                indices[idx++] = br;
+            }
+        }
+
+        // Delete old VAO if exists
+        if (cached) {
+            gl.deleteVertexArray(cached.vao);
+        }
+
+        const vao = gl.createVertexArray()!;
+        gl.bindVertexArray(vao);
+
+        const vbo = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, verts, gl.DYNAMIC_DRAW);
+
+        const ebo = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.DYNAMIC_DRAW);
+
+        // pos
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
+        // normal
+        gl.enableVertexAttribArray(1);
+        gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
+
+        gl.bindVertexArray(null);
+
+        const entry = { vao, indexCount: idxCount, vertexCount: vertCount, version };
+        (vao as any).indexCount = idxCount;
+        (vao as any).vertexCount = vertCount;
+        this.terrainVAOs.set(obj, entry);
+        return entry;
+    }
+
+    /**
+     * Invalidate a terrain VAO so it will be rebuilt on next render.
+     */
+    invalidateTerrainVAO(obj: GameObject): void {
+        const cached = this.terrainVAOs.get(obj);
+        if (cached) {
+            cached.version = -1; // Force rebuild
+        }
     }
 
     /**
@@ -1606,6 +1732,9 @@ export class EditorRenderer {
             case 'cone': vao = this.coneVAO; color = [0.8, 0.6, 0.4]; break;
             case 'capsule': vao = this.cylinderVAO; color = [0.4, 0.8, 0.6]; break;
             case 'light': vao = this.sphereVAO; color = [1.0, 0.9, 0.5]; break;
+            case 'particles': vao = this.sphereVAO; color = [1.0, 0.6, 0.1]; break;
+            case 'audio': vao = this.sphereVAO; color = [0.3, 0.8, 1.0]; break;
+            case 'camera': vao = this.cubeVAO; color = [0.6, 0.6, 0.9]; break;
             default: vao = this.cubeVAO; color = [0.1, 0.8, 1.0];
         }
         if (!vao) return;
@@ -1748,7 +1877,12 @@ export class EditorRenderer {
             case 'cylinder': vao = this.cylinderVAO; break;
             case 'cone': vao = this.coneVAO; break;
             case 'capsule': vao = this.cylinderVAO; break; // Use cylinder for capsule
-            case 'terrain': vao = this.planeVAO; break; // Terrain uses plane VAO (heightmap applied via shader later)
+            case 'terrain': {
+                // Use dynamic heightmap mesh instead of flat plane
+                const terrainEntry = this.getOrCreateTerrainVAO(gl, obj);
+                vao = terrainEntry ? terrainEntry.vao : this.planeVAO;
+                break;
+            }
             case 'light': vao = this.sphereVAO; break; // Lights render as small spheres
             default: vao = this.cubeVAO;
         }
@@ -1757,10 +1891,16 @@ export class EditorRenderer {
             this.glContext.bindVertexArray(vao);
             const indexCount = (vao as any).indexCount || 36;
             
+            // Determine index type based on vertex count (not index count).
+            // WebGL index buffers use UNSIGNED_SHORT when all vertex indices fit in 16 bits.
+            const vertexCount: number | undefined = (vao as any).vertexCount;
+            const indexType = (typeof vertexCount === 'number' ? vertexCount : indexCount) > 65535
+                ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
+            
             if (this.wireframe) {
-                gl.drawElements(gl.LINES, indexCount, gl.UNSIGNED_SHORT, 0);
+                gl.drawElements(gl.LINES, indexCount, indexType, 0);
             } else {
-                gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+                gl.drawElements(gl.TRIANGLES, indexCount, indexType, 0);
             }
             
             this.glContext.bindVertexArray(null);
@@ -1988,7 +2128,7 @@ export class EditorRenderer {
         
         const center = new Vector3();
         for (const obj of objects) {
-            center.add(obj.transform.position);
+            center.addSelf(obj.transform.position);
         }
         return center.multiplyScalar(1 / objects.length);
     }

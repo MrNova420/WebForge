@@ -20,11 +20,11 @@ export class Steering {
      */
     public seek(target: Vector3): void {
         const desired = target.clone().sub(this.agent.position);
-        desired.normalize().multiplyScalar(this.agent.maxSpeed);
+        desired.normalizeSelf().multiplyScalarSelf(this.agent.maxSpeed);
 
         const steer = desired.sub(this.agent.velocity);
         this.limitForce(steer);
-        this.force.add(steer);
+        this.force.addSelf(steer);
     }
 
     /**
@@ -32,11 +32,11 @@ export class Steering {
      */
     public flee(target: Vector3): void {
         const desired = this.agent.position.clone().sub(target);
-        desired.normalize().multiplyScalar(this.agent.maxSpeed);
+        desired.normalizeSelf().multiplyScalarSelf(this.agent.maxSpeed);
 
         const steer = desired.sub(this.agent.velocity);
         this.limitForce(steer);
-        this.force.add(steer);
+        this.force.addSelf(steer);
     }
 
     /**
@@ -46,19 +46,19 @@ export class Steering {
         const desired = target.clone().sub(this.agent.position);
         const distance = desired.length();
 
-        desired.normalize();
+        desired.normalizeSelf();
 
         if (distance < slowingRadius) {
             // Inside slowing area
             const speed = this.agent.maxSpeed * (distance / slowingRadius);
-            desired.multiplyScalar(speed);
+            desired.multiplyScalarSelf(speed);
         } else {
-            desired.multiplyScalar(this.agent.maxSpeed);
+            desired.multiplyScalarSelf(this.agent.maxSpeed);
         }
 
         const steer = desired.sub(this.agent.velocity);
         this.limitForce(steer);
-        this.force.add(steer);
+        this.force.addSelf(steer);
     }
 
     /**
@@ -104,7 +104,7 @@ export class Steering {
         ).multiplyScalar(wanderRadius);
 
         const wanderForce = circleCenter.add(displacement);
-        this.force.add(wanderForce);
+        this.force.addSelf(wanderForce);
     }
 
     /**
@@ -127,8 +127,8 @@ export class Steering {
 
         if (mostThreatening && minDist < this.agent.radius * 2) {
             const avoidance = ahead.clone().sub(mostThreatening);
-            avoidance.normalize().multiplyScalar(this.agent.maxForce);
-            this.force.add(avoidance);
+            avoidance.normalizeSelf().multiplyScalarSelf(this.agent.maxForce);
+            this.force.addSelf(avoidance);
         }
     }
 
@@ -144,18 +144,18 @@ export class Steering {
 
             if (distance > 0 && distance < desiredSeparation) {
                 const diff = this.agent.position.clone().sub(other.position);
-                diff.normalize().divideScalar(distance); // Weight by distance
-                steer.add(diff);
+                diff.normalizeSelf().divideScalarSelf(distance); // Weight by distance
+                steer.addSelf(diff);
                 count++;
             }
         }
 
         if (count > 0) {
-            steer.divideScalar(count);
-            steer.normalize().multiplyScalar(this.agent.maxSpeed);
-            steer.sub(this.agent.velocity);
+            steer.divideScalarSelf(count);
+            steer.normalizeSelf().multiplyScalarSelf(this.agent.maxSpeed);
+            steer.subtractSelf(this.agent.velocity);
             this.limitForce(steer);
-            this.force.add(steer);
+            this.force.addSelf(steer);
         }
     }
 
@@ -167,17 +167,17 @@ export class Steering {
         let count = 0;
 
         for (const other of neighbors) {
-            sum.add(other.velocity);
+            sum.addSelf(other.velocity);
             count++;
         }
 
         if (count > 0) {
-            sum.divideScalar(count);
-            sum.normalize().multiplyScalar(this.agent.maxSpeed);
+            sum.divideScalarSelf(count);
+            sum.normalizeSelf().multiplyScalarSelf(this.agent.maxSpeed);
 
             const steer = sum.sub(this.agent.velocity);
             this.limitForce(steer);
-            this.force.add(steer);
+            this.force.addSelf(steer);
         }
     }
 
@@ -189,12 +189,12 @@ export class Steering {
         let count = 0;
 
         for (const other of neighbors) {
-            sum.add(other.position);
+            sum.addSelf(other.position);
             count++;
         }
 
         if (count > 0) {
-            sum.divideScalar(count);
+            sum.divideScalarSelf(count);
             this.seek(sum);
         }
     }
@@ -213,7 +213,7 @@ export class Steering {
      */
     private limitForce(force: Vector3): void {
         if (force.length() > this.agent.maxForce) {
-            force.normalize().multiplyScalar(this.agent.maxForce);
+            force.normalizeSelf().multiplyScalarSelf(this.agent.maxForce);
         }
     }
 }

@@ -56,8 +56,8 @@ export class Bone {
   updateWorldMatrix(): void {
     // Create local matrix
     const localMatrix = Matrix4.translation(this.position);
-    localMatrix.multiply(this.rotation.toMatrix4());
-    localMatrix.multiply(Matrix4.scaling(this.scale));
+    localMatrix.multiplySelf(this.rotation.toMatrix4());
+    localMatrix.multiplySelf(Matrix4.scaling(this.scale));
 
     // Compute world matrix
     if (this.parent) {

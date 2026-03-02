@@ -5,13 +5,14 @@
 
 import { Vector3 } from '../math/Vector3';
 import { BoundingBox } from '../optimization/FrustumCulling';
+import { type IPhysicsBody } from './PhysicsWorld';
 
 /**
  * Collision pair
  */
 export interface CollisionPair {
-  bodyA: any;
-  bodyB: any;
+  bodyA: IPhysicsBody;
+  bodyB: IPhysicsBody;
 }
 
 /**
@@ -22,7 +23,7 @@ export abstract class Broadphase {
    * Updates the broadphase with current body positions
    * @param bodies - Array of rigid bodies
    */
-  abstract update(bodies: any[]): void;
+  abstract update(bodies: IPhysicsBody[]): void;
 
   /**
    * Gets potential collision pairs
@@ -43,7 +44,7 @@ export abstract class Broadphase {
 export class NaiveBroadphase extends Broadphase {
   private pairs: CollisionPair[] = [];
 
-  update(bodies: any[]): void {
+  update(bodies: IPhysicsBody[]): void {
     this.pairs = [];
 
     // Test all pairs
@@ -84,13 +85,13 @@ export class SweepAndPruneBroadphase extends Broadphase {
     this.axis = axis;
   }
 
-  update(bodies: any[]): void {
+  update(bodies: IPhysicsBody[]): void {
     this.pairs = [];
 
     if (bodies.length === 0) return;
 
     // Create array of intervals (min, max) along the axis
-    const intervals: Array<{ body: any; min: number; max: number }> = [];
+    const intervals: Array<{ body: IPhysicsBody; min: number; max: number }> = [];
 
     for (const body of bodies) {
       const pos = body.getPosition();
@@ -140,7 +141,7 @@ export class SweepAndPruneBroadphase extends Broadphase {
     }
   }
 
-  private getBodyBounds(body: any): BoundingBox {
+  private getBodyBounds(body: IPhysicsBody): BoundingBox {
     // Assume body has a shape with getBoundingBox method
     if (body.shape && body.shape.getBoundingBox) {
       return body.shape.getBoundingBox();
@@ -175,7 +176,7 @@ export class SweepAndPruneBroadphase extends Broadphase {
  */
 export class SpatialHashBroadphase extends Broadphase {
   private cellSize: number;
-  private grid: Map<string, any[]> = new Map();
+  private grid: Map<string, IPhysicsBody[]> = new Map();
   private pairs: CollisionPair[] = [];
 
   constructor(cellSize: number = 5.0) {
@@ -183,7 +184,7 @@ export class SpatialHashBroadphase extends Broadphase {
     this.cellSize = cellSize;
   }
 
-  update(bodies: any[]): void {
+  update(bodies: IPhysicsBody[]): void {
     this.grid.clear();
     this.pairs = [];
 
@@ -227,6 +228,12 @@ export class SpatialHashBroadphase extends Broadphase {
     // Find pairs within each cell
     const testedPairs = new Set<string>();
 
+    // Build an index lookup to avoid O(n) indexOf per pair
+    const bodyIndex = new Map<IPhysicsBody, number>();
+    for (let k = 0; k < bodies.length; k++) {
+      bodyIndex.set(bodies[k], k);
+    }
+
     for (const cell of this.grid.values()) {
       for (let i = 0; i < cell.length; i++) {
         for (let j = i + 1; j < cell.length; j++) {
@@ -239,9 +246,12 @@ export class SpatialHashBroadphase extends Broadphase {
           }
 
           // Create unique pair ID (order-independent)
-          const pairId = bodyA < bodyB 
-            ? `${bodyA.id}:${bodyB.id}` 
-            : `${bodyB.id}:${bodyA.id}`;
+          const idA = bodyIndex.get(bodyA);
+          const idB = bodyIndex.get(bodyB);
+          if (idA === undefined || idB === undefined) continue;
+          const pairId = idA < idB 
+            ? `${idA}:${idB}` 
+            : `${idB}:${idA}`;
 
           // Skip if already tested
           if (testedPairs.has(pairId)) {
@@ -263,7 +273,7 @@ export class SpatialHashBroadphase extends Broadphase {
     };
   }
 
-  private getBodyBounds(body: any): BoundingBox {
+  private getBodyBounds(body: IPhysicsBody): BoundingBox {
     if (body.shape && body.shape.getBoundingBox) {
       return body.shape.getBoundingBox();
     }

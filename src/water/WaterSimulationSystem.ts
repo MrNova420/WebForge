@@ -366,6 +366,18 @@ export class WaterSimulationSystem {
         if (settings.choppiness !== undefined) this.choppiness = settings.choppiness;
         if (settings.waveScale !== undefined) this.waveScale = settings.waveScale;
         
+        // Handle resolution change: reallocate data arrays.
+        // Simulation state is reset since wave spectrum is regenerated below.
+        if (settings.resolution !== undefined && settings.resolution !== this.resolution) {
+            this.resolution = settings.resolution;
+            const size = this.resolution * this.resolution;
+            this.heightField = new Float32Array(size);
+            this.displacementX = new Float32Array(size);
+            this.displacementZ = new Float32Array(size);
+            this.foamData = new Float32Array(size);
+            this.causticsData = new Float32Array(size);
+        }
+        
         // Regenerate wave spectrum with new settings
         this.initializeWaveLayers();
         this.generateWaveSpectrum();

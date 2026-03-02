@@ -66,7 +66,7 @@ export class TwoBoneIK {
         }
 
         // Normalize target direction
-        targetDir.normalize();
+        targetDir.normalizeSelf();
 
         // Calculate middle joint position using law of cosines
         const a = this.upperLength;
@@ -83,7 +83,7 @@ export class TwoBoneIK {
         poleDir.x -= targetDir.x * dotProduct;
         poleDir.y -= targetDir.y * dotProduct;
         poleDir.z -= targetDir.z * dotProduct;
-        poleDir.normalize();
+        poleDir.normalizeSelf();
 
         // Calculate middle joint position
         const upperDir = this.rotateVectorAroundAxis(targetDir, poleDir, angleA);
@@ -190,7 +190,7 @@ export class FABRIKSolver {
             
             for (let i = n - 2; i >= 0; i--) {
                 const direction = this.joints[i].clone().subtract(this.joints[i + 1]);
-                direction.normalize();
+                direction.normalizeSelf();
                 this.joints[i] = this.joints[i + 1].clone().add(
                     direction.multiplyScalar(this.lengths[i])
                 );
@@ -201,7 +201,7 @@ export class FABRIKSolver {
             
             for (let i = 0; i < n - 1; i++) {
                 const direction = this.joints[i + 1].clone().subtract(this.joints[i]);
-                direction.normalize();
+                direction.normalizeSelf();
                 this.joints[i + 1] = this.joints[i].clone().add(
                     direction.multiplyScalar(this.lengths[i])
                 );
@@ -474,7 +474,7 @@ export class IKChain {
                 const angle = Math.acos(Math.max(-1, Math.min(1, forward.dot(direction))));
                 
                 if (axis.lengthSquared() > 0.001) {
-                    axis.normalize();
+                    axis.normalizeSelf();
                     this.joints[i].rotation = Quaternion.fromAxisAngle(axis, angle);
                 }
             }

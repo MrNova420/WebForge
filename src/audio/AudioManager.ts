@@ -138,6 +138,7 @@ export class AudioManager {
     private sources: Set<AudioSource> = new Set();
     private events: EventSystem;
     private initialized: boolean = false;
+    private pendingDefaultGroups: string[];
 
     constructor(config: AudioManagerConfig = {}) {
         this.events = new EventSystem();
@@ -152,11 +153,9 @@ export class AudioManager {
         // Create buffer manager
         this.bufferManager = new AudioBufferManager(this.audioContext);
 
-        // Create default groups
-        const defaultGroups = config.defaultGroups ?? ['music', 'sfx', 'voice', 'ambient'];
-        for (const groupName of defaultGroups) {
-            this.createGroup(groupName);
-        }
+        // Store default groups for creation after initialization
+        // (cannot create groups before audio context is initialized)
+        this.pendingDefaultGroups = config.defaultGroups ?? ['music', 'sfx', 'voice', 'ambient'];
     }
 
     /**
@@ -172,6 +171,13 @@ export class AudioManager {
         const success = this.audioContext.initialize();
         if (success) {
             this.initialized = true;
+
+            // Create default groups now that audio context is ready
+            for (const groupName of this.pendingDefaultGroups) {
+                this.createGroup(groupName);
+            }
+            this.pendingDefaultGroups = [];
+
             this.events.emit('initialized', {});
         }
         return success;

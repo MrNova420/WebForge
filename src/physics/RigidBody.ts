@@ -139,13 +139,13 @@ export class RigidBody {
   applyForce(force: Vector3, point?: Vector3): void {
     if (this.type !== RigidBodyType.DYNAMIC) return;
     
-    this.force.add(force);
+    this.force.addSelf(force);
     
     if (point) {
       // Apply torque from offset force
       const offset = point.clone().subtract(this.position);
       const torque = offset.cross(force);
-      this.torque.add(torque);
+      this.torque.addSelf(torque);
     }
     
     this.wakeUp();
@@ -159,13 +159,13 @@ export class RigidBody {
   applyImpulse(impulse: Vector3, point?: Vector3): void {
     if (this.type !== RigidBodyType.DYNAMIC) return;
     
-    this.velocity.add(impulse.clone().multiplyScalar(this.inverseMass));
+    this.velocity.addSelf(impulse.clone().multiplyScalar(this.inverseMass));
     
     if (point) {
       // Apply angular impulse from offset
       const offset = point.clone().subtract(this.position);
       const angularImpulse = offset.cross(impulse);
-      this.angularVelocity.add(angularImpulse.multiplyScalar(this.inverseMass));
+      this.angularVelocity.addSelf(angularImpulse.multiplyScalar(this.inverseMass));
     }
     
     this.wakeUp();
@@ -178,7 +178,7 @@ export class RigidBody {
   applyTorque(torque: Vector3): void {
     if (this.type !== RigidBodyType.DYNAMIC) return;
     
-    this.torque.add(torque);
+    this.torque.addSelf(torque);
     this.wakeUp();
   }
 
@@ -192,19 +192,19 @@ export class RigidBody {
     }
     
     // Apply forces to velocity
-    this.velocity.add(this.force.clone().multiplyScalar(this.inverseMass * dt));
+    this.velocity.addSelf(this.force.clone().multiplyScalar(this.inverseMass * dt));
     
     // Apply damping
-    this.velocity.multiplyScalar(1 - this.linearDamping);
+    this.velocity.multiplyScalarSelf(1 - this.linearDamping);
     
     // Integrate position
-    this.position.add(this.velocity.clone().multiplyScalar(dt));
+    this.position.addSelf(this.velocity.clone().multiplyScalar(dt));
     
     // Apply torques to angular velocity
-    this.angularVelocity.add(this.torque.clone().multiplyScalar(this.inverseMass * dt));
+    this.angularVelocity.addSelf(this.torque.clone().multiplyScalar(this.inverseMass * dt));
     
     // Apply angular damping
-    this.angularVelocity.multiplyScalar(1 - this.angularDamping);
+    this.angularVelocity.multiplyScalarSelf(1 - this.angularDamping);
     
     // Apply rotation locks
     if (this.lockRotationX) this.angularVelocity.x = 0;
@@ -216,7 +216,7 @@ export class RigidBody {
       const angle = this.angularVelocity.length() * dt;
       const axis = this.angularVelocity.clone().normalize();
       const deltaRotation = Quaternion.fromAxisAngle(axis, angle);
-      this.rotation.multiply(deltaRotation).normalize();
+      this.rotation.multiplySelf(deltaRotation).normalizeSelf();
     }
     
     // Clear forces and torques
@@ -255,7 +255,7 @@ export class RigidBody {
     
     // Apply rotation
     const rotationMatrix = this.rotation.toMatrix4();
-    matrix.multiply(rotationMatrix);
+    matrix.multiplySelf(rotationMatrix);
     
     // Apply translation
     const translationMatrix = Matrix4.translation(this.position);

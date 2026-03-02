@@ -85,6 +85,11 @@ export class Scene {
    * @param object - Object to add
    */
   add(object: ISceneObject): void {
+    if (!object) {
+      this.logger.warn('Cannot add null/undefined object to scene');
+      return;
+    }
+
     if (this.objects.has(object)) {
       this.logger.warn(`Object "${object.name}" is already in scene`);
       return;
@@ -98,6 +103,11 @@ export class Scene {
    * @param object - Object to remove
    */
   remove(object: ISceneObject): void {
+    if (!object) {
+      this.logger.warn('Cannot remove null/undefined object from scene');
+      return;
+    }
+
     if (!this.objects.has(object)) {
       this.logger.warn(`Object "${object.name}" is not in scene`);
       return;

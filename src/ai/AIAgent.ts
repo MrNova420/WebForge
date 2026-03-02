@@ -56,7 +56,7 @@ export class AIAgent {
     public applyForce(force: Vector3): void {
         // F = ma, a = F/m
         const f = force.clone().divideScalar(this.mass);
-        this.acceleration.add(f);
+        this.acceleration.addSelf(f);
     }
 
     /**
@@ -64,16 +64,16 @@ export class AIAgent {
      */
     public update(deltaTime: number): void {
         // Update velocity
-        this.velocity.add(this.acceleration.clone().multiplyScalar(deltaTime));
+        this.velocity.addSelf(this.acceleration.clone().multiplyScalar(deltaTime));
 
         // Limit speed
         const speed = this.velocity.length();
         if (speed > this.maxSpeed) {
-            this.velocity.normalize().multiplyScalar(this.maxSpeed);
+            this.velocity.normalizeSelf().multiplyScalarSelf(this.maxSpeed);
         }
 
         // Update position
-        this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+        this.position.addSelf(this.velocity.clone().multiplyScalar(deltaTime));
 
         // Reset acceleration
         this.acceleration.set(0, 0, 0);
@@ -118,7 +118,7 @@ export class AIAgent {
 
         // Limit force
         if (steer.length() > this.maxForce) {
-            steer.normalize().multiplyScalar(this.maxForce);
+            steer.normalizeSelf().multiplyScalarSelf(this.maxForce);
         }
 
         this.applyForce(steer);

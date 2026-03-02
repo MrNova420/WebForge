@@ -185,11 +185,11 @@ export class SoftBody {
       
       const delta = pB.position.clone().subtract(pA.position);
       const length = delta.length();
-      if (length < 0.0001) continue;
+      if (length < 1e-3) continue;
 
       const diff = (length - c.restLength) / length;
       const totalInvMass = pA.inverseMass + pB.inverseMass;
-      if (totalInvMass < 0.0001) continue;
+      if (totalInvMass < 1e-3) continue;
 
       const correction = delta.clone().multiplyScalar(diff * c.stiffness / totalInvMass);
       
@@ -212,7 +212,8 @@ export class SoftBody {
       const currentVolume = this.computeVolume(c.particles);
       if (Math.abs(c.restVolume) < 0.0001) continue;
 
-      const ratio = c.restVolume / (currentVolume + 0.0001);
+      const safeVolume = Math.abs(currentVolume) < 1e-3 ? Math.sign(currentVolume || 1) * 1e-3 : currentVolume;
+      const ratio = c.restVolume / safeVolume;
       const scale = (ratio - 1.0) * c.stiffness * 0.25;
 
       // Compute centroid

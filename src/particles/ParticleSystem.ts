@@ -226,7 +226,7 @@ export class ParticleForces {
         return {
             name: 'wind',
             apply: (particle: Particle, _deltaTime: number) => {
-                particle.acceleration.add(direction);
+                particle.acceleration.addSelf(direction);
             }
         };
     }
@@ -241,7 +241,7 @@ export class ParticleForces {
             name: 'drag',
             apply: (particle: Particle, _deltaTime: number) => {
                 const drag = particle.velocity.clone().multiplyScalar(-coefficient);
-                particle.acceleration.add(drag);
+                particle.acceleration.addSelf(drag);
             }
         };
     }
@@ -259,9 +259,8 @@ export class ParticleForces {
                 const direction = position.clone().subtract(particle.position);
                 const distance = direction.length();
                 if (distance > 0.01) {
-                    direction.normalize();
-                    const force = direction.multiplyScalar(strength / (distance * distance));
-                    particle.acceleration.add(force);
+                    const force = direction.normalize().multiplyScalar(strength / (distance * distance));
+                    particle.acceleration.addSelf(force);
                 }
             }
         };
@@ -279,9 +278,8 @@ export class ParticleForces {
             name: 'vortex',
             apply: (particle: Particle, _deltaTime: number) => {
                 const offset = particle.position.clone().subtract(position);
-                const tangent = offset.cross(axis);
-                tangent.normalize();
-                particle.acceleration.add(tangent.multiplyScalar(strength));
+                const tangent = offset.cross(axis).normalize();
+                particle.acceleration.addSelf(tangent.multiplyScalar(strength));
             }
         };
     }

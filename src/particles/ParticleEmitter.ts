@@ -203,7 +203,7 @@ export class ParticleEmitter {
         // Set position
         const offset = this.randomPosition();
         particle.position.copy(this.position);
-        particle.position.add(offset);
+        particle.position.addSelf(offset);
         
         // Set velocity
         particle.velocity.x = this.random(this.config.velocity.min.x, this.config.velocity.max.x);

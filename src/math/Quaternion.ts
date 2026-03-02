@@ -139,10 +139,10 @@ export class Quaternion {
     const s3 = Math.sin(z / 2);
 
     return new Quaternion(
-      s1 * c2 * c3 + c1 * s2 * s3,
-      c1 * s2 * c3 - s1 * c2 * s3,
-      c1 * c2 * s3 + s1 * s2 * c3,
-      c1 * c2 * c3 - s1 * s2 * s3
+      s1 * c2 * c3 - c1 * s2 * s3,
+      c1 * s2 * c3 + s1 * c2 * s3,
+      c1 * c2 * s3 - s1 * s2 * c3,
+      c1 * c2 * c3 + s1 * s2 * s3
     );
   }
 

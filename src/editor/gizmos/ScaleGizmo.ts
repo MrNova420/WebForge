@@ -239,7 +239,7 @@ export class ScaleGizmo extends Gizmo {
                 break;
             case GizmoAxis.XYZ:
                 // Uniform scaling
-                newScale.multiplyScalar(scaleFactor);
+                newScale.multiplyScalarSelf(scaleFactor);
                 break;
         }
         

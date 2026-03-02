@@ -95,7 +95,7 @@ export class NavMesh {
             let lowestF = Infinity;
 
             for (const id of openSet) {
-                const f = fScore.get(id) || Infinity;
+                const f = fScore.get(id) ?? Infinity;
                 if (f < lowestF) {
                     lowestF = f;
                     current = id;
@@ -111,9 +111,9 @@ export class NavMesh {
 
             for (const neighborId of currentNode.neighbors) {
                 const neighbor = this.nodes.get(neighborId)!;
-                const tentativeG = (gScore.get(current) || Infinity) + neighbor.cost;
+                const tentativeG = (gScore.get(current) ?? Infinity) + neighbor.cost;
 
-                if (tentativeG < (gScore.get(neighborId) || Infinity)) {
+                if (tentativeG < (gScore.get(neighborId) ?? Infinity)) {
                     cameFrom.set(neighborId, current);
                     gScore.set(neighborId, tentativeG);
                     fScore.set(neighborId, tentativeG + this.heuristic(neighborId, endId));

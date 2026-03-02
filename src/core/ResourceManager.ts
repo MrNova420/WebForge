@@ -95,6 +95,9 @@ export class ResourceManager {
   /** Current cache size in bytes */
   private currentCacheSize: number;
 
+  /** Timeout for waiting on in-progress loads (ms), 0 = unlimited */
+  private loadTimeout: number;
+
   /**
    * Creates a new ResourceManager.
    * @param baseURL - Base URL for relative paths (default: '')
@@ -109,6 +112,7 @@ export class ResourceManager {
     this.loading = new Set();
     this.maxCacheSize = maxCacheSize;
     this.currentCacheSize = 0;
+    this.loadTimeout = 30000; // 30 second default timeout
     
     // Register default loaders
     this.registerDefaultLoaders();
@@ -219,14 +223,29 @@ export class ResourceManager {
       // Already loading, wait for it
       if (metadata.status === ResourceStatus.LOADING) {
         return new Promise((resolve, reject) => {
-          const checkStatus = () => {
+          const startTime = performance.now();
+          let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+          const cancelTimer = (): void => {
+            if (timeoutId !== null) {
+              clearTimeout(timeoutId);
+              timeoutId = null;
+            }
+          };
+
+          const checkStatus = (): void => {
             const meta = this.resources.get(resolvedURL);
             if (meta?.status === ResourceStatus.LOADED) {
+              cancelTimer();
               resolve(meta.data);
             } else if (meta?.status === ResourceStatus.ERROR) {
+              cancelTimer();
               reject(meta.error);
+            } else if (this.loadTimeout > 0 && (performance.now() - startTime) > this.loadTimeout) {
+              cancelTimer();
+              reject(new Error(`Timed out waiting for resource: ${url}`));
             } else {
-              setTimeout(checkStatus, 10);
+              timeoutId = setTimeout(checkStatus, 10);
             }
           };
           checkStatus();
@@ -498,6 +517,22 @@ export class ResourceManager {
     if (size > 0 && this.currentCacheSize > size) {
       this.evictLRU();
     }
+  }
+
+  /**
+   * Sets the timeout for waiting on in-progress resource loads.
+   * @param timeout - Timeout in milliseconds (0 = unlimited)
+   */
+  setLoadTimeout(timeout: number): void {
+    this.loadTimeout = Math.max(0, timeout);
+  }
+
+  /**
+   * Gets the current load timeout.
+   * @returns Timeout in milliseconds
+   */
+  getLoadTimeout(): number {
+    return this.loadTimeout;
   }
 
   /**

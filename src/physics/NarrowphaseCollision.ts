@@ -64,7 +64,7 @@ export class Narrowphase {
         result.bodyA = result.bodyB;
         result.bodyB = temp;
         result.contacts.forEach(c => {
-          c.normal.multiplyScalar(-1);
+          c.normal.multiplyScalarSelf(-1);
           const tempPoint = c.pointA;
           c.pointA = c.pointB;
           c.pointB = tempPoint;
@@ -89,7 +89,7 @@ export class Narrowphase {
         result.bodyA = result.bodyB;
         result.bodyB = temp;
         result.contacts.forEach(c => {
-          c.normal.multiplyScalar(-1);
+          c.normal.multiplyScalarSelf(-1);
           const tempPoint = c.pointA;
           c.pointA = c.pointB;
           c.pointB = tempPoint;
