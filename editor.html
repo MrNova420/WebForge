@@ -3185,7 +3185,10 @@
                         input.onchange = () => {
                             if (input.files && input.files[0]) {
                                 const file = input.files[0];
+                                // Revoke previous URL if any
+                                if (slot._blobUrl) URL.revokeObjectURL(slot._blobUrl);
                                 const url = URL.createObjectURL(file);
+                                slot._blobUrl = url;
                                 slot.style.backgroundImage = `url(${url})`;
                                 slot.style.backgroundSize = 'cover';
                                 slot.style.border = '1px solid #4ec9b0';
@@ -3204,7 +3207,9 @@
                         slot.style.borderColor = '#444';
                         const files = e.dataTransfer?.files;
                         if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+                            if (slot._blobUrl) URL.revokeObjectURL(slot._blobUrl);
                             const url = URL.createObjectURL(files[0]);
+                            slot._blobUrl = url;
                             slot.style.backgroundImage = `url(${url})`;
                             slot.style.backgroundSize = 'cover';
                             slot.style.border = '1px solid #4ec9b0';
@@ -4184,14 +4189,14 @@
                 const objects = scene.getAllGameObjects();
                 container.innerHTML = '';
 
-                // Build parent-child map
+                // Build parent-child map using object references as keys
                 const childMap = new Map();
                 const roots = [];
                 objects.forEach(obj => {
                     const parent = obj.transform?.parent?.gameObject;
                     if (parent && objects.includes(parent)) {
-                        if (!childMap.has(parent.name)) childMap.set(parent.name, []);
-                        childMap.get(parent.name).push(obj);
+                        if (!childMap.has(parent)) childMap.set(parent, []);
+                        childMap.get(parent).push(obj);
                     } else {
                         roots.push(obj);
                     }
@@ -4206,7 +4211,7 @@
                     const isLight = (obj).lightType;
                     const isTerrain = (obj).isTerrain;
                     const isParticle = obj._components?.some(c => c.type === 'particle');
-                    const hasChildren = childMap.has(obj.name);
+                    const hasChildren = childMap.has(obj);
                     const icon = isLight ? '💡' : isTerrain ? '🏔' : isParticle ? '✨' : '📦';
                     
                     const expandBtn = hasChildren ? 
@@ -4235,7 +4240,7 @@
                         const childContainer = document.createElement('div');
                         childContainer.className = 'tree-children';
                         childContainer.dataset.parent = obj.name;
-                        childMap.get(obj.name).forEach(child => renderObject(child, depth + 1));
+                        childMap.get(obj).forEach(child => renderObject(child, depth + 1));
                         
                         const expandBtnEl = item.querySelector('.expand-btn');
                         if (expandBtnEl) {
