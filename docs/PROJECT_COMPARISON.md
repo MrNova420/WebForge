@@ -55,7 +55,7 @@ webforge/
 │   ├── procedural/         # Procedural generation
 │   ├── optimization/       # Frustum culling, LOD, instancing
 │   └── ... 10 more modules
-├── tests/                  # 10 test files, 653 tests
+├── tests/                  # 28 test files, 1910 tests
 ├── index.html              # Landing page
 ├── editor.html             # Full visual editor UI
 └── docs/                   # Comprehensive documentation
@@ -242,7 +242,7 @@ These two projects could complement each other:
 | | WebForge | NovaHub |
 |-|----------|---------|
 | **Vision** | Be the browser-based Unreal+Unity+Blender | Be the AI-powered coding assistant hub |
-| **Maturity** | More mature codebase with 105 tests, full build pipeline | Earlier stage with active AI integration work |
+| **Maturity** | More mature codebase with 1910 tests, full build pipeline | Earlier stage with active AI integration work |
 | **Complexity** | Deep single-package with 30+ modules | Wide monorepo with 17+ packages |
 | **Unique Value** | Zero-install game dev in the browser | Provider-agnostic AI coding in the terminal |
 | **Best For** | Game developers, educators, web developers | Software engineers, teams, AI-assisted coding |

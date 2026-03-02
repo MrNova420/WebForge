@@ -4,14 +4,14 @@
 
 [![Status](https://img.shields.io/badge/status-beta-green)]()
 [![Version](https://img.shields.io/badge/version-1.0.0-blue)]()
-[![Tests](https://img.shields.io/badge/tests-653%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1910%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ---
 
 ## ⚠️ Development Status — Honest Notes
 
-> **The engine is feature-complete for game development.** 227 TypeScript source files, 233 compiled modules, 653 passing tests. The `WebForge` facade creates real `Scene`, `GameObject`, `Camera`, and `PhysicsWorld` instances. All editor panels are wired and interactive. Full game runtime systems are in place.
+> **The engine is feature-complete for game development.** 227 TypeScript source files, 233 compiled modules, 1910 passing tests. The `WebForge` facade creates real `Scene`, `GameObject`, `Camera`, and `PhysicsWorld` instances. All editor panels are wired and interactive. Full game runtime systems are in place.
 
 ### ✅ Engine API — fully wired
 - `WebForge` facade uses real `Engine`, `Scene`, `GameObject`, `Camera`, `PhysicsWorld` classes
@@ -89,7 +89,7 @@ npm run build
 | `npm run dev` | Start development server with hot reload |
 | `npm run build` | Build for production (TypeScript + Vite) |
 | `npm run compile` | TypeScript compile only |
-| `npm test` | Run all tests (653 tests) |
+| `npm test` | Run all tests (1910 tests) |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run lint` | Type-check without emit |
 
@@ -317,7 +317,7 @@ webforge/
 │   ├── versioncontrol/ # Version control system
 │   └── utils/          # Utilities (pooling, profiling)
 ├── docs/               # Complete documentation
-├── tests/              # Comprehensive test suite (653 tests)
+├── tests/              # Comprehensive test suite (1910 tests)
 ├── editor.html         # Full visual editor UI
 ├── index.html          # Landing page
 └── examples/           # Example games & demos
