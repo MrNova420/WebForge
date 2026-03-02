@@ -203,6 +203,7 @@ export class EditorApplication {
         this.isRunning = true;
         this.lastFrameTime = performance.now();
         this.fpsUpdateTime = this.lastFrameTime;
+        this.updateStats(); // Emit initial stats so UI shows correct object count immediately
         this.loop();
         
         this.events.emit('started');
@@ -916,6 +917,7 @@ export class EditorApplication {
         obj.terrainResolution = resolution;
         obj.terrainLayers = [];
         obj.terrainHeightData = new Float32Array(resolution * resolution);
+        obj._terrainVersion = 0;
         terrain.transform.scale.set(width, 1, depth);
         this.updateHierarchy();
         this.log(`Terrain created (${width}×${depth}, ${resolution}² resolution)`, 'success');
@@ -930,6 +932,13 @@ export class EditorApplication {
         if (sel.length === 0) return null;
         const obj = sel[0] as any;
         return obj.isTerrain ? obj : null;
+    }
+
+    /**
+     * Bump terrain mesh version so the renderer rebuilds its VAO.
+     */
+    private bumpTerrainVersion(terrain: any): void {
+        terrain._terrainVersion = (terrain._terrainVersion ?? 0) + 1;
     }
 
     /**
@@ -992,6 +1001,7 @@ export class EditorApplication {
             }
         }
         
+        this.bumpTerrainVersion(terrain);
         this.events.emit('terrainModified', { tool, x, z });
         return true;
     }
@@ -1045,6 +1055,7 @@ export class EditorApplication {
             }
         }
         
+        this.bumpTerrainVersion(terrain);
         this.events.emit('terrainModified', { tool: 'generate', preset });
         this.log(`Terrain generated: ${preset}`, 'success');
         return true;
@@ -1059,6 +1070,7 @@ export class EditorApplication {
         
         const data = terrain.terrainHeightData as Float32Array;
         data.fill(0);
+        this.bumpTerrainVersion(terrain);
         this.events.emit('terrainModified', { tool: 'reset' });
         this.log('Terrain height reset', 'info');
         return true;
@@ -1123,6 +1135,7 @@ export class EditorApplication {
                 terrain.terrainHeightData = new Float32Array(parsed.heights);
                 if (parsed.width) terrain.terrainWidth = parsed.width;
                 if (parsed.depth) terrain.terrainDepth = parsed.depth;
+                this.bumpTerrainVersion(terrain);
                 this.events.emit('terrainModified', { tool: 'import' });
                 this.log('Heightmap imported', 'success');
                 return true;
